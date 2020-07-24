@@ -1,0 +1,14 @@
+[package]
+name = "grpc-client-gui"
+description = "grpc-client-gui."
+version = "0.0.0"
+authors = ["Andrew Hickman <andrew.hickman1@sky.com>"]
+repository = "https://github.com/andrewhickman/grpc-client-gui"
+documentation = "https://docs.rs/grpc-client-gui"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+edition = "2018"
+
+[dependencies]
+
+[dev-dependencies]
