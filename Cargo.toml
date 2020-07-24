@@ -11,5 +11,8 @@ edition = "2018"
 
 [dependencies]
 druid = "0.6.0"
+grpc = "0.8.1"
+protobuf = "2.16.2"
+grpc-protobuf = "0.8.1"
 
 [dev-dependencies]

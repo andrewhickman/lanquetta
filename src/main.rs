@@ -1,15 +1,15 @@
 mod app_delegate;
+mod channel;
 mod data;
 mod menus;
 mod theme;
+mod widgets;
 
-use druid::widget::{Align, Flex, Label, TextBox};
-use druid::{AppLauncher, Env, LocalizedString, Size, Widget, WidgetExt, WindowDesc};
+use druid::widget::Flex;
+use druid::{AppLauncher, LocalizedString, Size, Widget, WidgetExt, WindowDesc};
 
 use crate::data::AppState;
-
-const VERTICAL_WIDGET_SPACING: f64 = 20.0;
-const TEXT_BOX_WIDTH: f64 = 200.0;
+use crate::widgets::Sidebar;
 
 pub fn main() {
     let state = AppState::new();
@@ -21,23 +21,20 @@ pub fn main() {
 
     AppLauncher::with_window(main_window)
         .delegate(app_delegate::Delegate::default())
-        .configure_env(|env, _| theme::configure_env(env))
+        .configure_env(|env, _| theme::set_env(env))
         .use_simple_logger()
         .launch(state)
         .expect("launch failed");
 }
 
 fn make_ui() -> impl Widget<AppState> {
-    let label = Label::new(|data: &AppState, _env: &Env| format!("Hello {}!", data.name));
-    let textbox = TextBox::new()
-        .with_placeholder("Who are we greeting?")
-        .fix_width(TEXT_BOX_WIDTH)
-        .lens(AppState::name);
-
-    let layout = Flex::column()
-        .with_child(label)
-        .with_spacer(VERTICAL_WIDGET_SPACING)
-        .with_child(textbox);
-
-    Align::centered(layout)
+    Flex::row()
+        .with_child(Sidebar.fix_width(100.0))
+        .with_flex_child(
+            Flex::column().with_flex_child(
+                channel::make_widget().lens(AppState::channel).padding(16.0),
+                1.0,
+            ),
+            1.0,
+        )
 }
