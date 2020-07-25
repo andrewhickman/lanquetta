@@ -1,19 +1,22 @@
 use druid::{Data, Lens};
 
-use crate::channel::ChannelState;
+use crate::address::AddressState;
+use crate::connection::ConnectionState;
 
 /// The top-level application state.
 #[derive(Clone, Data, Lens)]
 pub(crate) struct AppState {
     pub name: String,
-    pub channel: ChannelState,
+    pub address: AddressState,
+    pub connection: ConnectionState,
 }
 
 impl AppState {
     pub fn new() -> Self {
         AppState {
             name: "hello".to_owned(),
-            channel: ChannelState::new(),
+            address: AddressState::new(),
+            connection: Default::default(),
         }
     }
 }

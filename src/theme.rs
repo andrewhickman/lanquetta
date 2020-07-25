@@ -21,8 +21,6 @@ pub fn set_env(env: &mut Env) {
     env.set(druid::theme::WINDOW_BACKGROUND_COLOR, color::ACCENT);
     env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_DARK, color::BACKGROUND);
-    env.set(druid::theme::PRIMARY_LIGHT, color::TEXT);
-    env.set(druid::theme::PRIMARY_DARK, color::BACKGROUND);
     env.set(
         druid::theme::SELECTION_COLOR,
         mix(color::TEXT, color::BACKGROUND, 0.32),
@@ -40,11 +38,15 @@ pub fn set_env(env: &mut Env) {
 }
 
 pub fn set_textbox_valid(env: &mut Env) {
+    env.set(druid::theme::PRIMARY_LIGHT, color::TEXT);
+    env.set(druid::theme::PRIMARY_DARK, color::TEXT);
     env.set(druid::theme::BORDER_DARK, color::SUBTLE_ACCENT);
     env.set(druid::theme::BORDER_LIGHT, color::SUBTLE_ACCENT);
 }
 
 pub fn set_textbox_invalid(env: &mut Env) {
+    env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
+    env.set(druid::theme::PRIMARY_DARK, color::ERROR);
     env.set(druid::theme::BORDER_DARK, color::ERROR);
     env.set(druid::theme::BORDER_LIGHT, color::ERROR);
 }

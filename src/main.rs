@@ -1,5 +1,7 @@
+mod address;
 mod app_delegate;
-mod channel;
+mod command;
+mod connection;
 mod data;
 mod menus;
 mod theme;
@@ -32,7 +34,7 @@ fn make_ui() -> impl Widget<AppState> {
         .with_child(Sidebar.fix_width(100.0))
         .with_flex_child(
             Flex::column().with_flex_child(
-                channel::make_widget().lens(AppState::channel).padding(16.0),
+                address::make_widget().lens(AppState::address).padding(16.0),
                 1.0,
             ),
             1.0,
