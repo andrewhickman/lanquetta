@@ -1,1 +1,1 @@
-# grpc-client-gui
+# grpc-client

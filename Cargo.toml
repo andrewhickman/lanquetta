@@ -1,22 +1,16 @@
 [package]
-name = "grpc-client-gui"
-description = "grpc-client-gui."
+name = "grpc-client"
+description = "grpc-client."
 version = "0.0.0"
 authors = ["Andrew Hickman <andrew.hickman1@sky.com>"]
-repository = "https://github.com/andrewhickman/grpc-client-gui"
-documentation = "https://docs.rs/grpc-client-gui"
+repository = "https://github.com/andrewhickman/grpc-client"
+documentation = "https://docs.rs/grpc-client"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
 
 [dependencies]
 druid = "0.6.0"
-grpc = "0.8.1"
-protobuf = "2.16.2"
-grpc-protobuf = "0.8.1"
-tls-api-rustls = "0.4.0"
-rustls = "0.17.0"
-tls-api = "0.4.0"
-log = "0.4.11"
+anyhow = "1.0.32"
 
 [dev-dependencies]
