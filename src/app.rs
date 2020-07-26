@@ -52,7 +52,7 @@ fn build() -> impl Widget<State> {
         .padding(theme::GUTTER_SIZE);
 
     Split::columns(sidebar, main)
-        .split_point(0.3)
+        .split_point(0.2)
         .draggable(true)
         .solid_bar(true)
         .boxed()

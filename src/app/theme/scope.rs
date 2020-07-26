@@ -1,6 +1,6 @@
 use druid::{
     BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget,
+    UpdateCtx, Widget, WidgetId,
 };
 
 use crate::app::theme::color;
@@ -51,6 +51,10 @@ where
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         self.widget
             .paint(ctx, data, &update_env(env, ctx.is_hot(), ctx.is_active()))
+    }
+
+    fn id(&self) -> Option<WidgetId> {
+        self.widget.id()
     }
 }
 
