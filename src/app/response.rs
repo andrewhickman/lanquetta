@@ -1,5 +1,6 @@
-use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt};
+
+use crate::widget::TextArea;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -7,5 +8,5 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    TextBox::new().lens(State::body).expand().boxed()
+    TextArea::new().styled().lens(State::body).boxed()
 }
