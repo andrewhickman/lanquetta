@@ -1,11 +1,44 @@
-use druid::AppDelegate;
+use druid::{AppDelegate, ExtEventSink, SingleUse, Target};
 
-use crate::app;
+use crate::app::{self, command};
 
-pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
-    Delegate
+pub(in crate::app) fn build(event_sink: ExtEventSink) -> impl AppDelegate<app::State> {
+    Delegate { event_sink }
 }
 
-struct Delegate;
+struct Delegate {
+    event_sink: ExtEventSink,
+}
 
-impl AppDelegate<app::State> for Delegate {}
+impl AppDelegate<app::State> for Delegate {
+    fn command(
+        &mut self,
+        _ctx: &mut druid::DelegateCtx,
+        _target: druid::Target,
+        cmd: &druid::Command,
+        data: &mut app::State,
+        _env: &druid::Env,
+    ) -> bool {
+        if cmd.is(command::START_SEND) {
+            let event_sink = self.event_sink.clone();
+            data.address
+                .client()
+                .send(data.request.request(), move |response| {
+                    event_sink
+                        .submit_command(
+                            command::FINISH_SEND,
+                            SingleUse::new(response),
+                            Target::Global,
+                        )
+                        .ok();
+                });
+            false
+        } else if let Some(response) = cmd.get(command::FINISH_SEND) {
+            let result = response.take().expect("response already handled");
+            data.response.update(result);
+            false
+        } else {
+            true
+        }
+    }
+}

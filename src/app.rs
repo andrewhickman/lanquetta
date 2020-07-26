@@ -19,9 +19,11 @@ pub fn launch() -> Result<(), PlatformError> {
         .resizable(true)
         .show_titlebar(true);
 
-    AppLauncher::with_window(main_window)
+    let app_launcher = AppLauncher::with_window(main_window);
+    let event_sink = app_launcher.get_external_handle();
+    app_launcher
         .configure_env(theme::set)
-        .delegate(delegate::build())
+        .delegate(delegate::build(event_sink))
         .use_simple_logger()
         .launch(State::default())
 }

@@ -1,12 +1,16 @@
 use druid::widget::{Button, Checkbox, Flex, TextBox};
-use druid::{Data, Env, EventCtx, Lens, Widget, WidgetExt};
+use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt};
 
-use crate::app::theme;
+use crate::app::{command, theme};
+use crate::grpc;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     address: String,
     tls: bool,
+    #[data(ignore)]
+    #[lens(name = "__unused")]
+    client: grpc::Client,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -15,9 +19,9 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .lens(State::address)
         .expand_width();
     let tls_checkbox = Checkbox::new("Use TLS").lens(State::tls);
-    let connect_button = theme::scope(Button::new("Send").on_click(
-        |_: &mut EventCtx, _: &mut State, _: &Env| {
-            // TODO connect
+    let send_button = theme::scope(Button::new("Send").on_click(
+        |ctx: &mut EventCtx, _: &mut State, _: &Env| {
+            ctx.submit_command(command::START_SEND, Target::Global)
         },
     ));
 
@@ -26,6 +30,12 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(tls_checkbox)
         .with_spacer(theme::GUTTER_SIZE)
-        .with_child(connect_button)
+        .with_child(send_button)
         .boxed()
+}
+
+impl State {
+    pub(in crate::app) fn client(&self) -> &grpc::Client {
+        &self.client
+    }
 }
