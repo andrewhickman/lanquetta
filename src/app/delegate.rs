@@ -1,13 +1,18 @@
 use druid::{AppDelegate, ExtEventSink, SingleUse, Target};
 
 use crate::app::{self, command};
+use crate::grpc;
 
 pub(in crate::app) fn build(event_sink: ExtEventSink) -> impl AppDelegate<app::State> {
-    Delegate { event_sink }
+    Delegate {
+        event_sink,
+        grpc_client: grpc::Client::new(),
+    }
 }
 
 struct Delegate {
     event_sink: ExtEventSink,
+    grpc_client: grpc::Client,
 }
 
 impl AppDelegate<app::State> for Delegate {
@@ -21,8 +26,7 @@ impl AppDelegate<app::State> for Delegate {
     ) -> bool {
         if cmd.is(command::START_SEND) {
             let event_sink = self.event_sink.clone();
-            data.address
-                .client()
+            self.grpc_client
                 .send(data.request.request(), move |response| {
                     event_sink
                         .submit_command(

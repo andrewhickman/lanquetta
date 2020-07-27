@@ -13,7 +13,6 @@ edition = "2018"
 druid = "0.6.0"
 anyhow = "1.0.32"
 log = "0.4.11"
-grpc = "0.8.1"
 futures = "0.3.5"
 
 [dependencies.tokio]

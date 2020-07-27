@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use futures::future::FutureExt;
 
 pub type ResponseResult = Result<Response, Error>;
@@ -14,22 +12,18 @@ pub struct Response;
 pub struct Request;
 
 #[derive(Debug, Clone)]
-pub struct Client {
-    inner: Result<Arc<grpc::Client>, ()>,
-}
+pub struct Client {}
 
 impl Client {
+    pub fn new() -> Self {
+        Client {}
+    }
+
     pub fn send(&self, request: Request, callback: impl FnOnce(ResponseResult) + Send + 'static) {
         tokio::spawn(self.clone().send_impl(request).map(callback));
     }
 
     async fn send_impl(self, _request: Request) -> ResponseResult {
         Ok(Response)
-    }
-}
-
-impl Default for Client {
-    fn default() -> Self {
-        Client { inner: Err(()) }
     }
 }

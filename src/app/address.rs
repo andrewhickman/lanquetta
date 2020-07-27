@@ -2,15 +2,11 @@ use druid::widget::{Button, Checkbox, Flex, TextBox};
 use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt};
 
 use crate::app::{command, theme};
-use crate::grpc;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     address: String,
     tls: bool,
-    #[data(ignore)]
-    #[lens(name = "__unused")]
-    client: grpc::Client,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -32,10 +28,4 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(send_button)
         .boxed()
-}
-
-impl State {
-    pub(in crate::app) fn client(&self) -> &grpc::Client {
-        &self.client
-    }
 }
