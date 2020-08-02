@@ -24,6 +24,7 @@ impl AppDelegate<app::State> for Delegate {
         data: &mut app::State,
         _env: &druid::Env,
     ) -> bool {
+        log::info!("Received command: {:?}", cmd);
         if cmd.is(command::START_SEND) {
             let event_sink = self.event_sink.clone();
             self.grpc_client

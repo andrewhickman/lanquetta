@@ -13,5 +13,10 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 }
 
 impl State {
-    pub(in crate::app) fn update(&mut self, _result: grpc::ResponseResult) {}
+    pub(in crate::app) fn update(&mut self, result: grpc::ResponseResult) {
+        match result {
+            Ok(response) => self.body = response.body,
+            Err(err) => self.body = format!("{:?}", err),
+        }
+    }
 }

@@ -14,7 +14,9 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 
 impl State {
     pub(in crate::app) fn request(&self) -> grpc::Request {
-        grpc::Request
+        grpc::Request {
+            body: self.body.clone(),
+        }
     }
 }
 
