@@ -1272,13 +1272,8 @@ dependencies = [
 
 [[package]]
 name = "protobuf"
-version = "2.16.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d883f78645c21b7281d21305181aa1f4dd9e9363e7cf2566c93121552cff003e"
-dependencies = [
- "serde",
- "serde_derive",
-]
+version = "3.0.0-pre"
+source = "git+https://github.com/stepancheg/rust-protobuf.git?rev=436d022b5eaf54c8eebd232d920f1a5a0ed0a9e6#436d022b5eaf54c8eebd232d920f1a5a0ed0a9e6"
 
 [[package]]
 name = "quote"

@@ -1,22 +1,26 @@
-mod serde_codec;
+mod protobuf_codec;
 
 use std::sync::Arc;
 
 use futures::future::FutureExt;
+use protobuf::MessageDyn;
 use tokio::sync::Mutex;
 use tonic::client::Grpc;
 use tonic::transport::Channel;
+use tonic::IntoRequest;
+
+use self::protobuf_codec::ProtobufCodec;
 
 pub type ResponseResult = Result<Response, Error>;
 
 #[derive(Debug)]
 pub struct Request {
-    pub body: String,
+    pub body: Box<dyn MessageDyn>,
 }
 
 #[derive(Debug)]
 pub struct Response {
-    pub body: String,
+    pub body: Box<dyn MessageDyn>,
 }
 
 pub type Error = anyhow::Error;
@@ -42,10 +46,21 @@ impl Client {
     }
 
     async fn send_impl(self, request: Request) -> ResponseResult {
-        let item: protobuf::well_known_types::Value =
-            serde_json::from_str(&request.body).map_err(anyhow::Error::from)?;
+        let mut inner = self.inner.lock().await;
+
+        let grpc: &mut Grpc<Channel> = match &mut inner.grpc {
+            Some(grpc) => grpc,
+            None => todo!(),
+        };
+
+        let codec = ProtobufCodec::new(request.body.descriptor_dyn());
+
+        let body = grpc
+            .unary(request.body.into_request(), todo!(), codec)
+            .await?;
+
         Ok(Response {
-            body: serde_json::to_string(&item).unwrap(),
+            body: body.into_inner(),
         })
     }
 }
