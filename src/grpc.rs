@@ -1,5 +1,3 @@
-mod protobuf_codec;
-
 use std::sync::Arc;
 
 use futures::future::FutureExt;
@@ -9,7 +7,7 @@ use tonic::client::Grpc;
 use tonic::transport::Channel;
 use tonic::IntoRequest;
 
-use self::protobuf_codec::ProtobufCodec;
+use crate::protobuf::ProtobufCodec;
 
 pub type ResponseResult = Result<Response, Error>;
 
