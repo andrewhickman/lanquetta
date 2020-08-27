@@ -1,3 +1,6 @@
+use std::path::Path;
+
+use anyhow::Result;
 use druid::piet::RenderContext;
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, Lens, LifeCycle, LifeCycleCtx, PaintCtx,
@@ -14,6 +17,12 @@ pub(in crate::app) fn build() -> impl druid::Widget<State> {
 }
 
 struct Sidebar {}
+
+impl State {
+    pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
+        todo!()
+    }
+}
 
 impl Widget<State> for Sidebar {
     fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut State, _env: &Env) {}

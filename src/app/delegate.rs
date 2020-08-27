@@ -25,7 +25,12 @@ impl AppDelegate<app::State> for Delegate {
         _env: &druid::Env,
     ) -> bool {
         log::info!("Received command: {:?}", cmd);
-        if cmd.is(command::START_SEND) {
+        if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
+            if let Err(err) = data.sidebar.add_from_path(file.path()) {
+                log::error!("Error loading file: {:?}", err);
+            }
+            false
+        } else if cmd.is(command::START_SEND) {
             let event_sink = self.event_sink.clone();
             self.grpc_client
                 .send(data.request.request(), move |response| {
