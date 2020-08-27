@@ -3,7 +3,7 @@ use druid::{
     UpdateCtx, Widget, WidgetId,
 };
 
-use crate::app::theme::color;
+use crate::theme::color;
 
 pub fn new<T>(widget: impl Widget<T>) -> impl Widget<T> {
     Scope { widget }

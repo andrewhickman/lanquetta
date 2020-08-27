@@ -5,14 +5,12 @@ pub use scope::new as scope;
 
 use druid::{Color, Env, Key};
 
-use crate::app;
+pub(crate) const GUTTER_SIZE: f64 = 16.0;
 
-pub(in crate::app) const GUTTER_SIZE: f64 = 16.0;
+pub(crate) const SIDEBAR_BACKGROUND_COLOR: Key<Color> = Key::new("app.sidebar-background");
+pub(crate) const ERROR_COLOR: Key<Color> = Key::new("app.error");
 
-pub(in crate::app) const SIDEBAR_BACKGROUND_COLOR: Key<Color> = Key::new("app.sidebar-background");
-pub(in crate::app) const ERROR_COLOR: Key<Color> = Key::new("app.error");
-
-pub(in crate::app) fn set(env: &mut Env, _: &app::State) {
+pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::PRIMARY_LIGHT, color::TEXT);
     env.set(druid::theme::PRIMARY_DARK, color::TEXT);
     env.set(druid::theme::BORDER_DARK, color::SUBTLE_ACCENT);
@@ -33,4 +31,11 @@ pub(in crate::app) fn set(env: &mut Env, _: &app::State) {
 
     env.set(SIDEBAR_BACKGROUND_COLOR, color::SUBTLE_ACCENT);
     env.set(ERROR_COLOR, color::ERROR);
+}
+
+pub(crate) fn set_error(env: &mut Env) {
+    env.set(druid::theme::BORDER_DARK, color::ERROR);
+    env.set(druid::theme::BORDER_LIGHT, color::ERROR);
+    env.set(druid::theme::PRIMARY_DARK, color::ERROR);
+    env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
 }

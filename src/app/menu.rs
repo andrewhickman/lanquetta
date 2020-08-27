@@ -1,4 +1,7 @@
-use druid::{MenuDesc, platform_menus, LocalizedString, SysMods, MenuItem, FileDialogOptions, Command, FileSpec};
+use druid::{
+    platform_menus, Command, FileDialogOptions, FileSpec, LocalizedString, MenuDesc, MenuItem,
+    SysMods,
+};
 
 use crate::app;
 
@@ -9,17 +12,16 @@ pub(in crate::app) fn build() -> MenuDesc<app::State> {
 }
 
 fn file_menu() -> MenuDesc<app::State> {
-    MenuDesc::new(LocalizedString::new("common-menu-file-menu"))
-        .append(
-            MenuItem::new(
-                LocalizedString::new("common-menu-file-open"),
-                Command::new(
-                    druid::commands::SHOW_OPEN_PANEL,
-                    FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE]),
-                ),
-            )
-            .hotkey(SysMods::Cmd, "o"),
+    MenuDesc::new(LocalizedString::new("common-menu-file-menu")).append(
+        MenuItem::new(
+            LocalizedString::new("common-menu-file-open"),
+            Command::new(
+                druid::commands::SHOW_OPEN_PANEL,
+                FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE]),
+            ),
         )
+        .hotkey(SysMods::Cmd, "o"),
+    )
 }
 
 fn edit_menu() -> MenuDesc<app::State> {

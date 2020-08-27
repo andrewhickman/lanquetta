@@ -5,10 +5,11 @@ mod menu;
 mod request;
 mod response;
 mod sidebar;
-mod theme;
 
 use druid::widget::{Flex, Label, Split};
 use druid::{AppLauncher, Data, Lens, PlatformError, Widget, WidgetExt, WindowDesc};
+
+use crate::theme;
 
 pub fn launch() -> Result<(), PlatformError> {
     let main_window = WindowDesc::new(build)
@@ -22,7 +23,7 @@ pub fn launch() -> Result<(), PlatformError> {
     let app_launcher = AppLauncher::with_window(main_window);
     let event_sink = app_launcher.get_external_handle();
     app_launcher
-        .configure_env(theme::set)
+        .configure_env(|env, _| theme::set(env))
         .delegate(delegate::build(event_sink))
         .use_simple_logger()
         .launch(State::default())

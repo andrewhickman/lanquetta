@@ -680,6 +680,7 @@ dependencies = [
  "bytes",
  "druid",
  "futures",
+ "http",
  "log",
  "protobuf",
  "serde_json",

@@ -1,6 +1,7 @@
 mod app;
 mod grpc;
 mod protobuf;
+mod theme;
 mod widget;
 
 #[tokio::main]
