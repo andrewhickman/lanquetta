@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 
-use druid::{Data, Env, Lens, LensWrap, Widget, WidgetExt as _};
+use druid::{Data, Env, Widget};
 
 use crate::theme;
 
 pub struct FormField<W, F> {
     pristine: bool,
-    child: LensWrap<String, Validator<F>, W>,
+    validate: F,
+    child: W,
 }
 
 #[derive(Clone, Debug)]
@@ -28,8 +29,13 @@ where
     pub fn new(child: W, validate: F) -> Self {
         FormField {
             pristine: true,
-            child: child.lens(Validator { validate }),
+            child: child,
+            validate,
         }
+    }
+
+    pub fn set_validate(&mut self, validate: F) {
+        self.validate = validate;
     }
 }
 
@@ -46,7 +52,10 @@ where
         data: &mut ValidationState<O, E>,
         env: &druid::Env,
     ) {
-        self.child.event(ctx, event, data, &data.update_env(env, self.pristine));
+        let env = data.update_env(env, self.pristine);
+        self.child.event(ctx, event, &mut data.raw, &env);
+        self.pristine &= !ctx.is_focused();
+        data.result = (self.validate)(&data.raw);
     }
 
     fn lifecycle(
@@ -56,12 +65,8 @@ where
         data: &ValidationState<O, E>,
         env: &druid::Env,
     ) {
-        if let &druid::LifeCycle::FocusChanged(false) = event {
-            self.pristine = false;
-        }
-
         self.child
-            .lifecycle(ctx, event, data, &data.update_env(env, self.pristine));
+            .lifecycle(ctx, event, &data.raw, &data.update_env(env, self.pristine));
     }
 
     fn update(
@@ -72,7 +77,7 @@ where
         env: &druid::Env,
     ) {
         self.child
-            .update(ctx, old_data, data, &data.update_env(env, self.pristine));
+            .update(ctx, &old_data.raw, &data.raw, &data.update_env(env, self.pristine));
     }
 
     fn layout(
@@ -82,11 +87,11 @@ where
         data: &ValidationState<O, E>,
         env: &druid::Env,
     ) -> druid::Size {
-        self.child.layout(ctx, bc, data, &data.update_env(env, self.pristine))
+        self.child.layout(ctx, bc, &data.raw, &data.update_env(env, self.pristine))
     }
 
     fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &ValidationState<O, E>, env: &druid::Env) {
-        self.child.paint(ctx, data, &data.update_env(env, self.pristine))
+        self.child.paint(ctx, &data.raw, &data.update_env(env, self.pristine))
     }
 }
 
@@ -110,27 +115,6 @@ impl<O, E> ValidationState<O, E> {
             theme::set_error(&mut env);
             Cow::Owned(env)
         }
-    }
-}
-
-impl<F, O, E> Lens<ValidationState<O, E>, String> for Validator<F>
-where
-    F: Fn(&str) -> Result<O, E>,
-{
-    fn with<V, G>(&self, data: &ValidationState<O, E>, f: G) -> V
-    where
-        G: FnOnce(&String) -> V,
-    {
-        f(&data.raw)
-    }
-
-    fn with_mut<V, G>(&self, data: &mut ValidationState<O, E>, f: G) -> V
-    where
-        G: FnOnce(&mut String) -> V,
-    {
-        let value = f(&mut data.raw);
-        data.result = (self.validate)(&data.raw);
-        value
     }
 }
 

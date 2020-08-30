@@ -1,15 +1,20 @@
+use std::string::ToString;
+
 use druid::{Data, Lens, Widget, WidgetExt};
 
-use crate::grpc;
-use crate::widget::TextArea;
+use crate::{grpc, protobuf};
+use crate::widget::{TextArea, FormField, ValidationState};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    body: String,
+    body: ValidationState<grpc::Request, Option<String>>,
+    proto: Option<protobuf::ProtobufRequest>,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    TextArea::new().styled().lens(State::body).boxed()
+    let text_area = TextArea::new().styled();
+    FormField::new(text_area, request_validator(None))
+        .lens(State::body).boxed()
 }
 
 impl State {
@@ -21,7 +26,18 @@ impl State {
 impl Default for State {
     fn default() -> Self {
         State {
-            body: "hello\nworld\n1\n2\n3\n4\n5\n6\n7\n8".to_owned(),
+            body: ValidationState::new(String::new(), Err(None)),
+            proto: None,
         }
+    }
+}
+
+fn request_validator(descriptor: Option<protobuf::ProtobufRequest>) -> impl Fn(&str) -> Result<grpc::Request, Option<String>> {
+    move |s| match &descriptor {
+        Some(descriptor) => match descriptor.parse(s) {
+            Ok(body) => Ok(grpc::Request { body }),
+            Err(err) => Err(Some(err.to_string())),
+        },
+        None => Err(None)
     }
 }

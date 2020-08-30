@@ -11,14 +11,14 @@ use crate::protobuf::ProtobufCodec;
 
 pub type ResponseResult = Result<Response, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, druid::Data)]
 pub struct Request {
-    pub body: Box<dyn MessageDyn>,
+    pub body: Arc<dyn MessageDyn>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, druid::Data)]
 pub struct Response {
-    pub body: Box<dyn MessageDyn>,
+    pub body: Arc<dyn MessageDyn>,
 }
 
 pub type Error = anyhow::Error;

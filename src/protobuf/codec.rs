@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use bytes::buf::ext::{BufExt, BufMutExt};
 use protobuf::reflect::MessageDescriptor;
 use protobuf::{CodedInputStream, CodedOutputStream, MessageDyn};
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
 use tonic::Status;
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct ProtobufCodec {
-    descriptor: Option<MessageDescriptor>,
+    descriptor: MessageDescriptor,
 }
 
 pub struct ProtobufEncoder {
@@ -20,8 +22,14 @@ pub struct ProtobufDecoder {
 impl ProtobufCodec {
     pub fn new(descriptor: MessageDescriptor) -> Self {
         ProtobufCodec {
-            descriptor: Some(descriptor),
+            descriptor,
         }
+    }
+}
+
+impl Default for ProtobufCodec {
+    fn default() -> Self {
+        unimplemented!()
     }
 }
 
@@ -34,19 +42,19 @@ impl Codec for ProtobufCodec {
 
     fn encoder(&mut self) -> Self::Encoder {
         ProtobufEncoder {
-            descriptor: self.descriptor.clone().unwrap(),
+            descriptor: self.descriptor.clone(),
         }
     }
 
     fn decoder(&mut self) -> Self::Decoder {
         ProtobufDecoder {
-            descriptor: self.descriptor.clone().unwrap(),
+            descriptor: self.descriptor.clone(),
         }
     }
 }
 
 impl Encoder for ProtobufEncoder {
-    type Item = Box<dyn MessageDyn>;
+    type Item = Arc<dyn MessageDyn>;
     type Error = Status;
 
     fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
@@ -57,13 +65,13 @@ impl Encoder for ProtobufEncoder {
 }
 
 impl Decoder for ProtobufDecoder {
-    type Item = Box<dyn MessageDyn>;
+    type Item = Arc<dyn MessageDyn>;
     type Error = Status;
 
-    fn decode(&mut self, dst: &mut DecodeBuf) -> Result<Option<Self::Item>, Self::Error> {
+    fn decode(&mut self, src: &mut DecodeBuf) -> Result<Option<Self::Item>, Self::Error> {
         let mut item = self.descriptor.new_instance();
-        item.merge_from_dyn(&mut CodedInputStream::new(&mut dst.reader()))
+        item.merge_from_dyn(&mut CodedInputStream::new(&mut src.reader()))
             .map_err(|err| tonic::Status::internal(err.to_string()))?;
-        Ok(Some(item))
+        Ok(Some(item.into()))
     }
 }
