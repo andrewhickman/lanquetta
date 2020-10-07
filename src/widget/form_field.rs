@@ -76,8 +76,12 @@ where
         data: &ValidationState<O, E>,
         env: &druid::Env,
     ) {
-        self.child
-            .update(ctx, &old_data.raw, &data.raw, &data.update_env(env, self.pristine));
+        self.child.update(
+            ctx,
+            &old_data.raw,
+            &data.raw,
+            &data.update_env(env, self.pristine),
+        );
     }
 
     fn layout(
@@ -87,20 +91,19 @@ where
         data: &ValidationState<O, E>,
         env: &druid::Env,
     ) -> druid::Size {
-        self.child.layout(ctx, bc, &data.raw, &data.update_env(env, self.pristine))
+        self.child
+            .layout(ctx, bc, &data.raw, &data.update_env(env, self.pristine))
     }
 
     fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &ValidationState<O, E>, env: &druid::Env) {
-        self.child.paint(ctx, &data.raw, &data.update_env(env, self.pristine))
+        self.child
+            .paint(ctx, &data.raw, &data.update_env(env, self.pristine))
     }
 }
 
 impl<O, E> ValidationState<O, E> {
     pub fn new(raw: String, result: Result<O, E>) -> Self {
-        ValidationState {
-            raw,
-            result,
-        }
+        ValidationState { raw, result }
     }
 
     fn is_valid(&self) -> bool {

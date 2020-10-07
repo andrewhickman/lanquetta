@@ -21,9 +21,7 @@ pub struct ProtobufDecoder {
 
 impl ProtobufCodec {
     pub fn new(descriptor: MessageDescriptor) -> Self {
-        ProtobufCodec {
-            descriptor,
-        }
+        ProtobufCodec { descriptor }
     }
 }
 

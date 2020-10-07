@@ -7,10 +7,14 @@ use druid::{
     Size, UpdateCtx, Widget,
 };
 
+use crate::protobuf::ProtobufService;
+
 use crate::app::theme;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
-pub(in crate::app) struct State {}
+pub(in crate::app) struct State {
+    services: im::Vector<ProtobufService>,
+}
 
 pub(in crate::app) fn build() -> impl druid::Widget<State> {
     Sidebar {}
@@ -20,7 +24,8 @@ struct Sidebar {}
 
 impl State {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
-        todo!()
+        self.services.extend(ProtobufService::load(path)?);
+        Ok(())
     }
 }
 

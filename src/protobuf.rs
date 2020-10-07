@@ -2,13 +2,13 @@ mod codec;
 mod file;
 
 pub use self::codec::ProtobufCodec;
-pub use self::file::ProtobufFile;
+pub use self::file::{ProtobufMethod, ProtobufService};
 
 use std::sync::Arc;
 
 use anyhow::Result;
-use protobuf::MessageDyn;
 use protobuf::reflect::MessageDescriptor;
+use protobuf::MessageDyn;
 
 #[derive(Debug, Clone)]
 pub struct ProtobufRequest {
@@ -17,10 +17,14 @@ pub struct ProtobufRequest {
 
 impl ProtobufRequest {
     pub fn parse(&self, s: &str) -> Result<Arc<dyn MessageDyn>> {
-        let item = protobuf::json::parse_dynamic_from_str_with_options(&self.descriptor, s, &protobuf::json::ParseOptions {
-            ignore_unknown_fields: false,
-            ..Default::default()
-        })?;
+        let item = protobuf::json::parse_dynamic_from_str_with_options(
+            &self.descriptor,
+            s,
+            &protobuf::json::ParseOptions {
+                ignore_unknown_fields: false,
+                ..Default::default()
+            },
+        )?;
         Ok(item.into())
     }
 }

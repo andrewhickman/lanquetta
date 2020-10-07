@@ -10,17 +10,19 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-druid = "0.6.0"
+druid = { version = "0.6.0", features = ["im"] }
 anyhow = "1.0.32"
 log = "0.4.11"
 futures = "0.3.5"
 serde_json = "1.0.57"
 bytes = "0.5.6"
 http = "0.2.1"
+fs-err = "2.3.0"
+im = "15.0.0"
 
 [dependencies.protobuf]
 git = "https://github.com/stepancheg/rust-protobuf.git"
-rev = "436d022b5eaf54c8eebd232d920f1a5a0ed0a9e6"
+rev = "b447f53014af46a7faf6bf46d313391a61b2eace"
 
 [dependencies.tonic]
 version = "0.3.0"
