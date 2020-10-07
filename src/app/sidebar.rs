@@ -4,7 +4,7 @@ use anyhow::Result;
 use druid::piet::RenderContext;
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, Lens, LifeCycle, LifeCycleCtx, PaintCtx,
-    Size, UpdateCtx, Widget,
+    Size, UpdateCtx, Widget, WidgetExt,
 };
 
 use crate::protobuf::ProtobufService;
@@ -16,8 +16,8 @@ pub(in crate::app) struct State {
     services: im::Vector<ProtobufService>,
 }
 
-pub(in crate::app) fn build() -> impl druid::Widget<State> {
-    Sidebar {}
+pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+    Sidebar {}.boxed()
 }
 
 struct Sidebar {}

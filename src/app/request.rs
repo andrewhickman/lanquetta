@@ -1,8 +1,9 @@
 use std::string::ToString;
 
+use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt};
 
-use crate::widget::{FormField, TextArea, ValidationState};
+use crate::widget::{FormField, ValidationState};
 use crate::{grpc, protobuf};
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -11,9 +12,8 @@ pub(in crate::app) struct State {
     proto: Option<protobuf::ProtobufRequest>,
 }
 
-pub(in crate::app) fn build() -> impl Widget<State> {
-    let text_area = TextArea::new().styled();
-    FormField::new(text_area, request_validator(None))
+pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+    FormField::new(TextBox::multiline().expand(), request_validator(None))
         .lens(State::body)
         .boxed()
 }

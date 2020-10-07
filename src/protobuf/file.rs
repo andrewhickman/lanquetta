@@ -39,9 +39,13 @@ impl ProtobufService {
 
     fn new(proto: &ServiceDescriptorProto, files: &[FileDescriptor]) -> Result<Self> {
         Ok(ProtobufService {
-            methods: Arc::new(proto.method.iter()
-                .map(|method| ProtobufMethod::new(method, files))
-                .collect::<Result<Vec<_>>>()?)
+            methods: Arc::new(
+                proto
+                    .method
+                    .iter()
+                    .map(|method| ProtobufMethod::new(method, files))
+                    .collect::<Result<Vec<_>>>()?,
+            ),
         })
     }
 }

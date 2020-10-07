@@ -10,7 +10,6 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-druid = { version = "0.6.0", features = ["im"] }
 anyhow = "1.0.32"
 log = "0.4.11"
 futures = "0.3.5"
@@ -19,6 +18,11 @@ bytes = "0.5.6"
 http = "0.2.1"
 fs-err = "2.3.0"
 im = "15.0.0"
+
+[dependencies.druid]
+git = "https://github.com/linebender/druid"
+rev = "694af59d63318c7197f81eedba56de3071182321"
+features = ["im"]
 
 [dependencies.protobuf]
 git = "https://github.com/stepancheg/rust-protobuf.git"

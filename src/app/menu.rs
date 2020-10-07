@@ -15,10 +15,8 @@ fn file_menu() -> MenuDesc<app::State> {
     MenuDesc::new(LocalizedString::new("common-menu-file-menu")).append(
         MenuItem::new(
             LocalizedString::new("common-menu-file-open"),
-            Command::new(
-                druid::commands::SHOW_OPEN_PANEL,
-                FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE]),
-            ),
+            druid::commands::SHOW_OPEN_PANEL
+                .with(FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE])),
         )
         .hotkey(SysMods::Cmd, "o"),
     )

@@ -1,15 +1,16 @@
+use druid::text::RichText;
+use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt};
 
 use crate::grpc;
-use crate::widget::TextArea;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     body: String,
 }
 
-pub(in crate::app) fn build() -> impl Widget<State> {
-    TextArea::new().styled().lens(State::body).boxed()
+pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+    TextBox::multiline().expand().lens(State::body).boxed()
 }
 
 impl State {

@@ -14,7 +14,7 @@ pub(in crate::app) struct State {
     tls: bool,
 }
 
-pub(in crate::app) fn build() -> impl Widget<State> {
+pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let address_textbox = TextBox::new()
         .with_placeholder("localhost:80")
         .expand_width();
@@ -22,7 +22,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     let tls_checkbox = Checkbox::new("Use TLS");
     let send_button = theme::scope(Button::new("Send").on_click(
         |ctx: &mut EventCtx, _: &mut State, _: &Env| {
-            ctx.submit_command(command::START_SEND, Target::Global)
+            ctx.submit_command(command::START_SEND.to(Target::Global))
         },
     ));
 
