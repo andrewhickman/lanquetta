@@ -1,6 +1,5 @@
 use druid::{
-    platform_menus, Command, FileDialogOptions, FileSpec, LocalizedString, MenuDesc, MenuItem,
-    SysMods,
+    platform_menus, FileDialogOptions, FileSpec, LocalizedString, MenuDesc, MenuItem, SysMods,
 };
 
 use crate::app;

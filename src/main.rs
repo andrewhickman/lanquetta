@@ -1,5 +1,6 @@
 mod app;
 mod grpc;
+mod json;
 mod protobuf;
 mod theme;
 mod widget;

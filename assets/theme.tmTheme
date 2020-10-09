@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>name</key>
+	<string>My theme</string>
+	<key>settings</key>
+	<array>
+		<dict>
+			<key>settings</key>
+			<dict>
+				<key>background</key>
+				<string>#223643</string>
+				<key>caret</key>
+				<string>#fbf9f0</string>
+				<key>foreground</key>
+				<string>#fbf9f0</string>
+				<key>gutter</key>
+				<string>#1a2243</string>
+				<key>invisibles</key>
+				<string>#579fb3</string>
+				<key>lineHighlight</key>
+				<string>#579fb312</string>
+				<key>misspelling</key>
+				<string>#b00020</string>
+				<key>selection</key>
+				<string>#67747a</string>
+				<key>selectionBorder</key>
+				<string>#579fb3</string>
+			</dict>
+		</dict>
+
+		<!-- Generics -->
+		<dict>
+			<key>name</key>
+			<string>String</string>
+			<key>scope</key>
+			<string>string</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#ee9065</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>name</key>
+			<string>Invalid</string>
+			<key>scope</key>
+			<string>invalid</string>
+			<key>settings</key>
+			<dict>
+				<key>background</key>
+				<string>#b00020</string>
+			</dict>
+		</dict>
+
+		<!-- JSON -->
+		<dict>
+			<key>name</key>
+			<string>JSON keys</string>
+			<key>scope</key>
+			<string>meta.structure.dictionary.key.json string.quoted.double.json</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#579fb3</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>name</key>
+			<string>JSON constants</string>
+			<key>scope</key>
+			<string>constant.language.json</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#62677a</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>name</key>
+			<string>JSON numbers</string>
+			<key>scope</key>
+			<string>constant.numeric</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#e85f24</string>
+			</dict>
+		</dict>
+	</array>
+	<key>uuid</key>
+	<string>497270fc-8ad5-4fc9-a40c-7b8b06cde8da</string>
+</dict>
+</plist>
