@@ -70,7 +70,7 @@ fn color(c: highlighting::Color) -> druid::Color {
 
 impl Default for JsonText {
     fn default() -> Self {
-        JsonText::from_str(r#"{ "hello": "world", "foo": 1, "bar": null }"#)
+        JsonText::from_str("")
     }
 }
 

@@ -5,10 +5,11 @@ use druid::{Data, Lens, Widget, WidgetExt};
 
 use crate::widget::{FormField, ValidationState};
 use crate::{grpc, protobuf};
+use crate::json::JsonText;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    body: ValidationState<grpc::Request, Option<String>>,
+    body: ValidationState<JsonText, grpc::Request, Option<String>>,
     proto: Option<protobuf::ProtobufRequest>,
 }
 
@@ -27,7 +28,7 @@ impl State {
 impl Default for State {
     fn default() -> Self {
         State {
-            body: ValidationState::new(String::new(), Err(None)),
+            body: ValidationState::new(JsonText::default(), Err(None)),
             proto: None,
         }
     }

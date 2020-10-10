@@ -10,7 +10,7 @@ use crate::widget::{FormField, ValidationState};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    address: ValidationState<Uri, String>,
+    address: ValidationState<String, Uri, String>,
     tls: bool,
 }
 
