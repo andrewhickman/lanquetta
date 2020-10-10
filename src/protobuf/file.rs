@@ -1,21 +1,20 @@
 use std::path::Path;
-use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use druid::widget::ListIter;
-use druid::Data;
+use druid::{ArcStr, Data};
 use protobuf::descriptor::{FileDescriptorSet, MethodDescriptorProto, ServiceDescriptorProto};
 use protobuf::reflect::{FileDescriptor, MessageDescriptor};
 use protobuf::Message;
 
-#[derive(Clone, Debug, Data)]
+#[derive(Clone, Debug)]
 pub struct ProtobufService {
-    methods: Arc<Vec<ProtobufMethod>>,
+    name: String,
+    methods: Vec<ProtobufMethod>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ProtobufMethod {
-    name: String,
+    name: ArcStr,
     request: MessageDescriptor,
     request_streaming: bool,
     response: MessageDescriptor,
@@ -39,14 +38,21 @@ impl ProtobufService {
 
     fn new(proto: &ServiceDescriptorProto, files: &[FileDescriptor]) -> Result<Self> {
         Ok(ProtobufService {
-            methods: Arc::new(
-                proto
-                    .method
-                    .iter()
-                    .map(|method| ProtobufMethod::new(method, files))
-                    .collect::<Result<Vec<_>>>()?,
-            ),
+            name: proto.get_name().to_owned(),
+            methods: proto
+                .method
+                .iter()
+                .map(|method| ProtobufMethod::new(method, files))
+                .collect::<Result<Vec<_>>>()?,
         })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn methods<'a>(&'a self) -> impl Iterator<Item = ProtobufMethod> + 'a {
+        self.methods.iter().cloned()
     }
 }
 
@@ -65,12 +71,16 @@ impl ProtobufMethod {
         }
 
         Ok(ProtobufMethod {
-            name: proto.get_name().to_owned(),
+            name: proto.get_name().into(),
             request: find_type(proto.get_input_type(), files)?,
             request_streaming: proto.has_client_streaming(),
             response: find_type(proto.get_output_type(), files)?,
             response_streaming: proto.has_server_streaming(),
         })
+    }
+
+    pub fn name(&self) -> &ArcStr {
+        &self.name
     }
 }
 
@@ -79,19 +89,5 @@ impl Data for ProtobufMethod {
         self.name.same(&other.name)
             && self.request == other.request
             && self.response == other.response
-    }
-}
-
-impl ListIter<ProtobufMethod> for ProtobufService {
-    fn for_each(&self, cb: impl FnMut(&ProtobufMethod, usize)) {
-        self.methods.for_each(cb)
-    }
-
-    fn for_each_mut(&mut self, cb: impl FnMut(&mut ProtobufMethod, usize)) {
-        self.methods.for_each_mut(cb)
-    }
-
-    fn data_len(&self) -> usize {
-        self.methods.data_len()
     }
 }

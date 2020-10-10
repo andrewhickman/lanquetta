@@ -3,9 +3,9 @@ use std::string::ToString;
 use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt};
 
+use crate::json::JsonText;
 use crate::widget::{FormField, ValidationState};
 use crate::{grpc, protobuf};
-use crate::json::JsonText;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {

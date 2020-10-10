@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
-use druid::{Data, Env, Widget};
 use druid::piet::TextStorage;
+use druid::{Data, Env, Widget};
 
 use crate::theme;
 
@@ -88,7 +88,12 @@ where
             .layout(ctx, bc, &data.raw, &data.update_env(env, self.pristine))
     }
 
-    fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &ValidationState<T, O, E>, env: &druid::Env) {
+    fn paint(
+        &mut self,
+        ctx: &mut druid::PaintCtx,
+        data: &ValidationState<T, O, E>,
+        env: &druid::Env,
+    ) {
         self.child
             .paint(ctx, &data.raw, &data.update_env(env, self.pristine))
     }

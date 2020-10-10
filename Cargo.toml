@@ -23,7 +23,7 @@ memchr = "2.3.3"
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "17ad235062df3dfe7056f3842d25c20d3b718142"
+rev = "93620d1bb5f39583b82bdf0c5fd4ff676cd03807"
 features = ["im"]
 
 [dependencies.protobuf]
