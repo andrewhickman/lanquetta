@@ -1,7 +1,7 @@
 use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt};
 
-use crate::grpc;
+use crate::{grpc, theme};
 use crate::json::JsonText;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
@@ -10,7 +10,11 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    TextBox::multiline().expand().lens(State::body).boxed()
+    TextBox::multiline()
+        .with_font(theme::EDITOR_FONT)
+        .expand()
+        .lens(State::body)
+        .boxed()
 }
 
 impl State {

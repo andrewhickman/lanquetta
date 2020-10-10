@@ -3,9 +3,11 @@ mod scope;
 
 pub use scope::new as scope;
 
-use druid::Env;
+use druid::{Env, Key, FontDescriptor, FontFamily};
 
 pub(crate) const GUTTER_SIZE: f64 = 16.0;
+
+pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("dev.grpc-client-gui.editor-font");
 
 pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::PRIMARY_LIGHT, color::TEXT);
@@ -25,6 +27,8 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::CURSOR_COLOR, color::TEXT);
     env.set(druid::theme::BUTTON_DARK, color::BOLD_ACCENT);
     env.set(druid::theme::BUTTON_LIGHT, color::BOLD_ACCENT);
+
+    env.set(EDITOR_FONT, FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0))
 }
 
 pub(crate) fn set_contrast(env: &mut Env) {

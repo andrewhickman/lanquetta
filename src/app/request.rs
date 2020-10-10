@@ -5,7 +5,7 @@ use druid::{Data, Lens, Widget, WidgetExt};
 
 use crate::json::JsonText;
 use crate::widget::{FormField, ValidationState};
-use crate::{grpc, protobuf};
+use crate::{grpc, protobuf, theme};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -14,9 +14,14 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    FormField::new(TextBox::multiline().expand(), request_validator(None))
-        .lens(State::body)
-        .boxed()
+    FormField::new(
+        TextBox::multiline()
+            .with_font(theme::EDITOR_FONT)
+            .expand(),
+        request_validator(None),
+    )
+    .lens(State::body)
+    .boxed()
 }
 
 impl State {

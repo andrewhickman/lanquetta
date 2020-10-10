@@ -26,7 +26,11 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 
 impl State {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
-        self.services.extend(ProtobufService::load(path)?.into_iter().map(service::State::from));
+        self.services.extend(
+            ProtobufService::load(path)?
+                .into_iter()
+                .map(service::State::from),
+        );
         Ok(())
     }
 }

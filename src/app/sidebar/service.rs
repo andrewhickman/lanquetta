@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use druid::{ArcStr, Data, Lens, Widget, WidgetExt, FontDescriptor, FontFamily};
 use druid::widget::{Label, LineBreaking};
+use druid::{ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt};
 
-use crate::theme;
 use crate::app::sidebar::method;
 use crate::protobuf::ProtobufService;
+use crate::theme;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
