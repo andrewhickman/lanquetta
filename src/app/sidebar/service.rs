@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use druid::widget::{Label, LineBreaking};
+use druid::widget::{CrossAxisAlignment, Flex, Label, LineBreaking, List};
 use druid::{ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt};
 
 use crate::app::sidebar::method;
@@ -10,7 +8,7 @@ use crate::theme;
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     name: ArcStr,
-    methods: Arc<[method::State]>,
+    methods: im::Vector<method::State>,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -20,7 +18,13 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .with_line_break_mode(LineBreaking::Clip)
         .padding(theme::GUTTER_SIZE / 2.0)
         .lens(State::name);
-    name.boxed()
+    let methods = List::new(method::build).lens(State::methods);
+
+    Flex::column()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(name)
+        .with_child(methods)
+        .boxed()
 }
 
 impl From<ProtobufService> for State {

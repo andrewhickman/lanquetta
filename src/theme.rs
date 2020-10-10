@@ -3,7 +3,7 @@ mod scope;
 
 pub use scope::new as scope;
 
-use druid::{Env, Key, FontDescriptor, FontFamily};
+use druid::{Env, FontDescriptor, FontFamily, Key};
 
 pub(crate) const GUTTER_SIZE: f64 = 16.0;
 
@@ -28,7 +28,10 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::BUTTON_DARK, color::BOLD_ACCENT);
     env.set(druid::theme::BUTTON_LIGHT, color::BOLD_ACCENT);
 
-    env.set(EDITOR_FONT, FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0))
+    env.set(
+        EDITOR_FONT,
+        FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0),
+    )
 }
 
 pub(crate) fn set_contrast(env: &mut Env) {

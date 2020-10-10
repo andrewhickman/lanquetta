@@ -1,8 +1,8 @@
 use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt};
 
-use crate::{grpc, theme};
 use crate::json::JsonText;
+use crate::{grpc, theme};
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {

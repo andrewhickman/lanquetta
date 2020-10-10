@@ -1,7 +1,11 @@
-use druid::lens::{self, Lens};
-use druid::{ArcStr, Data, Widget};
+use druid::{
+    widget::{Label, LineBreaking},
+    TextAlignment,
+};
+use druid::{ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt};
 
 use crate::protobuf::ProtobufMethod;
+use crate::theme;
 
 #[derive(Debug, Clone, Data)]
 pub(in crate::app) struct State {
@@ -9,7 +13,13 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    todo!()
+    Label::raw()
+        .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
+        .with_text_size(16.0)
+        .with_line_break_mode(LineBreaking::Clip)
+        .padding(theme::GUTTER_SIZE / 4.0)
+        .lens(State::name())
+        .boxed()
 }
 
 impl State {

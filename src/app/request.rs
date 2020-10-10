@@ -15,9 +15,7 @@ pub(in crate::app) struct State {
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     FormField::new(
-        TextBox::multiline()
-            .with_font(theme::EDITOR_FONT)
-            .expand(),
+        TextBox::multiline().with_font(theme::EDITOR_FONT).expand(),
         request_validator(None),
     )
     .lens(State::body)
