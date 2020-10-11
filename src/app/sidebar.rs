@@ -4,7 +4,10 @@ mod service;
 use std::path::Path;
 
 use anyhow::Result;
-use druid::{Data, Lens, Widget, WidgetExt, widget::{List, ListIter}};
+use druid::{
+    widget::{List, ListIter},
+    Data, Lens, Widget, WidgetExt,
+};
 
 use crate::{
     protobuf::{ProtobufMethod, ProtobufService},

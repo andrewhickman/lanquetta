@@ -2,7 +2,7 @@ use druid::{
     widget::prelude::*, widget::Label, ArcStr, Data, FontDescriptor, FontFamily, Lens, WidgetExt,
 };
 
-use crate::{protobuf::ProtobufMethod, theme};
+use crate::{app::command, protobuf::ProtobufMethod, theme};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -67,7 +67,7 @@ impl From<ProtobufMethod> for MethodState {
 }
 
 impl Widget<State> for Method {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, env: &Env) {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, _: &Env) {
         match event {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
@@ -77,6 +77,7 @@ impl Widget<State> for Method {
                 if ctx.is_active() {
                     if ctx.is_hot() {
                         data.selected = true;
+                        ctx.submit_command(command::SELECT_METHOD.with(data.method.method.clone()));
                     }
 
                     ctx.set_active(false);

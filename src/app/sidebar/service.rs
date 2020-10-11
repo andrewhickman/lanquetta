@@ -59,7 +59,7 @@ impl ListIter<method::State> for State {
             let selected = match &self.selected {
                 Some(selected_method) => selected_method.same(method.method()),
                 None => false,
-            }; 
+            };
             let state = method::State::new(selected, method.to_owned());
             cb(&state, i);
         }
@@ -70,7 +70,7 @@ impl ListIter<method::State> for State {
             let selected = match &self.selected {
                 Some(selected_method) => selected_method.same(method.method()),
                 None => false,
-            }; 
+            };
             let mut state = method::State::new(selected, method.to_owned());
             cb(&mut state, i);
 

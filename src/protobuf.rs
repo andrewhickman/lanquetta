@@ -16,6 +16,10 @@ pub struct ProtobufRequest {
 }
 
 impl ProtobufRequest {
+    pub fn new(descriptor: MessageDescriptor) -> Self {
+        ProtobufRequest { descriptor }
+    }
+
     pub fn parse(&self, s: &str) -> Result<Arc<dyn MessageDyn>> {
         let item = protobuf::json::parse_dynamic_from_str_with_options(
             &self.descriptor,

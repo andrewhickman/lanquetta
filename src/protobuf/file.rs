@@ -2,9 +2,13 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use druid::{ArcStr, Data};
-use protobuf::descriptor::{FileDescriptorSet, MethodDescriptorProto, ServiceDescriptorProto};
-use protobuf::reflect::{FileDescriptor, MessageDescriptor};
-use protobuf::Message;
+use protobuf::{
+    descriptor::{FileDescriptorSet, MethodDescriptorProto, ServiceDescriptorProto},
+    reflect::{FileDescriptor, MessageDescriptor},
+    Message,
+};
+
+use crate::protobuf::ProtobufRequest;
 
 #[derive(Clone, Debug)]
 pub struct ProtobufService {
@@ -81,6 +85,10 @@ impl ProtobufMethod {
 
     pub fn name(&self) -> &ArcStr {
         &self.name
+    }
+
+    pub fn request(&self) -> ProtobufRequest {
+        ProtobufRequest::new(self.request.clone())
     }
 }
 
