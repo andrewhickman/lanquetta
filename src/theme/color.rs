@@ -8,12 +8,12 @@ pub const ACCENT: Color = Color::rgb8(0x1a, 0x22, 0x43);
 pub const BOLD_ACCENT: Color = Color::rgb8(0xe8, 0x5f, 0x24);
 pub const ERROR: Color = Color::rgb8(0xb0, 0x00, 0x20);
 
-pub fn active(color: Color) -> Color {
-    mix(TEXT, color, 0.32)
+pub fn active(color: Color, text: Color) -> Color {
+    mix(text, color, 0.32)
 }
 
-pub fn hot(color: Color) -> Color {
-    mix(TEXT, color, 0.08)
+pub fn hot(color: Color, text: Color) -> Color {
+    mix(text, color, 0.08)
 }
 
 fn mix(color1: Color, color2: Color, weight: f64) -> Color {

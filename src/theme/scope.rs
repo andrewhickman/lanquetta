@@ -1,6 +1,6 @@
 use druid::{
-    BoxConstraints, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget, WidgetId,
+    BoxConstraints, Color, Env, Event, EventCtx, Key, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Size, UpdateCtx, Widget, WidgetId,
 };
 
 use crate::theme::color;
@@ -27,6 +27,10 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        if let LifeCycle::HotChanged(_) = event {
+            ctx.request_paint();
+        }
+
         self.widget.lifecycle(
             ctx,
             event,
@@ -61,15 +65,22 @@ where
 fn update_env(env: &Env, is_hot: bool, is_active: bool) -> Env {
     let mut env = env.clone();
 
-    if is_active {
-        let color = color::active(color::BOLD_ACCENT);
-        env.set(druid::theme::BUTTON_DARK, color.clone());
-        env.set(druid::theme::BUTTON_LIGHT, color);
-    } else if is_hot {
-        let color = color::hot(color::BOLD_ACCENT);
-        env.set(druid::theme::BUTTON_DARK, color.clone());
-        env.set(druid::theme::BUTTON_LIGHT, color);
-    }
+    update_env_key(&mut env, is_hot, is_active, druid::theme::BUTTON_DARK);
+    update_env_key(&mut env, is_hot, is_active, druid::theme::BUTTON_LIGHT);
 
     env
+}
+
+fn update_env_key(env: &mut Env, is_hot: bool, is_active: bool, key: Key<Color>) {
+    if is_active {
+        env.set(
+            key.clone(),
+            color::active(env.get(key), env.get(druid::theme::LABEL_COLOR)),
+        );
+    } else if is_hot {
+        env.set(
+            key.clone(),
+            color::hot(env.get(key), env.get(druid::theme::LABEL_COLOR)),
+        );
+    }
 }
