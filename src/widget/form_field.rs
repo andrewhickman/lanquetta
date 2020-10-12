@@ -25,9 +25,19 @@ impl<W, F> FormField<W, F> {
             validate,
         }
     }
+}
 
-    pub fn set_validate(&mut self, validate: F) {
+impl<W, F, O, E> FormField<W, F>
+where
+    F: Fn(&str) -> Result<O, E>,
+{
+    pub fn set_validate<T>(&mut self, validate: F, data: &mut ValidationState<T, O, E>) 
+    where 
+    T: TextStorage,
+        ValidationState<T, O, E>: Data,
+    {
         self.validate = validate;
+        data.update(&self.validate);
     }
 }
 
@@ -48,7 +58,7 @@ where
         let env = data.update_env(env, self.pristine);
         self.child.event(ctx, event, &mut data.raw, &env);
         self.pristine &= !ctx.is_focused();
-        data.result = (self.validate)(data.raw.as_str());
+        data.update(&self.validate);
     }
 
     fn lifecycle(
@@ -99,9 +109,15 @@ where
     }
 }
 
-impl<T, O, E> ValidationState<T, O, E> {
+impl<T, O, E> ValidationState<T, O, E> 
+where T: TextStorage
+{
     pub fn new(raw: T, result: Result<O, E>) -> Self {
         ValidationState { raw, result }
+    }
+
+    pub fn update(&mut self, validate: impl Fn(&str) -> Result<O, E>) {
+        self.result = (validate)(self.raw.as_str());
     }
 
     fn is_valid(&self) -> bool {

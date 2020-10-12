@@ -73,8 +73,7 @@ where
     ) {
         if let Event::Command(command) = event {
             if let Some(method) = command.get(command::SELECT_METHOD) {
-                log::info!("Setting request type");
-                child.set_validate(request_validator(Some(method.request())));
+                child.set_validate(request_validator(Some(method.request())), data);
             }
         }
         child.event(ctx, event, data, env)
