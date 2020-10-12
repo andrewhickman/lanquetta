@@ -24,7 +24,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         label: Label::raw()
             .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
             .with_text_size(16.0)
-            .padding(theme::GUTTER_SIZE / 4.0)
+            .padding((theme::GUTTER_SIZE, theme::GUTTER_SIZE / 4.0))
             .expand_width()
             .lens(MethodState::name())
             .lens(State::method)

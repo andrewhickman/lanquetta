@@ -1,5 +1,7 @@
 use druid::{
-    widget::{prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter},
+    widget::{
+        prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Svg,
+    },
     ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt,
 };
 
@@ -28,16 +30,33 @@ struct Service<W> {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    let name = Service {
-        child: Label::raw()
-            .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
-            .with_text_size(18.0)
-            .with_line_break_mode(LineBreaking::Clip)
-            .padding(theme::GUTTER_SIZE / 2.0)
-            .expand_width()
-            .lens(ServiceState::name),
+    let service_label = Label::raw()
+        .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
+        .with_text_size(18.0)
+        .with_line_break_mode(LineBreaking::Clip)
+        .padding(theme::GUTTER_SIZE / 2.0)
+        .expand_width()
+        .lens(ServiceState::name);
+    let service_icon = Either::new(
+        |state: &ServiceState, _| state.expanded,
+        Svg::new(
+            include_str!("../../../assets/expand_more-24px.svg")
+                .parse()
+                .unwrap(),
+        ),
+        Svg::new(
+            include_str!("../../../assets/chevron_right-24px.svg")
+                .parse()
+                .unwrap(),
+        ),
+    );
+    let service = Service {
+        child: Flex::row()
+            .with_child(service_icon)
+            .with_flex_child(service_label, 1.0),
     }
     .lens(State::service);
+
     let methods = Either::new(
         |state: &State, _| state.service.expanded,
         List::new(method::build),
@@ -46,7 +65,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(name)
+        .with_child(service)
         .with_child(methods)
         .boxed()
 }
@@ -143,7 +162,13 @@ where
         self.child.lifecycle(ctx, event, data, env)
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &ServiceState, data: &ServiceState, env: &Env) {
+    fn update(
+        &mut self,
+        ctx: &mut UpdateCtx,
+        old_data: &ServiceState,
+        data: &ServiceState,
+        env: &Env,
+    ) {
         self.child.update(ctx, old_data, data, env);
     }
 
@@ -161,8 +186,7 @@ where
         let mut color = env.get(theme::SIDEBAR_BACKGROUND);
         if ctx.is_active() {
             color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-        }
-        if ctx.is_hot() {
+        } else if ctx.is_hot() {
             color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
         }
         let bounds = ctx.size().to_rect();

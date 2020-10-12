@@ -24,7 +24,7 @@ memchr = "2.3.3"
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
 rev = "93620d1bb5f39583b82bdf0c5fd4ff676cd03807"
-features = ["im"]
+features = ["im", "svg"]
 
 [dependencies.protobuf]
 git = "https://github.com/stepancheg/rust-protobuf.git"
