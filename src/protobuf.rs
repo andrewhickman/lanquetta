@@ -7,6 +7,7 @@ pub use self::file::{ProtobufMethod, ProtobufService};
 use std::sync::Arc;
 
 use anyhow::Result;
+use protobuf::json;
 use protobuf::reflect::MessageDescriptor;
 use protobuf::MessageDyn;
 
@@ -21,7 +22,7 @@ impl ProtobufRequest {
     }
 
     pub fn parse(&self, s: &str) -> Result<Arc<dyn MessageDyn>> {
-        let item = protobuf::json::parse_dynamic_from_str_with_options(
+        let item = json::parse_dynamic_from_str_with_options(
             &self.descriptor,
             s,
             &protobuf::json::ParseOptions {
@@ -30,6 +31,19 @@ impl ProtobufRequest {
             },
         )?;
         Ok(item.into())
+    }
+
+    pub fn empty_json(&self) -> String {
+        let empty = self.descriptor.new_instance();
+        json::print_to_string_with_options(
+            &*empty,
+            &json::PrintOptions {
+                proto_field_name: true,
+                always_output_default_values: true,
+                ..json::PrintOptions::default()
+            },
+        )
+        .unwrap_or_default()
     }
 }
 

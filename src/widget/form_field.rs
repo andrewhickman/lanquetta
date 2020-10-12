@@ -31,9 +31,9 @@ impl<W, F, O, E> FormField<W, F>
 where
     F: Fn(&str) -> Result<O, E>,
 {
-    pub fn set_validate<T>(&mut self, validate: F, data: &mut ValidationState<T, O, E>) 
-    where 
-    T: TextStorage,
+    pub fn set_validate<T>(&mut self, validate: F, data: &mut ValidationState<T, O, E>)
+    where
+        T: TextStorage,
         ValidationState<T, O, E>: Data,
     {
         self.validate = validate;
@@ -109,11 +109,16 @@ where
     }
 }
 
-impl<T, O, E> ValidationState<T, O, E> 
-where T: TextStorage
+impl<T, O, E> ValidationState<T, O, E>
+where
+    T: TextStorage,
 {
     pub fn new(raw: T, result: Result<O, E>) -> Self {
         ValidationState { raw, result }
+    }
+
+    pub fn set_raw(&mut self, raw: T) {
+        self.raw = raw;
     }
 
     pub fn update(&mut self, validate: impl Fn(&str) -> Result<O, E>) {

@@ -47,11 +47,12 @@ impl Default for State {
 
 fn request_validator(descriptor: Option<protobuf::ProtobufRequest>) -> RequestValidator {
     Box::new(move |s| match &descriptor {
-        Some(descriptor) => match descriptor.parse(s) {
-            Ok(body) => Ok(grpc::Request { body }),
-            Err(err) => Err(Some(err.to_string())),
-        },
-        None => Err(None),
+        // Some(descriptor) => match descriptor.parse(s) {
+        //     Ok(body) => Ok(grpc::Request { body }),
+        //     Err(err) => Err(Some(err.to_string())),
+        // },
+        // None => Err(None),
+        _ => Err(None),
     })
 }
 
@@ -74,6 +75,7 @@ where
         if let Event::Command(command) = event {
             if let Some(method) = command.get(command::SELECT_METHOD) {
                 child.set_validate(request_validator(Some(method.request())), data);
+                data.set_raw(method.request().empty_json().into());
             }
         }
         child.event(ctx, event, data, env)
