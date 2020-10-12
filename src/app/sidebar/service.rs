@@ -53,9 +53,9 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let service = Service {
         child: Flex::row()
             .with_child(service_icon)
-            .with_flex_child(service_label, 1.0),
-    }
-    .lens(State::service);
+            .with_flex_child(service_label, 1.0)
+            .lens(State::service),
+    };
 
     let methods = Either::new(
         |state: &State, _| state.service.expanded,
@@ -73,6 +73,17 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 impl State {
     pub fn new(selected: Option<ProtobufMethod>, service: ServiceState) -> Self {
         State { selected, service }
+    }
+
+    fn has_selected(&self) -> bool {
+        if let Some(selected_method) = &self.selected {
+            self.service
+                .methods
+                .iter()
+                .any(|method| selected_method.same(method.method()))
+        } else {
+            false
+        }
     }
 }
 
@@ -125,11 +136,11 @@ impl ListIter<method::State> for State {
     }
 }
 
-impl<W> Widget<ServiceState> for Service<W>
+impl<W> Widget<State> for Service<W>
 where
-    W: Widget<ServiceState>,
+    W: Widget<State>,
 {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut ServiceState, _: &Env) {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, _: &Env) {
         match event {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
@@ -138,7 +149,7 @@ where
             Event::MouseUp(_) => {
                 if ctx.is_active() {
                     if ctx.is_hot() {
-                        data.expanded = !data.expanded;
+                        data.service.expanded = !data.service.expanded;
                     }
 
                     ctx.set_active(false);
@@ -149,26 +160,14 @@ where
         }
     }
 
-    fn lifecycle(
-        &mut self,
-        ctx: &mut LifeCycleCtx,
-        event: &LifeCycle,
-        data: &ServiceState,
-        env: &Env,
-    ) {
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &State, env: &Env) {
         if let LifeCycle::HotChanged(_) = event {
             ctx.request_paint();
         }
         self.child.lifecycle(ctx, event, data, env)
     }
 
-    fn update(
-        &mut self,
-        ctx: &mut UpdateCtx,
-        old_data: &ServiceState,
-        data: &ServiceState,
-        env: &Env,
-    ) {
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &State, data: &State, env: &Env) {
         self.child.update(ctx, old_data, data, env);
     }
 
@@ -176,17 +175,18 @@ where
         &mut self,
         ctx: &mut LayoutCtx,
         bc: &BoxConstraints,
-        data: &ServiceState,
+        data: &State,
         env: &Env,
     ) -> Size {
         self.child.layout(ctx, bc, data, env)
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &ServiceState, env: &Env) {
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {
         let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-        if ctx.is_active() {
+        if ctx.is_active() || (!data.service.expanded && data.has_selected()) {
             color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-        } else if ctx.is_hot() {
+        }
+        if !ctx.is_active() && ctx.is_hot() {
             color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
         }
         let bounds = ctx.size().to_rect();
