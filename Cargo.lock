@@ -845,6 +845,7 @@ dependencies = [
  "memchr",
  "once_cell",
  "protobuf",
+ "serde-transcode",
  "serde_json",
  "syntect",
  "tokio",
@@ -1832,6 +1833,15 @@ name = "serde"
 version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96fe57af81d28386a513cbc6858332abc6117cfdb5999647c6444b8f43a370a5"
+
+[[package]]
+name = "serde-transcode"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97528f0dfcf8ce2d51d995cb513a103b9cd301dc3f387a9cae5ef974381d4e1c"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "serde_derive"

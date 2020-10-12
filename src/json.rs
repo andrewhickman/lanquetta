@@ -68,6 +68,20 @@ fn color(c: highlighting::Color) -> druid::Color {
     druid::Color::rgba8(c.r, c.g, c.b, c.a)
 }
 
+fn prettify(s: &str) -> Option<String> {
+    let mut result = io::Cursor::new(Vec::with_capacity(s.len()));
+    serde_transcode::transcode(&mut serde_json::Deserializer::from_str(s), &mut serde_json::Serializer::pretty(&mut result)).ok()?;
+    Some(String::from_utf8(result.into_inner()).unwrap())
+}
+
+impl JsonText {
+    pub fn prettify(&mut self) {
+        if let Some(pretty) = prettify(self.as_str()) {
+            *self = JsonText::from(pretty);
+        }
+    }
+}
+
 impl Default for JsonText {
     fn default() -> Self {
         JsonText::from_str("")

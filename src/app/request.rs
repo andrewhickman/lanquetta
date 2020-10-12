@@ -1,5 +1,3 @@
-use std::string::ToString;
-
 use druid::{
     widget::{prelude::*, Controller, TextBox},
     Data, Lens, Widget, WidgetExt,
@@ -76,8 +74,26 @@ where
             if let Some(method) = command.get(command::SELECT_METHOD) {
                 child.set_validate(request_validator(Some(method.request())), data);
                 data.set_raw(method.request().empty_json().into());
+                data.raw_mut().prettify();
+            } else if command.is(command::FORMAT) {
+                data.raw_mut().prettify();
             }
         }
         child.event(ctx, event, data, env)
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut FormField<W, RequestValidator>,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &ValidationState<JsonText, grpc::Request, Option<String>>,
+        env: &Env,
+    ) {
+        if let LifeCycle::FocusChanged(false) = event {
+            ctx.submit_command(command::FORMAT.to(ctx.widget_id()));
+        }
+
+        child.lifecycle(ctx, event, data, env)
     }
 }

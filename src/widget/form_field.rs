@@ -121,6 +121,10 @@ where
         self.raw = raw;
     }
 
+    pub fn raw_mut(&mut self) -> &mut T {
+        &mut self.raw
+    }
+
     pub fn update(&mut self, validate: impl Fn(&str) -> Result<O, E>) {
         self.result = (validate)(self.raw.as_str());
     }
