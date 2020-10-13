@@ -1,3 +1,5 @@
+#![allow(unreachable_code)]
+
 mod app;
 mod grpc;
 mod json;

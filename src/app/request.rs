@@ -44,7 +44,8 @@ impl Default for State {
 }
 
 fn request_validator(descriptor: Option<protobuf::ProtobufRequest>) -> RequestValidator {
-    Box::new(move |s| match &descriptor {
+    // TODO
+    Box::new(move |_| match &descriptor {
         // Some(descriptor) => match descriptor.parse(s) {
         //     Ok(body) => Ok(grpc::Request { body }),
         //     Err(err) => Err(Some(err.to_string())),

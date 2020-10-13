@@ -70,7 +70,11 @@ fn color(c: highlighting::Color) -> druid::Color {
 
 fn prettify(s: &str) -> Option<String> {
     let mut result = io::Cursor::new(Vec::with_capacity(s.len()));
-    serde_transcode::transcode(&mut serde_json::Deserializer::from_str(s), &mut serde_json::Serializer::pretty(&mut result)).ok()?;
+    serde_transcode::transcode(
+        &mut serde_json::Deserializer::from_str(s),
+        &mut serde_json::Serializer::pretty(&mut result),
+    )
+    .ok()?;
     Some(String::from_utf8(result.into_inner()).unwrap())
 }
 

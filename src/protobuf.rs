@@ -21,6 +21,7 @@ impl ProtobufRequest {
         ProtobufRequest { descriptor }
     }
 
+    #[allow(unused)]
     pub fn parse(&self, s: &str) -> Result<Arc<dyn MessageDyn>> {
         let item = json::parse_dynamic_from_str_with_options(
             &self.descriptor,

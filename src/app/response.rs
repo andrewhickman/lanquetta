@@ -20,7 +20,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 impl State {
     pub(in crate::app) fn update(&mut self, result: grpc::ResponseResult) {
         match result {
-            Ok(response) => self.body = todo!(),
+            Ok(_) => self.body = todo!(),
             Err(err) => self.body = JsonText::from(format!("{:?}", err)),
         }
     }

@@ -44,6 +44,8 @@ impl Client {
     }
 
     async fn send_impl(self, request: Request) -> ResponseResult {
+        #![allow(unused)]
+
         let mut inner = self.inner.lock().await;
 
         let grpc: &mut Grpc<Channel> = match &mut inner.grpc {

@@ -8,12 +8,11 @@ use tonic::Status;
 
 #[derive(Debug)]
 pub struct ProtobufCodec {
+    // TODO include method here
     descriptor: MessageDescriptor,
 }
 
-pub struct ProtobufEncoder {
-    descriptor: MessageDescriptor,
-}
+pub struct ProtobufEncoder {}
 
 pub struct ProtobufDecoder {
     descriptor: MessageDescriptor,
@@ -39,9 +38,7 @@ impl Codec for ProtobufCodec {
     type Decoder = ProtobufDecoder;
 
     fn encoder(&mut self) -> Self::Encoder {
-        ProtobufEncoder {
-            descriptor: self.descriptor.clone(),
-        }
+        ProtobufEncoder {}
     }
 
     fn decoder(&mut self) -> Self::Decoder {
