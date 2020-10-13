@@ -33,7 +33,7 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::START_SEND) {
             let event_sink = self.event_sink.clone();
             self.grpc_client
-                .send(data.request.request(), move |response| {
+                .send(data.body.request.request(), move |response| {
                     event_sink
                         .submit_command(
                             command::FINISH_SEND,
@@ -44,8 +44,9 @@ impl AppDelegate<app::State> for Delegate {
                 });
             false
         } else if let Some(response) = cmd.get(command::FINISH_SEND) {
+            // TODO how do we identify the tab to set the response on?
             let result = response.take().expect("response already handled");
-            data.response.update(result);
+            data.body.response.update(result);
             false
         } else {
             true
