@@ -1,8 +1,6 @@
 use druid::{
-    widget::{
-        prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Svg,
-    },
-    ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt,
+    widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter, Svg},
+    ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt, RenderContext
 };
 
 use crate::{
@@ -23,10 +21,6 @@ pub(in crate::app) struct ServiceState {
     name: ArcStr,
     methods: im::Vector<method::MethodState>,
     expanded: bool,
-}
-
-struct Service<W> {
-    child: W,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -50,12 +44,22 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
                 .unwrap(),
         ),
     );
-    let service = Service {
-        child: Flex::row()
-            .with_child(service_icon)
-            .with_flex_child(service_label, 1.0)
-            .lens(State::service),
-    };
+    let service = Flex::row()
+        .with_child(service_icon)
+        .with_flex_child(service_label, 1.0)
+        .lens(State::service)
+        .background(Painter::new(|ctx, data: &State, env| {
+            let mut color = env.get(theme::SIDEBAR_BACKGROUND);
+            if ctx.is_active() || (!data.service.expanded && data.has_selected()) {
+                color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+            }
+            if !ctx.is_active() && ctx.is_hot() {
+                color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+            }
+            let bounds = ctx.size().to_rect();
+            ctx.fill(bounds, &color);
+        }))
+        .on_click(|_, data, _| data.service.expanded = !data.service.expanded);
 
     let methods = Either::new(
         |state: &State, _| state.service.expanded,
@@ -133,65 +137,5 @@ impl ListIter<method::State> for State {
 
     fn data_len(&self) -> usize {
         self.service.methods.len()
-    }
-}
-
-impl<W> Widget<State> for Service<W>
-where
-    W: Widget<State>,
-{
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, _: &Env) {
-        match event {
-            Event::MouseDown(_) => {
-                ctx.set_active(true);
-                ctx.request_paint();
-            }
-            Event::MouseUp(_) => {
-                if ctx.is_active() {
-                    if ctx.is_hot() {
-                        data.service.expanded = !data.service.expanded;
-                    }
-
-                    ctx.set_active(false);
-                    ctx.request_paint();
-                }
-            }
-            _ => (),
-        }
-    }
-
-    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &State, env: &Env) {
-        if let LifeCycle::HotChanged(_) = event {
-            ctx.request_paint();
-        }
-        self.child.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &State, data: &State, env: &Env) {
-        self.child.update(ctx, old_data, data, env);
-    }
-
-    fn layout(
-        &mut self,
-        ctx: &mut LayoutCtx,
-        bc: &BoxConstraints,
-        data: &State,
-        env: &Env,
-    ) -> Size {
-        self.child.layout(ctx, bc, data, env)
-    }
-
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {
-        let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-        if ctx.is_active() || (!data.service.expanded && data.has_selected()) {
-            color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-        }
-        if !ctx.is_active() && ctx.is_hot() {
-            color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
-        }
-        let bounds = ctx.size().to_rect();
-        ctx.fill(bounds, &color);
-
-        self.child.paint(ctx, data, env)
     }
 }
