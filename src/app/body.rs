@@ -27,4 +27,5 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_flex_child(response::build().lens(State::response), 0.5)
         .padding(theme::GUTTER_SIZE)
+        .background(theme::TAB_BACKGROUND)
 }

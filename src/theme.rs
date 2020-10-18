@@ -10,6 +10,7 @@ pub(crate) const GUTTER_SIZE: f64 = 16.0;
 pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("app.editor-font");
 
 pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
+pub(crate) const TAB_BACKGROUND: Key<Color> = Key::new("app.tab-background");
 
 pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::PRIMARY_LIGHT, color::TEXT);
@@ -18,7 +19,7 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::BORDER_LIGHT, color::BACKGROUND);
 
     env.set(druid::theme::LABEL_COLOR, color::TEXT);
-    env.set(druid::theme::WINDOW_BACKGROUND_COLOR, color::ACCENT);
+    env.set(druid::theme::WINDOW_BACKGROUND_COLOR, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_DARK, color::BACKGROUND);
     env.set(
@@ -35,6 +36,7 @@ pub(crate) fn set(env: &mut Env) {
         FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0),
     );
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
+    env.set(TAB_BACKGROUND, color::ACCENT);
 }
 
 pub(crate) fn set_contrast(env: &mut Env) {
