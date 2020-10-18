@@ -24,7 +24,7 @@ serde-transcode = "1.1.0"
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "93620d1bb5f39583b82bdf0c5fd4ff676cd03807"
+rev = "775801e77c3fb29cf6df1d6fc357cfb42ba92852"
 features = ["im", "svg"]
 
 [dependencies.protobuf]
