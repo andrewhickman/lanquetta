@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use druid::{
     lens,
-    widget::{prelude::*, Flex, Label, MainAxisAlignment, Svg, SvgData},
-    ArcStr, Data, Lens, LensExt, Point, Rect, Size, Widget, WidgetExt, WidgetPod,
+    widget::{prelude::*, Flex, Label, MainAxisAlignment, Svg, SvgData, Painter},
+    Data, Lens, LensExt, Point, Rect, Size, Widget, WidgetExt, WidgetPod,
 };
 use iter_set::Inclusion;
 
@@ -94,16 +94,29 @@ fn build_tab_label(widget_id: WidgetId, tab_id: TabId) -> impl Widget<TabLabelSt
                     ctx.submit_command(command::CLOSE_TAB.with(tab_id).to(widget_id))
                 }),
         )
-    // .background(|ctx, data, env| {
-    //     let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-    //     if ctx.is_active() || data.selected {
-    //         color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-    //     } else if ctx.is_hot() {
-    //         color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
-    //     }
-    //     let bounds = ctx.size().to_rect();
-    //     ctx.fill(bounds, &color);
-    // })
+        .background(Painter::new(|ctx, data: &TabLabelState, env| {
+            let color = if data.current {
+                env.get(theme::TAB_BACKGROUND)
+            } else if ctx.is_active() {
+                theme::color::active(
+                    env.get(druid::theme::WINDOW_BACKGROUND_COLOR),
+                    env.get(druid::theme::LABEL_COLOR),
+                )
+            } else if ctx.is_hot() {
+                theme::color::hot(
+                    env.get(druid::theme::WINDOW_BACKGROUND_COLOR),
+                    env.get(druid::theme::LABEL_COLOR),
+                )
+            } else {
+                env.get(druid::theme::WINDOW_BACKGROUND_COLOR)
+            };
+
+            let bounds = ctx.size().to_rect();
+            ctx.fill(bounds, &color);
+        }))
+        .on_click(move |_, data: &mut TabLabelState, _| {
+            data.current = true;
+        })
 }
 
 fn build_tabs_body() -> impl Widget<State> {
@@ -296,6 +309,10 @@ where
                     ctx.children_changed();
                 }
             }
+        }
+
+        if old_data.current != data.current && data.current.is_some() {
+            ctx.request_layout();
         }
 
         debug_assert_eq!(data.tabs.len(), self.labels.len());
