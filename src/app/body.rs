@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use druid::{
     widget::{prelude::*, Flex, Label, MainAxisAlignment, Svg, SvgData},
-    ArcStr, Data, Lens, Point, Rect, Size, Widget, WidgetExt, WidgetPod, lens
+    ArcStr, Data, Lens, Point, Rect, Size, Widget, WidgetExt, WidgetPod, lens, LensExt,
 };
 use iter_set::Inclusion;
 
@@ -142,13 +142,13 @@ impl State {
             .map(|(&tab_id, _)| tab_id);
     }
 
-    fn tab_lens() -> impl Lens<Arc<TabState>, TabState> {
-        lens::InArc::new::<TabState, TabState>(lens::Id)
+    fn tab_lens(id: &TabId) -> impl Lens<State, TabState> + '_ {
+        State::tabs.then(lens::Index::new(id)).then(lens::InArc::new::<TabState, TabState>(lens::Id))
     }
 
     fn with_current_tab<V>(&self, f: impl FnOnce(&TabState) -> V) -> Option<V> {
         if let Some(id) = self.current {
-            Some(State::tab_lens().with(&self.tabs[&id], f))
+            Some(State::tab_lens(&id).with(self, f))
         } else {
             None
         }
@@ -156,7 +156,7 @@ impl State {
 
     fn with_current_tab_mut<V>(&mut self, f: impl FnOnce(&mut TabState) -> V) -> Option<V> {
         if let Some(id) = self.current {
-            Some(State::tab_lens().with_mut(&mut self.tabs[&id], f))
+            Some(State::tab_lens(&id).with_mut(self, f))
         } else {
             None
         }
@@ -178,7 +178,7 @@ where
         }
 
         for (id, label) in &mut self.labels {
-            State::tab_lens().with_mut(&mut data.tabs[id], |tab_data| {
+            State::tab_lens(id).with_mut(data, |tab_data| {
                 label.event(ctx, event, tab_data.method.name_mut(), env)
             })
         }
@@ -271,12 +271,12 @@ where
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, env: &Env) {
         if hidden_should_receive_event(event) {
             for (id, child) in &mut self.widgets {
-                State::tab_lens().with_mut(&mut data.tabs[id], |tab_data| {
+                State::tab_lens(id).with_mut(data, |tab_data| {
                     child.event(ctx, event, tab_data, env)
                 });
             }
         } else if let Some(id) = data.current {
-            State::tab_lens().with_mut(&mut data.tabs[&id], |tab_data| {
+            State::tab_lens(&id).with_mut(data, |tab_data| {
                 self.widgets.get_mut(&id).unwrap().event(ctx, event, tab_data, env)
             });
         }
