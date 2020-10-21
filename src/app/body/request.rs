@@ -3,15 +3,19 @@ use druid::{
     Data, Lens, Widget, WidgetExt,
 };
 
-use crate::app::command;
-use crate::json::JsonText;
-use crate::widget::{FormField, ValidationState};
-use crate::{grpc, protobuf, theme};
+use crate::{
+    app::command,
+    grpc,
+    json::JsonText,
+    protobuf::{self, ProtobufMethod},
+    theme,
+    widget::{FormField, ValidationState},
+};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     body: ValidationState<JsonText, grpc::Request, Option<String>>,
-    proto: Option<protobuf::ProtobufRequest>,
+    proto: protobuf::ProtobufRequest,
 }
 
 struct RequestController;
@@ -29,17 +33,15 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 }
 
 impl State {
+    pub(in crate::app) fn new(method: &ProtobufMethod) -> Self {
+        State {
+            body: ValidationState::new(JsonText::from(method.request().empty_json()), Err(None)),
+            proto: method.request(),
+        }
+    }
+
     pub(in crate::app) fn request(&self) -> grpc::Request {
         grpc::Request { body: todo!() }
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        State {
-            body: ValidationState::new(JsonText::default(), Err(None)),
-            proto: None,
-        }
     }
 }
 
@@ -72,11 +74,7 @@ where
         env: &Env,
     ) {
         if let Event::Command(command) = event {
-            if let Some(method) = command.get(command::SELECT_METHOD) {
-                child.set_validate(request_validator(Some(method.request())), data);
-                data.set_raw(method.request().empty_json().into());
-                data.raw_mut().prettify();
-            } else if command.is(command::FORMAT) {
+            if command.is(command::FORMAT) {
                 data.raw_mut().prettify();
             }
         }

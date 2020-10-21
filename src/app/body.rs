@@ -2,30 +2,357 @@ mod address;
 mod request;
 mod response;
 
-use druid::{Widget, WidgetExt, Data, Lens};
-use druid::widget::{Flex, Label};
+use std::collections::BTreeMap;
+use std::str::FromStr;
+use std::sync::Arc;
 
-use crate::theme;
+use druid::{
+    widget::{prelude::*, Flex, Label, MainAxisAlignment, Svg, SvgData},
+    ArcStr, Data, Lens, Point, Rect, Size, Widget, WidgetExt, WidgetPod, lens
+};
+use iter_set::Inclusion;
+
+use crate::{app::command, protobuf::ProtobufMethod, theme};
+
+pub type TabId = u32;
+
+const MIN_TAB_SIZE: f64 = 200.0;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    address: address::State,
-    pub request: request::State,
-    pub response: response::State,
+    tabs: im::OrdMap<TabId, Arc<TabState>>,
+    current: Option<TabId>,
 }
 
-pub(in crate::app) fn build() -> impl Widget<State> {
+#[derive(Debug, Clone, Data, Lens)]
+struct TabState {
+    method: ProtobufMethod,
+    address: address::State,
+    request: request::State,
+    response: response::State,
+}
+
+struct TabsHeader<W, F> {
+    labels: BTreeMap<TabId, WidgetPod<ArcStr, W>>,
+    build_label: F,
+    id: WidgetId,
+}
+
+struct TabsBody<W, F> {
+    widgets: BTreeMap<TabId, WidgetPod<TabState, W>>,
+    build_widget: F,
+    id: WidgetId,
+}
+
+pub fn next_tab_id() -> TabId {
+    use std::sync::atomic::*;
+
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    COUNTER.fetch_add(1, Ordering::Relaxed)
+}
+
+pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+    Flex::column()
+        .with_child(build_tab_header())
+        .with_flex_child(build_tabs_body(), 1.0)
+        .boxed()
+}
+
+fn build_tab_header() -> impl Widget<State> {
+    TabsHeader {
+        labels: BTreeMap::new(),
+        build_label: |widget_id, tab_id| build_tab_label(widget_id, tab_id),
+        id: WidgetId::next(),
+    }
+}
+
+fn build_tab_label(widget_id: WidgetId, tab_id: TabId) -> impl Widget<ArcStr> {
+    Flex::row()
+        .main_axis_alignment(MainAxisAlignment::SpaceBetween)
+        .with_child(Label::raw())
+        .with_child(
+            Svg::new(SvgData::from_str(include_str!("../../assets/close-24px.svg")).unwrap())
+                .on_click(move |ctx, _, _| {
+                    ctx.submit_command(command::CLOSE_TAB.with(tab_id).to(widget_id))
+                }),
+        )
+        // .lens(lens::Field::new(|tab| tab.method.name(), |tab| tab.method.name_mut()))
+        // .background(|ctx, data, env| {
+        //     let color = if data.
+        // })
+}
+
+fn build_tabs_body() -> impl Widget<State> {
+    TabsBody {
+        widgets: BTreeMap::new(),
+        build_widget: |widget_id, tab_id| build_tab(widget_id, tab_id),
+        id: WidgetId::next(),
+    }
+}
+
+fn build_tab(widget_id: WidgetId, tab_id: TabId) -> impl Widget<TabState> {
     Flex::column()
         .must_fill_main_axis(true)
-        .with_child(address::build().lens(State::address))
+        .with_child(address::build().lens(TabState::address))
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(Label::new("Request").align_left())
         .with_spacer(theme::GUTTER_SIZE)
-        .with_flex_child(request::build().lens(State::request), 0.5)
+        .with_flex_child(request::build().lens(TabState::request), 0.5)
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(Label::new("Response").align_left())
         .with_spacer(theme::GUTTER_SIZE)
-        .with_flex_child(response::build().lens(State::response), 0.5)
+        .with_flex_child(response::build().lens(TabState::response), 0.5)
         .padding(theme::GUTTER_SIZE)
-        .background(theme::TAB_BACKGROUND)
+}
+
+impl State {
+    pub fn select_method(&mut self, method: ProtobufMethod) {
+        if self.with_current_tab(|tab_data| {
+            tab_data.method.same(&method)
+        }).unwrap_or(false) {
+            return;
+        }
+
+        for (&id, tab) in &self.tabs {
+            if tab.method.same(&method) {
+                self.current = Some(id);
+            }
+        }
+
+        let id = next_tab_id();
+        self.current = Some(id);
+        self.tabs.insert(
+            id,
+            Arc::new(TabState {
+                request: request::State::new(&method),
+                response: response::State::default(),
+                address: address::State::default(),
+                method,
+            }),
+        );
+    }
+
+    pub fn remove_tab(&mut self, id: TabId) {
+        self.tabs.remove(&id);
+        self.current = self
+            .tabs
+            .get_prev(&id)
+            .or_else(|| self.tabs.get_next(&id))
+            .map(|(&tab_id, _)| tab_id);
+    }
+
+    fn tab_lens() -> impl Lens<Arc<TabState>, TabState> {
+        lens::InArc::new::<TabState, TabState>(lens::Id)
+    }
+
+    fn with_current_tab<V>(&self, f: impl FnOnce(&TabState) -> V) -> Option<V> {
+        if let Some(id) = self.current {
+            Some(State::tab_lens().with(&self.tabs[&id], f))
+        } else {
+            None
+        }
+    }
+
+    fn with_current_tab_mut<V>(&mut self, f: impl FnOnce(&mut TabState) -> V) -> Option<V> {
+        if let Some(id) = self.current {
+            Some(State::tab_lens().with_mut(&mut self.tabs[&id], f))
+        } else {
+            None
+        }
+    }
+}
+
+impl<W, F> Widget<State> for TabsHeader<W, F>
+where
+    W: Widget<ArcStr>,
+    F: FnMut(WidgetId, TabId) -> W,
+{
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, env: &Env) {
+        if let Event::Command(command) = event {
+            if let Some(&tab_id) = command.get(command::CLOSE_TAB) {
+                data.remove_tab(tab_id);
+                ctx.set_handled();
+                return;
+            }
+        }
+
+        for (id, label) in &mut self.labels {
+            State::tab_lens().with_mut(&mut data.tabs[id], |tab_data| {
+                label.event(ctx, event, tab_data.method.name_mut(), env)
+            })
+        }
+    }
+
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &State, env: &Env) {
+        if let LifeCycle::WidgetAdded = event {
+            debug_assert!(data.tabs.is_empty());
+        }
+
+        for (id, label) in &mut self.labels {
+            label.lifecycle(ctx, event, data.tabs[id].method.name(), env)
+        }
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &State, data: &State, env: &Env) {
+        debug_assert_eq!(old_data.tabs.len(), self.labels.len());
+
+        for inclusion in iter_set::classify_by_key(&old_data.tabs, &data.tabs, |(&key, _)| key) {
+            match inclusion {
+                Inclusion::Left((id, _)) => {
+                    self.labels.remove(id);
+                    ctx.children_changed();
+                }
+                Inclusion::Both(_, (id, tab_data)) => {
+                    self.labels
+                        .get_mut(id)
+                        .unwrap()
+                        .update(ctx, tab_data.method.name(), env);
+                }
+                Inclusion::Right((&id, _)) => {
+                    self.labels
+                        .insert(id, WidgetPod::new((self.build_label)(self.id, id)));
+                    ctx.children_changed();
+                }
+            }
+        }
+
+        debug_assert_eq!(data.tabs.len(), self.labels.len());
+    }
+
+    fn layout(
+        &mut self,
+        ctx: &mut LayoutCtx,
+        bc: &BoxConstraints,
+        data: &State,
+        env: &Env,
+    ) -> Size {
+        let mut height = bc.min().height;
+        let mut x = 0.0;
+        let mut paint_rect = Rect::ZERO;
+
+        for (id, label) in &mut self.labels {
+            let label_data = data.tabs[id].method.name();
+            let label_bc = BoxConstraints::new(
+                Size::new(MIN_TAB_SIZE, bc.min().height),
+                Size::new(f64::INFINITY, bc.max().height),
+            );
+
+            let child_size = label.layout(ctx, &label_bc, label_data, env);
+            let rect = Rect::from_origin_size(Point::new(x, 0.0), child_size);
+            label.set_layout_rect(ctx, label_data, env, rect);
+
+            paint_rect = paint_rect.union(rect);
+            height = height.max(child_size.height);
+            x += child_size.width;
+        }
+
+        let size = bc.constrain(Size::new(x, height));
+        ctx.set_paint_insets(paint_rect - Rect::ZERO.with_size(size));
+        size
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {
+        for (id, label) in &mut self.labels {
+            label.paint(ctx, data.tabs[id].method.name(), env)
+        }
+    }
+
+    fn id(&self) -> Option<WidgetId> {
+        Some(self.id)
+    }
+}
+
+impl<W, F> Widget<State> for TabsBody<W, F>
+where
+    W: Widget<TabState>,
+    F: FnMut(WidgetId, TabId) -> W,
+{
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut State, env: &Env) {
+        if hidden_should_receive_event(event) {
+            for (id, child) in &mut self.widgets {
+                State::tab_lens().with_mut(&mut data.tabs[id], |tab_data| {
+                    child.event(ctx, event, tab_data, env)
+                });
+            }
+        } else if let Some(id) = data.current {
+            State::tab_lens().with_mut(&mut data.tabs[&id], |tab_data| {
+                self.widgets.get_mut(&id).unwrap().event(ctx, event, tab_data, env)
+            });
+        }
+    }
+
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &State, env: &Env) {
+        if let Some(id) = data.current {
+            self.widgets.get_mut(&id).unwrap().lifecycle(ctx, event, &data.tabs[&id], env);
+        }
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &State, data: &State, env: &Env) {
+        debug_assert_eq!(old_data.tabs.len(), self.widgets.len());
+
+        for inclusion in iter_set::classify_by_key(&old_data.tabs, &data.tabs, |(&key, _)| key) {
+            match inclusion {
+                Inclusion::Left((id, _)) => {
+                    self.widgets.remove(id);
+                    ctx.children_changed();
+                }
+                Inclusion::Both(_, (id, tab_data)) => {
+                    self.widgets
+                        .get_mut(id)
+                        .unwrap()
+                        .update(ctx, tab_data, env);
+                }
+                Inclusion::Right((&id, _)) => {
+                    self.widgets
+                        .insert(id, WidgetPod::new((self.build_widget)(self.id, id)));
+                    ctx.children_changed();
+                }
+            }
+        }
+
+        debug_assert_eq!(data.tabs.len(), self.widgets.len());
+    }
+
+    fn layout(
+        &mut self,
+        ctx: &mut LayoutCtx,
+        bc: &BoxConstraints,
+        data: &State,
+        env: &Env,
+    ) -> Size {
+        if let Some(id) = data.current {
+            let child = self.widgets.get_mut(&id).unwrap();
+            let size = child.layout(ctx, bc, &data.tabs[&id], env);
+            child.set_layout_rect(ctx, &data.tabs[&id], env, size.to_rect());
+            size
+        } else {
+            Size::ZERO
+        }
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {
+        if let Some(id) = data.current {
+            self.widgets.get_mut(&id).unwrap().paint(ctx, &data.tabs[&id], env)
+        }
+    }
+}
+
+fn hidden_should_receive_event(evt: &Event) -> bool {
+    match evt {
+        Event::WindowConnected
+        | Event::WindowSize(_)
+        | Event::Timer(_)
+        | Event::AnimFrame(_)
+        | Event::Command(_)
+        | Event::Internal(_) => true,
+        Event::MouseDown(_)
+        | Event::MouseUp(_)
+        | Event::MouseMove(_)
+        | Event::Wheel(_)
+        | Event::KeyDown(_)
+        | Event::KeyUp(_)
+        | Event::Paste(_)
+        | Event::Zoom(_) => false,
+    }
 }

@@ -1,4 +1,7 @@
-use druid::{ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt, widget::Label, widget::Painter};
+use druid::{
+    widget::Label, widget::Painter, ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext,
+    Widget, WidgetExt,
+};
 
 use crate::{app::command, protobuf::ProtobufMethod, theme};
 
@@ -31,7 +34,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             let bounds = ctx.size().to_rect();
             ctx.fill(bounds, &color);
         }))
-        .on_click(|ctx, data, _|{
+        .on_click(|ctx, data, _| {
             data.selected = true;
             ctx.submit_command(command::SELECT_METHOD.with(data.method.method.clone()));
         })

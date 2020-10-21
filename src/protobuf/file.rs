@@ -87,6 +87,10 @@ impl ProtobufMethod {
         &self.name
     }
 
+    pub fn name_mut(&mut self) -> &mut ArcStr {
+        &mut self.name
+    }
+
     pub fn request(&self) -> ProtobufRequest {
         ProtobufRequest::new(self.request.clone())
     }

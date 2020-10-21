@@ -1,6 +1,6 @@
 use druid::{
     widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter, Svg},
-    ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt, RenderContext
+    ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt,
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    pub selected: Option<ProtobufMethod>,
+    pub selected: Option<ProtobufMethod>, // TODO generate from selected tab in body
     pub service: ServiceState,
 }
 
