@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use druid::{
     lens,
-    widget::{prelude::*, Flex, Label, MainAxisAlignment, Svg, SvgData, Painter},
-    Data, Lens, LensExt, Point, Rect, Size, Widget, WidgetExt, WidgetPod,
+    widget::{prelude::*, Flex, Label, MainAxisAlignment, Painter, Svg, SvgData},
+    Color, Data, Lens, LensExt, Point, Rect, Size, Widget, WidgetExt, WidgetPod,
 };
 use iter_set::Inclusion;
 
@@ -83,40 +83,29 @@ fn build_tab_label(widget_id: WidgetId, tab_id: TabId) -> impl Widget<TabLabelSt
                     |tab: &TabState| tab.method.name(),
                     |tab: &mut TabState| tab.method.name_mut(),
                 ))
-                .lens(TabLabelState::tab),
+                .lens(TabLabelState::tab)
+                .padding(4.0)
+                .background(Painter::new(|ctx, data: &TabLabelState, env| {
+                    let color = tab_label_background_color(ctx, data, env);
+                    let bounds = ctx.size().to_rect();
+                    ctx.fill(bounds, &color);
+                }))
+                .on_click(move |_, data: &mut TabLabelState, _| {
+                    data.current = true;
+                })
         )
         .with_child(
             Svg::new(SvgData::from_str(include_str!("../../assets/close-24px.svg")).unwrap())
-                // .background(|ctx, data, env| {
-                //     let color = if data.
-                // })
+                .padding(4.0)
+                .background(Painter::new(|ctx, data: &TabLabelState, env| {
+                    let color = tab_label_cross_background_color(ctx, data, env);
+                    let bounds = ctx.size().to_rect();
+                    ctx.fill(bounds, &color);
+                }))
                 .on_click(move |ctx, _, _| {
                     ctx.submit_command(command::CLOSE_TAB.with(tab_id).to(widget_id))
                 }),
         )
-        .background(Painter::new(|ctx, data: &TabLabelState, env| {
-            let color = if data.current {
-                env.get(theme::TAB_BACKGROUND)
-            } else if ctx.is_active() {
-                theme::color::active(
-                    env.get(druid::theme::WINDOW_BACKGROUND_COLOR),
-                    env.get(druid::theme::LABEL_COLOR),
-                )
-            } else if ctx.is_hot() {
-                theme::color::hot(
-                    env.get(druid::theme::WINDOW_BACKGROUND_COLOR),
-                    env.get(druid::theme::LABEL_COLOR),
-                )
-            } else {
-                env.get(druid::theme::WINDOW_BACKGROUND_COLOR)
-            };
-
-            let bounds = ctx.size().to_rect();
-            ctx.fill(bounds, &color);
-        }))
-        .on_click(move |_, data: &mut TabLabelState, _| {
-            data.current = true;
-        })
 }
 
 fn build_tabs_body() -> impl Widget<State> {
@@ -434,6 +423,9 @@ where
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {
         if let Some(id) = data.current {
+            let bounds = ctx.size().to_rect();
+            ctx.fill(bounds, &env.get(theme::TAB_BACKGROUND));
+
             self.widgets
                 .get_mut(&id)
                 .unwrap()
@@ -458,5 +450,43 @@ fn hidden_should_receive_event(evt: &Event) -> bool {
         | Event::KeyUp(_)
         | Event::Paste(_)
         | Event::Zoom(_) => false,
+    }
+}
+
+fn tab_label_background_color(ctx: &PaintCtx, data: &TabLabelState, env: &Env) -> Color {
+    if data.current {
+        env.get(theme::TAB_BACKGROUND)
+    } else if ctx.is_active() {
+        theme::color::active(
+            env.get(druid::theme::WINDOW_BACKGROUND_COLOR),
+            env.get(druid::theme::LABEL_COLOR),
+        )
+    } else if ctx.is_hot() {
+        theme::color::hot(
+            env.get(druid::theme::WINDOW_BACKGROUND_COLOR),
+            env.get(druid::theme::LABEL_COLOR),
+        )
+    } else {
+        env.get(druid::theme::WINDOW_BACKGROUND_COLOR)
+    }
+}
+
+fn tab_label_cross_background_color(ctx: &PaintCtx, data: &TabLabelState, env: &Env) -> Color {
+    if data.current {
+        if ctx.is_active() {
+            theme::color::active(
+                env.get(theme::TAB_BACKGROUND),
+                env.get(druid::theme::LABEL_COLOR),
+            )
+        } else if ctx.is_hot() {
+            theme::color::hot(
+                env.get(theme::TAB_BACKGROUND),
+                env.get(druid::theme::LABEL_COLOR),
+            )
+        } else {
+            env.get(theme::TAB_BACKGROUND)
+        }
+    } else {
+        tab_label_background_color(ctx, data, env)
     }
 }
