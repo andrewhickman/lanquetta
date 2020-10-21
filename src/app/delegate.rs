@@ -1,4 +1,4 @@
-use druid::{AppDelegate, ExtEventSink, SingleUse, Target, DelegateCtx, Command, Env, Handled};
+use druid::{AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Handled, SingleUse, Target};
 
 use crate::app::{self, command};
 use crate::grpc;
