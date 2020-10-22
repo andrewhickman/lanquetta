@@ -2,18 +2,16 @@ mod address;
 mod request;
 mod response;
 
-use std::collections::BTreeMap;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{sync::Arc, collections::BTreeMap};
 
 use druid::{
     lens,
-    widget::{prelude::*, Flex, Label, MainAxisAlignment, Painter, Svg, SvgData},
+    widget::{prelude::*, Flex, Label, MainAxisAlignment, Painter},
     Color, Data, Lens, LensExt, Point, Rect, Size, Widget, WidgetExt, WidgetPod,
 };
 use iter_set::Inclusion;
 
-use crate::{app::command, protobuf::ProtobufMethod, theme};
+use crate::{app::command, protobuf::ProtobufMethod, theme, widget::Icon};
 
 pub type TabId = u32;
 
@@ -92,10 +90,10 @@ fn build_tab_label(widget_id: WidgetId, tab_id: TabId) -> impl Widget<TabLabelSt
                 }))
                 .on_click(move |_, data: &mut TabLabelState, _| {
                     data.current = true;
-                })
+                }),
         )
         .with_child(
-            Svg::new(SvgData::from_str(include_str!("../../assets/close-24px.svg")).unwrap())
+            Icon::close()
                 .padding(4.0)
                 .background(Painter::new(|ctx, data: &TabLabelState, env| {
                     let color = tab_label_cross_background_color(ctx, data, env);

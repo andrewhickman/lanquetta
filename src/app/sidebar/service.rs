@@ -1,5 +1,5 @@
 use druid::{
-    widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter, Svg},
+    widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter},
     ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt,
 };
 
@@ -7,7 +7,7 @@ use crate::{
     app::sidebar::method,
     protobuf::{ProtobufMethod, ProtobufService},
     theme,
-    widget::Empty,
+    widget::{Empty, Icon},
 };
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -33,16 +33,8 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .lens(ServiceState::name);
     let service_icon = Either::new(
         |state: &ServiceState, _| state.expanded,
-        Svg::new(
-            include_str!("../../../assets/expand_more-24px.svg")
-                .parse()
-                .unwrap(),
-        ),
-        Svg::new(
-            include_str!("../../../assets/chevron_right-24px.svg")
-                .parse()
-                .unwrap(),
-        ),
+        Icon::expand_more(),
+        Icon::chevron_right(),
     );
     let service = Flex::row()
         .with_child(service_icon)
