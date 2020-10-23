@@ -8,6 +8,7 @@ use druid::{Color, Env, FontDescriptor, FontFamily, Key};
 pub(crate) const GUTTER_SIZE: f64 = 16.0;
 
 pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("app.editor-font");
+pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-font");
 
 pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
 pub(crate) const TAB_BACKGROUND: Key<Color> = Key::new("app.tab-background");
@@ -34,6 +35,10 @@ pub(crate) fn set(env: &mut Env) {
     env.set(
         EDITOR_FONT,
         FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0),
+    );
+    env.set(
+        TAB_LABEL_FONT,
+        FontDescriptor::new(FontFamily::SANS_SERIF).with_size(16.0),
     );
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
     env.set(TAB_BACKGROUND, color::ACCENT);

@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use druid::{widget::prelude::*, Widget, WidgetPod};
 
 use super::{TabId, TabsData, TabsDataChange};
+use crate::theme;
 
 pub struct TabsBody<T: TabsData, F, W> {
     children: BTreeMap<TabId, WidgetPod<T::Item, W>>,
@@ -91,6 +92,9 @@ where
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         data.with_selected(|id, tab_data| {
+            let bounds = ctx.size().to_rect();
+            ctx.fill(bounds, &env.get(theme::TAB_BACKGROUND));
+
             self.children
                 .get_mut(&id)
                 .unwrap()
