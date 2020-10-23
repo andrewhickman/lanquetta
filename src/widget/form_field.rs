@@ -1,51 +1,36 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
+use std::fmt;
 
 use druid::piet::TextStorage;
 use druid::{Data, Env, Widget};
 
 use crate::theme;
 
-pub struct FormField<W, F> {
+pub struct FormField<W> {
     pristine: bool,
-    validate: F,
     child: W,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ValidationState<T, O, E> {
     raw: T,
+    validate: Arc<dyn Fn(&str) -> Result<O, E>>,
     result: Result<O, E>,
 }
 
-impl<W, F> FormField<W, F> {
-    pub fn new(child: W, validate: F) -> Self {
+impl<W> FormField<W> {
+    pub fn new(child: W) -> Self {
         FormField {
             pristine: true,
             child: child,
-            validate,
         }
     }
 }
 
-impl<W, F, O, E> FormField<W, F>
-where
-    F: Fn(&str) -> Result<O, E>,
-{
-    pub fn set_validate<T>(&mut self, validate: F, data: &mut ValidationState<T, O, E>)
-    where
-        T: TextStorage,
-        ValidationState<T, O, E>: Data,
-    {
-        self.validate = validate;
-        data.update(&self.validate);
-    }
-}
-
-impl<T, W, F, O, E> Widget<ValidationState<T, O, E>> for FormField<W, F>
+impl<T, W, O, E> Widget<ValidationState<T, O, E>> for FormField<W>
 where
     T: TextStorage,
     W: Widget<T>,
-    F: Fn(&str) -> Result<O, E>,
     ValidationState<T, O, E>: Data,
 {
     fn event(
@@ -58,7 +43,6 @@ where
         let env = data.update_env(env, self.pristine);
         self.child.event(ctx, event, &mut data.raw, &env);
         self.pristine &= !ctx.is_focused();
-        data.update(&self.validate);
     }
 
     fn lifecycle(
@@ -113,20 +97,19 @@ impl<T, O, E> ValidationState<T, O, E>
 where
     T: TextStorage,
 {
-    pub fn new(raw: T, result: Result<O, E>) -> Self {
-        ValidationState { raw, result }
+    pub fn new(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E>>) -> Self {
+        let result = validate(raw.as_str());
+        ValidationState {
+            raw,
+            result,
+            validate,
+        }
     }
 
-    pub fn set_raw(&mut self, raw: T) {
-        self.raw = raw;
-    }
-
-    pub fn raw_mut(&mut self) -> &mut T {
-        &mut self.raw
-    }
-
-    pub fn update(&mut self, validate: impl Fn(&str) -> Result<O, E>) {
-        self.result = (validate)(self.raw.as_str());
+    pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
+        let result = f(&mut self.raw);
+        self.result = (self.validate)(self.raw.as_str());
+        result
     }
 
     fn is_valid(&self) -> bool {
@@ -150,7 +133,18 @@ where
     Self: Clone + 'static,
 {
     fn same(&self, other: &Self) -> bool {
-        // validator is assumed to be idempotent
         self.raw.same(&other.raw)
+    }
+}
+
+impl<T, O, E> fmt::Debug for ValidationState<T, O, E>
+where T: fmt::Debug,
+    Result<O, E>: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ValidationState")
+            .field("raw", &self.raw)
+            .field("result", &self.result)
+            .finish()
     }
 }

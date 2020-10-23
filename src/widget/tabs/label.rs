@@ -1,7 +1,12 @@
-use druid::{ArcStr, Data, Lens, MouseButton, widget::Painter, Point, Rect, Widget, WidgetExt, WidgetId, WidgetPod, widget::Controller, widget::{prelude::*, RawLabel}};
+use druid::{
+    widget::Controller,
+    widget::Painter,
+    widget::{prelude::*, RawLabel},
+    ArcStr, Data, Lens, MouseButton, Point, Rect, Widget, WidgetExt, WidgetId, WidgetPod,
+};
 
 use super::{TabId, CLOSE_TAB};
-use crate::{widget::Icon, theme};
+use crate::{theme, widget::Icon};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct State {
@@ -23,9 +28,16 @@ struct CloseButtonController {
 impl TabLabel {
     pub fn new(tabs_id: WidgetId, tab_id: TabId) -> Self {
         TabLabel {
-            label: WidgetPod::new(RawLabel::new().with_font(theme::TAB_LABEL_FONT).lens(State::name).boxed()),
+            label: WidgetPod::new(
+                RawLabel::new()
+                    .with_font(theme::TAB_LABEL_FONT)
+                    .lens(State::name)
+                    .boxed(),
+            ),
             close: WidgetPod::new(
-                Icon::close().background(Painter::new(paint_close_background)).controller(CloseButtonController { tabs_id, tab_id }),
+                Icon::close()
+                    .background(Painter::new(paint_close_background))
+                    .controller(CloseButtonController { tabs_id, tab_id }),
             )
             .boxed(),
         }
@@ -50,7 +62,7 @@ impl Widget<State> for TabLabel {
         self.close.event(ctx, event, data, env);
         if self.close.is_hot() != close_was_hot {
             ctx.request_paint();
-        } 
+        }
 
         if !ctx.is_handled() {
             match event {
@@ -114,7 +126,10 @@ impl Widget<State> for TabLabel {
         .clamp(bc.min(), bc.max());
 
         let label_rect = Rect::from_origin_size(
-            Point::new(PADDING, PADDING + (total_size.height - label_size.height) / 2.0),
+            Point::new(
+                PADDING,
+                PADDING + (total_size.height - label_size.height) / 2.0,
+            ),
             label_size,
         )
         .expand();
@@ -128,7 +143,10 @@ impl Widget<State> for TabLabel {
         self.label.set_layout_rect(ctx, data, env, label_rect);
         self.close.set_layout_rect(ctx, data, env, close_rect);
 
-        Size::new(PADDING * 2.0 + total_size.width, PADDING * 2.0 + total_size.height)
+        Size::new(
+            PADDING * 2.0 + total_size.width,
+            PADDING * 2.0 + total_size.height,
+        )
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {

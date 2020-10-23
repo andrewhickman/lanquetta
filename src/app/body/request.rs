@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use druid::{
     widget::{prelude::*, Controller, TextBox},
     Data, Lens, Widget, WidgetExt,
@@ -20,22 +22,27 @@ pub(in crate::app) struct State {
 
 struct RequestController;
 
-type RequestValidator = Box<dyn Fn(&str) -> Result<grpc::Request, Option<String>>>;
-
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    FormField::new(
-        TextBox::multiline().with_font(theme::EDITOR_FONT).expand(),
-        request_validator(None),
-    )
-    .controller(RequestController)
-    .lens(State::body)
-    .boxed()
+    FormField::new(TextBox::multiline().with_font(theme::EDITOR_FONT).expand())
+        .controller(RequestController)
+        .lens(State::body)
+        .boxed()
 }
 
 impl State {
     pub(in crate::app) fn new(method: &ProtobufMethod) -> Self {
+        let mut json = JsonText::from(method.request().empty_json());
+        json.prettify();
+
         State {
-            body: ValidationState::new(JsonText::from(method.request().empty_json()), Err(None)),
+            body: ValidationState::new(json, Arc::new(|_| {
+                // Some(descriptor) => match descriptor.parse(s) {
+                //     Ok(body) => Ok(grpc::Request { body }),
+                //     Err(err) => Err(Some(err.to_string())),
+                // },
+                // None => Err(None),
+                Err(None)
+            })),
             proto: method.request(),
         }
     }
@@ -45,29 +52,14 @@ impl State {
     }
 }
 
-fn request_validator(descriptor: Option<protobuf::ProtobufRequest>) -> RequestValidator {
-    // TODO
-    Box::new(move |_| match &descriptor {
-        // Some(descriptor) => match descriptor.parse(s) {
-        //     Ok(body) => Ok(grpc::Request { body }),
-        //     Err(err) => Err(Some(err.to_string())),
-        // },
-        // None => Err(None),
-        _ => Err(None),
-    })
-}
-
-impl<W>
-    Controller<
-        ValidationState<JsonText, grpc::Request, Option<String>>,
-        FormField<W, RequestValidator>,
-    > for RequestController
+impl<W> Controller<ValidationState<JsonText, grpc::Request, Option<String>>, FormField<W>>
+    for RequestController
 where
     W: Widget<JsonText>,
 {
     fn event(
         &mut self,
-        child: &mut FormField<W, RequestValidator>,
+        child: &mut FormField<W>,
         ctx: &mut EventCtx,
         event: &Event,
         data: &mut ValidationState<JsonText, grpc::Request, Option<String>>,
@@ -75,7 +67,7 @@ where
     ) {
         if let Event::Command(command) = event {
             if command.is(command::FORMAT) {
-                data.raw_mut().prettify();
+                data.with_text_mut(JsonText::prettify);
             }
         }
         child.event(ctx, event, data, env)
@@ -83,7 +75,7 @@ where
 
     fn lifecycle(
         &mut self,
-        child: &mut FormField<W, RequestValidator>,
+        child: &mut FormField<W>,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
         data: &ValidationState<JsonText, grpc::Request, Option<String>>,

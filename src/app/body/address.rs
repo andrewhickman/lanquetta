@@ -1,9 +1,10 @@
-use std::str::FromStr;
+use std::{sync::Arc, str::FromStr};
 use std::string::ToString;
 
 use druid::widget::{Button, Checkbox, Flex, TextBox};
 use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt};
 use http::Uri;
+use once_cell::sync::Lazy;
 
 use crate::app::{command, theme};
 use crate::widget::{FormField, ValidationState};
@@ -18,7 +19,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let address_textbox = TextBox::new()
         .with_placeholder("localhost:80")
         .expand_width();
-    let address_form_field = FormField::new(address_textbox, validate_uri);
+    let address_form_field = FormField::new(address_textbox);
     let tls_checkbox = Checkbox::new("Use TLS");
     let send_button = theme::scope(Button::new("Send").on_click(
         |ctx: &mut EventCtx, _: &mut State, _: &Env| {
@@ -35,6 +36,8 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .boxed()
 }
 
+static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>> = Lazy::new(|| Arc::new(|s| validate_uri(s)));
+
 fn validate_uri(s: &str) -> Result<Uri, String> {
     Uri::from_str(s).map_err(|err| err.to_string())
 }
@@ -42,7 +45,7 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 impl Default for State {
     fn default() -> Self {
         State {
-            address: ValidationState::new(String::default(), validate_uri("")),
+            address: ValidationState::new(String::default(), VALIDATE_URI.clone()),
             tls: false,
         }
     }
