@@ -4,7 +4,7 @@ mod label;
 
 pub use label::State as TabLabelState;
 
-use druid::{widget::Flex, Data, Selector, Widget};
+use druid::{widget::{Flex, CrossAxisAlignment}, Data, Selector, Widget};
 
 use self::body::TabsBody;
 use self::header::TabsHeader;
@@ -55,6 +55,7 @@ impl Tabs {
     {
         Flex::column()
             .must_fill_main_axis(true)
+            .cross_axis_alignment(CrossAxisAlignment::Start)
             .with_child(TabsHeader::new())
             .with_flex_child(TabsBody::new(build_body), 1.0)
     }

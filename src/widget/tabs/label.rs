@@ -36,6 +36,7 @@ impl TabLabel {
             ),
             close: WidgetPod::new(
                 Icon::close()
+                    .fix_size(20.0, 20.0)
                     .background(Painter::new(paint_close_background))
                     .controller(CloseButtonController { tabs_id, tab_id }),
             )
@@ -107,7 +108,7 @@ impl Widget<State> for TabLabel {
         data: &State,
         env: &Env,
     ) -> Size {
-        const PADDING: f64 = 4.0;
+        const PADDING: f64 = 3.0;
 
         let bc = bc.shrink((PADDING * 2.0, PADDING * 2.0));
 
