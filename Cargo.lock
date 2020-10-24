@@ -358,7 +358,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid?rev=31d4bdf9c5c97250804157ddbe88d758055b057a#31d4bdf9c5c97250804157ddbe88d758055b057a"
+source = "git+https://github.com/linebender/druid?rev=9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3#9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -381,7 +381,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.3.1"
-source = "git+https://github.com/linebender/druid?rev=31d4bdf9c5c97250804157ddbe88d758055b057a#31d4bdf9c5c97250804157ddbe88d758055b057a"
+source = "git+https://github.com/linebender/druid?rev=9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3#9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -391,7 +391,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid?rev=31d4bdf9c5c97250804157ddbe88d758055b057a#31d4bdf9c5c97250804157ddbe88d758055b057a"
+source = "git+https://github.com/linebender/druid?rev=9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3#9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -1588,7 +1588,7 @@ dependencies = [
 [[package]]
 name = "protobuf"
 version = "3.0.0-pre"
-source = "git+https://github.com/stepancheg/rust-protobuf.git?rev=b447f53014af46a7faf6bf46d313391a61b2eace#b447f53014af46a7faf6bf46d313391a61b2eace"
+source = "git+https://github.com/andrewhickman/rust-protobuf.git?branch=master#4e66c17ad2a5811b7e8419ab38101d92f11bb71e"
 
 [[package]]
 name = "quote"

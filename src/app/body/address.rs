@@ -1,5 +1,5 @@
-use std::{sync::Arc, str::FromStr};
 use std::string::ToString;
+use std::{str::FromStr, sync::Arc};
 
 use druid::widget::{Button, Checkbox, Flex, TextBox};
 use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt};
@@ -36,7 +36,8 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .boxed()
 }
 
-static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>> = Lazy::new(|| Arc::new(|s| validate_uri(s)));
+static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>> =
+    Lazy::new(|| Arc::new(|s| validate_uri(s)));
 
 fn validate_uri(s: &str) -> Result<Uri, String> {
     Uri::from_str(s).map_err(|err| err.to_string())

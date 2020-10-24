@@ -1,5 +1,5 @@
-use std::{borrow::Cow, sync::Arc};
 use std::fmt;
+use std::{borrow::Cow, sync::Arc};
 
 use druid::piet::TextStorage;
 use druid::{Data, Env, Widget};
@@ -41,7 +41,7 @@ where
         env: &druid::Env,
     ) {
         let env = data.update_env(env, self.pristine);
-        self.child.event(ctx, event, &mut data.raw, &env);
+        data.with_text_mut(|text| self.child.event(ctx, event, text, &env));
         self.pristine &= !ctx.is_focused();
     }
 
@@ -107,9 +107,9 @@ where
     }
 
     pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
-        let result = f(&mut self.raw);
+        let value = f(&mut self.raw);
         self.result = (self.validate)(self.raw.as_str());
-        result
+        value
     }
 
     fn is_valid(&self) -> bool {
@@ -138,7 +138,8 @@ where
 }
 
 impl<T, O, E> fmt::Debug for ValidationState<T, O, E>
-where T: fmt::Debug,
+where
+    T: fmt::Debug,
     Result<O, E>: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

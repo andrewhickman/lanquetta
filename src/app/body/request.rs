@@ -16,7 +16,7 @@ use crate::{
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    body: ValidationState<JsonText, grpc::Request, Option<String>>,
+    body: ValidationState<JsonText, grpc::Request, String>,
     proto: protobuf::ProtobufRequest,
 }
 
@@ -34,15 +34,16 @@ impl State {
         let mut json = JsonText::from(method.request().empty_json());
         json.prettify();
 
+        let request_descriptor = method.request();
+
         State {
-            body: ValidationState::new(json, Arc::new(|_| {
-                // Some(descriptor) => match descriptor.parse(s) {
-                //     Ok(body) => Ok(grpc::Request { body }),
-                //     Err(err) => Err(Some(err.to_string())),
-                // },
-                // None => Err(None),
-                Err(None)
-            })),
+            body: ValidationState::new(
+                json,
+                Arc::new(move |s| match request_descriptor.parse(s) {
+                    Ok(body) => Ok(grpc::Request { body }),
+                    Err(err) => Err(err.to_string()),
+                }),
+            ),
             proto: method.request(),
         }
     }
@@ -52,7 +53,7 @@ impl State {
     }
 }
 
-impl<W> Controller<ValidationState<JsonText, grpc::Request, Option<String>>, FormField<W>>
+impl<W> Controller<ValidationState<JsonText, grpc::Request, String>, FormField<W>>
     for RequestController
 where
     W: Widget<JsonText>,
@@ -62,7 +63,7 @@ where
         child: &mut FormField<W>,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut ValidationState<JsonText, grpc::Request, Option<String>>,
+        data: &mut ValidationState<JsonText, grpc::Request, String>,
         env: &Env,
     ) {
         if let Event::Command(command) = event {
@@ -78,7 +79,7 @@ where
         child: &mut FormField<W>,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
-        data: &ValidationState<JsonText, grpc::Request, Option<String>>,
+        data: &ValidationState<JsonText, grpc::Request, String>,
         env: &Env,
     ) {
         if let LifeCycle::FocusChanged(false) = event {
