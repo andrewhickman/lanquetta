@@ -62,6 +62,7 @@ impl State {
             if tab.method.same(&method) {
                 self.selected = Some(id);
             }
+            return;
         }
 
         self.create_tab(method)
