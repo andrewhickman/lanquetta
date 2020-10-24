@@ -6,7 +6,7 @@ use std::path::Path;
 use anyhow::Result;
 use druid::{
     widget::{List, ListIter},
-    Data, Lens, Widget, WidgetExt,
+    Data, Lens, Widget, WidgetExt as _,
 };
 
 use crate::{

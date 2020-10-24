@@ -2,7 +2,7 @@ use std::string::ToString;
 use std::{str::FromStr, sync::Arc};
 
 use druid::widget::{Button, Checkbox, Flex, TextBox};
-use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt};
+use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _};
 use http::Uri;
 use once_cell::sync::Lazy;
 

@@ -6,7 +6,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use druid::{
     widget::{Flex, Label},
-    Data, Lens, Widget, WidgetExt,
+    Data, Lens, Widget, WidgetExt as _,
 };
 use iter_set::Inclusion;
 
@@ -50,7 +50,7 @@ fn build_body(_: TabId) -> impl Widget<TabState> {
 }
 
 impl State {
-    pub fn select_method(&mut self, method: ProtobufMethod) {
+    pub fn select_or_create_tab(&mut self, method: ProtobufMethod) {
         if self
             .with_selected(|_, tab_data| tab_data.method.same(&method))
             .unwrap_or(false)
@@ -64,6 +64,10 @@ impl State {
             }
         }
 
+        self.create_tab(method)
+    }
+
+    pub fn create_tab(&mut self, method: ProtobufMethod) {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(

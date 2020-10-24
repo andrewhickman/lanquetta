@@ -1,9 +1,9 @@
 use druid::{
-    widget::Label, widget::Painter, ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext,
-    Widget, WidgetExt,
+    widget::{Flex, Label, Painter},
+    ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt as _,
 };
 
-use crate::{app::command, protobuf::ProtobufMethod, theme};
+use crate::{app::command, protobuf::ProtobufMethod, theme, widget::Icon};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -16,8 +16,10 @@ pub(in crate::app) struct MethodState {
     method: ProtobufMethod,
 }
 
+struct BackgroundController;
+
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    Label::raw()
+    let label = Label::raw()
         .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
         .with_text_size(16.0)
         .padding((theme::GUTTER_SIZE, theme::GUTTER_SIZE / 4.0))
@@ -26,7 +28,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .lens(State::method)
         .background(Painter::new(|ctx, data: &State, env| {
             let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-            if ctx.is_active() || data.selected {
+            if ctx.is_active() {
                 color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
             } else if ctx.is_hot() {
                 color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
@@ -36,7 +38,40 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         }))
         .on_click(|ctx, data, _| {
             data.selected = true;
-            ctx.submit_command(command::SELECT_METHOD.with(data.method.method.clone()));
+            ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
+        });
+
+    let add = Icon::add()
+        .background(Painter::new(|ctx, data: &State, env| {
+            let mut color = env.get(theme::SIDEBAR_BACKGROUND);
+            if ctx.is_active() {
+                color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+            }
+            if ctx.is_hot() {
+                color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+            }
+            let bounds = ctx.size().to_rect();
+            ctx.fill(bounds, &color);
+        }))
+        .on_click(|ctx, data, _| {
+            data.selected = true;
+            ctx.submit_command(command::CREATE_TAB.with(data.method.method.clone()));
+        });
+
+    Flex::row()
+        .with_flex_child(label, 1.0)
+        .with_child(add)
+        .background(theme::SIDEBAR_BACKGROUND)
+        .env_scope(|env, data| {
+            if data.selected {
+                env.set(
+                    theme::SIDEBAR_BACKGROUND,
+                    theme::color::active(
+                        env.get(theme::SIDEBAR_BACKGROUND),
+                        env.get(druid::theme::LABEL_COLOR),
+                    ),
+                );
+            }
         })
         .boxed()
 }

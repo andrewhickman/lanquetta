@@ -5,7 +5,7 @@ mod menu;
 mod sidebar;
 
 use druid::widget::Split;
-use druid::{AppLauncher, Data, Lens, PlatformError, Widget, WidgetExt, WindowDesc};
+use druid::{AppLauncher, Data, Lens, PlatformError, Widget, WidgetExt as _, WindowDesc};
 
 use crate::theme;
 

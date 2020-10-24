@@ -1,6 +1,6 @@
 use druid::{
     widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter},
-    ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt,
+    ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt as _,
 };
 
 use crate::{

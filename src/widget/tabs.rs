@@ -4,7 +4,10 @@ mod label;
 
 pub use label::State as TabLabelState;
 
-use druid::{widget::{Flex, CrossAxisAlignment}, Data, Selector, Widget};
+use druid::{
+    widget::{CrossAxisAlignment, Flex},
+    Data, Selector, Widget,
+};
 
 use self::body::TabsBody;
 use self::header::TabsHeader;

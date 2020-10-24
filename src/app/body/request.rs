@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use druid::{
     widget::{prelude::*, Controller, TextBox},
-    Data, Lens, Widget, WidgetExt,
+    Data, Lens, Widget, WidgetExt as _,
 };
 
 use crate::{

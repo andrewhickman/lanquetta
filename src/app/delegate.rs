@@ -30,8 +30,11 @@ impl AppDelegate<app::State> for Delegate {
                 log::error!("Error loading file: {:?}", err);
             }
             Handled::Yes
-        } else if let Some(method) = cmd.get(command::SELECT_METHOD) {
-            data.body.select_method(method.clone());
+        } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_TAB) {
+            data.body.select_or_create_tab(method.clone());
+            Handled::Yes
+        } else if let Some(method) = cmd.get(command::CREATE_TAB) {
+            data.body.create_tab(method.clone());
             Handled::Yes
         } else if cmd.is(command::START_SEND) {
             // let event_sink = self.event_sink.clone();

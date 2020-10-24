@@ -1,5 +1,5 @@
 use druid::widget::TextBox;
-use druid::{Data, Lens, Widget, WidgetExt};
+use druid::{Data, Lens, Widget, WidgetExt as _};
 
 use crate::json::JsonText;
 use crate::{grpc, theme};

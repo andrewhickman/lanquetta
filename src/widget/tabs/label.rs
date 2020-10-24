@@ -2,7 +2,7 @@ use druid::{
     widget::Controller,
     widget::Painter,
     widget::{prelude::*, RawLabel},
-    ArcStr, Data, Lens, MouseButton, Point, Rect, Widget, WidgetExt, WidgetId, WidgetPod,
+    ArcStr, Data, Lens, MouseButton, Point, Rect, Widget, WidgetExt as _, WidgetId, WidgetPod,
 };
 
 use super::{TabId, CLOSE_TAB};
