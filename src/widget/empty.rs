@@ -9,8 +9,8 @@ impl<T> Widget<T> for Empty {
 
     fn update(&mut self, _: &mut UpdateCtx, _: &T, _: &T, _: &Env) {}
 
-    fn layout(&mut self, _: &mut LayoutCtx, _: &BoxConstraints, _: &T, _: &Env) -> Size {
-        Size::ZERO
+    fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &T, _: &Env) -> Size {
+        bc.min()
     }
 
     fn paint(&mut self, _: &mut PaintCtx, _: &T, _: &Env) {}
