@@ -1,7 +1,7 @@
 use std::fmt;
 use std::{borrow::Cow, sync::Arc};
 
-use druid::piet::TextStorage;
+use druid::{LifeCycle, piet::TextStorage};
 use druid::{Data, Env, Widget};
 
 use crate::theme;
@@ -42,7 +42,6 @@ where
     ) {
         let env = data.update_env(env, self.pristine);
         data.with_text_mut(|text| self.child.event(ctx, event, text, &env));
-        self.pristine &= !ctx.is_focused();
     }
 
     fn lifecycle(
@@ -52,6 +51,10 @@ where
         data: &ValidationState<T, O, E>,
         env: &druid::Env,
     ) {
+        if let LifeCycle::FocusChanged(false) = event {
+            self.pristine = false;
+        }
+
         self.child
             .lifecycle(ctx, event, &data.raw, &data.update_env(env, self.pristine));
     }
