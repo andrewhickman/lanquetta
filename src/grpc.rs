@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use futures::future::FutureExt;
+use http::Uri;
 use protobuf::MessageDyn;
 use tokio::sync::Mutex;
 use tonic::client::Grpc;
@@ -33,7 +34,7 @@ impl Client {
         Client::default()
     }
 
-    pub fn send(&self, request: Request, callback: impl FnOnce(ResponseResult) + Send + 'static) {
+    pub fn send(&self, address: &Uri, request: Request, callback: impl FnOnce(ResponseResult) + Send + 'static) {
         tokio::spawn(self.clone().send_impl(request).map(callback));
     }
 

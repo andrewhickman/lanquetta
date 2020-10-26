@@ -109,6 +109,10 @@ where
         }
     }
 
+    pub fn result(&self) -> Result<&O, &E> {
+        self.result.as_ref()
+    }
+
     pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
         let value = f(&mut self.raw);
         self.result = (self.validate)(self.raw.as_str());

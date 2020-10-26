@@ -48,7 +48,7 @@ impl State {
         }
     }
 
-    pub(in crate::app) fn request(&self) -> grpc::Request {
+    pub(in crate::app) fn get(&self) -> grpc::Request {
         grpc::Request { body: todo!() }
     }
 }

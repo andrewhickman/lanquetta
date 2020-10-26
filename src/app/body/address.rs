@@ -52,3 +52,9 @@ impl Default for State {
         }
     }
 }
+
+impl State {
+    pub fn get(&self) -> Option<&Uri> {
+        self.address.result().ok()
+    }
+}
