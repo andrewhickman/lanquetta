@@ -61,8 +61,8 @@ impl State {
         for (&id, tab) in self.tabs.iter() {
             if tab.method.same(&method) {
                 self.selected = Some(id);
+                return;
             }
-            return;
         }
 
         self.create_tab(method)
@@ -80,6 +80,10 @@ impl State {
                 method,
             },
         );
+    }
+
+    pub fn selected_method(&self) -> Option<ProtobufMethod> {
+        self.with_selected(|_, tab_data| tab_data.method.clone())
     }
 }
 

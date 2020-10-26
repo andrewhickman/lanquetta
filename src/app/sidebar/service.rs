@@ -116,16 +116,8 @@ impl ListIter<method::State> for State {
             let mut state = method::State::new(selected, method.to_owned());
             cb(&mut state, i);
 
-            if selected != state.selected {
-                self.selected = if state.selected {
-                    Some(state.method.method().to_owned())
-                } else {
-                    None
-                };
-            }
-            if !method.same(&state.method) {
-                *method = state.method;
-            }
+            debug_assert!(selected.same(&state.selected));
+            debug_assert!(method.same(&state.method));
         }
     }
 

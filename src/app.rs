@@ -29,14 +29,14 @@ pub fn launch() -> Result<(), PlatformError> {
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 struct State {
-    sidebar: sidebar::State,
+    sidebar: sidebar::ServiceListState,
     body: body::State,
 }
 
 const TITLE: &'static str = "gRPC Client";
 
 fn build() -> impl Widget<State> {
-    let sidebar = sidebar::build().lens(State::sidebar);
+    let sidebar = sidebar::build().lens(State::sidebar_lens());
     let body = body::build().lens(State::body);
 
     Split::columns(sidebar, body)
@@ -46,4 +46,30 @@ fn build() -> impl Widget<State> {
         .solid_bar(true)
         .draggable(true)
         .boxed()
+}
+
+impl State {
+    fn sidebar_lens() -> impl Lens<State, sidebar::State> {
+        struct SidebarLens;
+
+        impl Lens<State, sidebar::State> for SidebarLens {
+            fn with<V, F: FnOnce(&sidebar::State) -> V>(&self, data: &State, f: F) -> V {
+                f(&sidebar::State::new(data.sidebar.clone(), data.body.selected_method()))
+            }
+
+            fn with_mut<V, F: FnOnce(&mut sidebar::State) -> V>(&self, data: &mut State, f: F) -> V {
+                let mut sidebar_data = sidebar::State::new(data.sidebar.clone(), data.body.selected_method());
+                let result = f(&mut sidebar_data);
+
+                debug_assert!(sidebar_data.selected_method().same(&data.body.selected_method()));
+                if !sidebar_data.list_state().same(&data.sidebar) {
+                    data.sidebar = sidebar_data.into_list_state();
+                }
+
+                result
+            }
+        }
+
+        SidebarLens
+    }
 }

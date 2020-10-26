@@ -17,8 +17,6 @@ pub(in crate::app) struct MethodState {
     method: ProtobufMethod,
 }
 
-struct BackgroundController;
-
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let label = Label::raw()
         .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
@@ -33,7 +31,6 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             ctx.fill(bounds, &color);
         }))
         .on_click(|ctx, data: &mut State, _| {
-            data.selected = true;
             ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
         });
 
@@ -46,7 +43,6 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             ctx.fill(bounds, &color);
         }))
         .on_click(|ctx, data: &mut State, _| {
-            data.selected = true;
             ctx.submit_command(command::CREATE_TAB.with(data.method.method.clone()));
         })
         .padding(3.0);
