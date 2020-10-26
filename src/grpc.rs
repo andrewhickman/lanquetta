@@ -3,58 +3,52 @@ use std::sync::Arc;
 use futures::future::FutureExt;
 use http::Uri;
 use protobuf::MessageDyn;
-use tokio::sync::Mutex;
-use tonic::client::Grpc;
+use tonic::{client::Grpc, IntoRequest};
 use tonic::transport::Channel;
-use tonic::IntoRequest;
 
-use crate::protobuf::ProtobufCodec;
+use crate::protobuf::ProtobufMethod;
 
 pub type ResponseResult = Result<Response, Error>;
 
-#[derive(Debug, Clone, druid::Data)]
+#[derive(Debug, Clone)]
 pub struct Request {
+    pub method: ProtobufMethod,
     pub body: Arc<dyn MessageDyn>,
 }
 
-#[derive(Debug, Clone, druid::Data)]
+#[derive(Debug, Clone)]
 pub struct Response {
     pub body: Arc<dyn MessageDyn>,
 }
 
 pub type Error = anyhow::Error;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Client {
-    grpc: Option<Grpc<Channel>>,
+    grpc: Grpc<Channel>,
 }
 
 impl Client {
-    pub fn new() -> Self {
-        Client::default()
+    pub fn new(uri: Uri) -> Result<Self, tonic::transport::Error> {
+        Ok(Client {
+            grpc: Grpc::new(Channel::builder(uri).connect_lazy()?),
+        })
     }
 
-    pub fn send(&self, address: &Uri, request: Request, callback: impl FnOnce(ResponseResult) + Send + 'static) {
+    pub fn send(&self, request: Request, callback: impl FnOnce(ResponseResult) + Send + 'static) {
         tokio::spawn(self.clone().send_impl(request).map(callback));
     }
 
-    async fn send_impl(self, request: Request) -> ResponseResult {
+    async fn send_impl(mut self, request: Request) -> ResponseResult {
         #![allow(unused)]
 
-        todo!()
-        // let grpc: &mut Grpc<Channel> = match &mut inner.grpc {
-        //     Some(grpc) => grpc,
-        //     None => todo!(),
-        // };
+        let body = self
+            .grpc
+            .unary(request.body.into_request(), request.method.path()?, request.method.codec())
+            .await?;
 
-        // let codec = ProtobufCodec::new(request.body.descriptor_dyn());
-
-        // let body = grpc
-        //     .unary(request.body.into_request(), todo!(), codec)
-        //     .await?;
-
-        // Ok(Response {
-        //     body: body.into_inner(),
-        // })
+        Ok(Response {
+            body: body.into_inner(),
+        })
     }
 }

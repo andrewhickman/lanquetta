@@ -4,13 +4,13 @@ use std::iter;
 use std::ops::Range;
 use std::sync::Arc;
 
-use druid::piet::{
-    self, FontStyle, FontWeight, PietTextLayoutBuilder, TextAttribute, TextStorage as _,
-};
-use druid::Data;
 use druid::{
-    piet::TextLayoutBuilder,
+    piet::{
+        self, FontStyle, FontWeight, PietTextLayoutBuilder, TextAttribute, TextLayoutBuilder,
+        TextStorage as _,
+    },
     text::{EditableText, StringCursor, TextStorage},
+    Data,
 };
 use memchr::Memchr;
 use once_cell::sync::Lazy;
@@ -32,7 +32,7 @@ static THEME_HIGHLIGHTER: Lazy<Highlighter<'static>> = Lazy::new(|| Highlighter:
 
 #[derive(Debug, Clone)]
 pub struct JsonText {
-    data: String,
+    data: Arc<String>,
     styles: Arc<[(highlighting::Style, Range<usize>)]>,
 }
 
@@ -200,7 +200,7 @@ impl From<String> for JsonText {
     fn from(s: String) -> Self {
         JsonText {
             styles: get_styles(&s).into(),
-            data: s,
+            data: Arc::new(s),
         }
     }
 }

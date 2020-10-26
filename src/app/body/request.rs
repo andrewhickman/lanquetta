@@ -9,7 +9,7 @@ use crate::{
     app::command,
     grpc,
     json::JsonText,
-    protobuf::{self, ProtobufMethod},
+    protobuf::{ProtobufMethod},
     theme,
     widget::{FormField, ValidationState},
 };
@@ -17,7 +17,6 @@ use crate::{
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     body: ValidationState<JsonText, grpc::Request, String>,
-    proto: protobuf::ProtobufRequest,
 }
 
 struct RequestController;
@@ -30,26 +29,25 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 }
 
 impl State {
-    pub(in crate::app) fn new(method: &ProtobufMethod) -> Self {
+    pub(in crate::app) fn new(method: ProtobufMethod) -> Self {
         let mut json = JsonText::from(method.request().empty_json());
         json.prettify();
 
-        let request_descriptor = method.request();
+        let request = method.request();
 
         State {
             body: ValidationState::new(
                 json,
-                Arc::new(move |s| match request_descriptor.parse(s) {
-                    Ok(body) => Ok(grpc::Request { body }),
+                Arc::new(move |s| match request.parse(s) {
+                    Ok(body) => Ok(grpc::Request { method: method.clone(), body }),
                     Err(err) => Err(err.to_string()),
                 }),
             ),
-            proto: method.request(),
         }
     }
 
-    pub(in crate::app) fn get(&self) -> grpc::Request {
-        grpc::Request { body: todo!() }
+    pub(in crate::app) fn get(&self) -> Option<&grpc::Request> {
+        self.body.result().ok()
     }
 }
 

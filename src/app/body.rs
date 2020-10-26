@@ -5,7 +5,10 @@ mod response;
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use druid::{Data, Lens, Widget, WidgetExt as _, WidgetId, widget::{Flex, Label}};
+use druid::{
+    widget::{Flex, Label},
+    Data, Lens, Widget, WidgetExt as _, WidgetId,
+};
 use iter_set::Inclusion;
 
 use self::controller::TabController;
@@ -76,7 +79,7 @@ impl State {
         Arc::make_mut(&mut self.tabs).insert(
             id,
             TabState {
-                request: request::State::new(&method),
+                request: request::State::new(method.clone()),
                 response: response::State::default(),
                 address: address::State::default(),
                 method,

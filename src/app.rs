@@ -19,10 +19,9 @@ pub fn launch() -> Result<(), PlatformError> {
         .show_titlebar(true);
 
     let app_launcher = AppLauncher::with_window(main_window);
-    let event_sink = app_launcher.get_external_handle();
     app_launcher
         .configure_env(|env, _| theme::set(env))
-        .delegate(delegate::build(event_sink))
+        .delegate(delegate::build())
         .use_simple_logger()
         .launch(State::default())
 }

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::{borrow::Cow, sync::Arc};
 
-use druid::{LifeCycle, piet::TextStorage};
+use druid::{piet::TextStorage, LifeCycle};
 use druid::{Data, Env, Widget};
 
 use crate::theme;

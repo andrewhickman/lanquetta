@@ -6,21 +6,23 @@ use protobuf::{CodedInputStream, CodedOutputStream, MessageDyn};
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
 use tonic::Status;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProtobufCodec {
-    // TODO include method here
-    descriptor: MessageDescriptor,
+    request: MessageDescriptor,
+    response: MessageDescriptor,
 }
 
-pub struct ProtobufEncoder {}
+pub struct ProtobufEncoder {
+    descriptor: MessageDescriptor,
+}
 
 pub struct ProtobufDecoder {
     descriptor: MessageDescriptor,
 }
 
 impl ProtobufCodec {
-    pub fn new(descriptor: MessageDescriptor) -> Self {
-        ProtobufCodec { descriptor }
+    pub fn new(request: MessageDescriptor, response: MessageDescriptor) -> Self {
+        ProtobufCodec { request, response }
     }
 }
 
@@ -38,12 +40,14 @@ impl Codec for ProtobufCodec {
     type Decoder = ProtobufDecoder;
 
     fn encoder(&mut self) -> Self::Encoder {
-        ProtobufEncoder {}
+        ProtobufEncoder {
+            descriptor: self.request.clone(),
+        }
     }
 
     fn decoder(&mut self) -> Self::Decoder {
         ProtobufDecoder {
-            descriptor: self.descriptor.clone(),
+            descriptor: self.response.clone(),
         }
     }
 }
@@ -53,6 +57,7 @@ impl Encoder for ProtobufEncoder {
     type Error = Status;
 
     fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
+        debug_assert_eq!(&item.descriptor_dyn(), &self.descriptor);
         item.write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
             .map_err(|err| tonic::Status::internal(err.to_string()))?;
         Ok(())

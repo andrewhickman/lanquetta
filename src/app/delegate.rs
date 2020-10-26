@@ -1,19 +1,12 @@
-use druid::{AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Handled, Target};
+use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 
 use crate::app::{self, command};
-use crate::grpc;
 
-pub(in crate::app) fn build(event_sink: ExtEventSink) -> impl AppDelegate<app::State> {
-    Delegate {
-        event_sink,
-        grpc_client: grpc::Client::new(),
-    }
+pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
+    Delegate
 }
 
-struct Delegate {
-    event_sink: ExtEventSink,
-    grpc_client: grpc::Client,
-}
+struct Delegate;
 
 impl AppDelegate<app::State> for Delegate {
     fn command(
