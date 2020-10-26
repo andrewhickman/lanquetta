@@ -5,10 +5,7 @@ mod response;
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use druid::{
-    widget::{Flex, Label},
-    Data, Lens, Widget, WidgetExt as _,
-};
+use druid::{Data, Lens, Widget, WidgetExt as _, WidgetId, widget::{Flex, Label}};
 use iter_set::Inclusion;
 
 use self::controller::TabController;
@@ -37,6 +34,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 }
 
 fn build_body() -> impl Widget<TabState> {
+    let id = WidgetId::next();
     Flex::column()
         .must_fill_main_axis(true)
         .with_child(address::build().lens(TabState::address))
@@ -49,7 +47,8 @@ fn build_body() -> impl Widget<TabState> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_flex_child(response::build().lens(TabState::response), 0.5)
         .padding(theme::GUTTER_SIZE)
-        .controller(TabController::new())
+        .controller(TabController::new(id))
+        .with_id(id)
 }
 
 impl State {

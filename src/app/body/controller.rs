@@ -4,12 +4,14 @@ use crate::{app::{body::TabState, command}, grpc};
 
 pub struct TabController {
     grpc_client: grpc::Client,
+    id: WidgetId,
 }
 
 impl TabController {
-    pub fn new() -> TabController {
+    pub fn new(id: WidgetId) -> TabController {
         TabController {
             grpc_client: grpc::Client::new(),
+            id,
         }
     }
 }
@@ -28,13 +30,14 @@ impl TabController {
         if command.is(command::START_SEND) {
             if let Some(address) = data.address.get() {
                 let event_sink = ctx.get_external_handle();
+                let target = Target::Widget(self.id);
                 self.grpc_client
                     .send(&address, data.request.get(), move |response| {
                         event_sink
                             .submit_command(
                                 command::FINISH_SEND,
                                 SingleUse::new(response),
-                                Target::Global,
+                                target,
                             )
                             .ok();
                     });
