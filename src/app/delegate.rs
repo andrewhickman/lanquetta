@@ -1,4 +1,4 @@
-use druid::{AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Handled, SingleUse, Target};
+use druid::{AppDelegate, Command, DelegateCtx, Env, ExtEventSink, Handled, Target};
 
 use crate::app::{self, command};
 use crate::grpc;
@@ -35,24 +35,6 @@ impl AppDelegate<app::State> for Delegate {
             Handled::Yes
         } else if let Some(method) = cmd.get(command::CREATE_TAB) {
             data.body.create_tab(method.clone());
-            Handled::Yes
-        } else if cmd.is(command::START_SEND) {
-            // let event_sink = self.event_sink.clone();
-            // self.grpc_client
-            //     .send(data.body.request.request(), move |response| {
-            //         event_sink
-            //             .submit_command(
-            //                 command::FINISH_SEND,
-            //                 SingleUse::new(response),
-            //                 Target::Global,
-            //             )
-            //             .ok();
-            //     });
-            Handled::Yes
-        } else if let Some(response) = cmd.get(command::FINISH_SEND) {
-            // // TODO how do we identify the tab to set the response on?
-            // let result = response.take().expect("response already handled");
-            // data.body.response.update(result);
             Handled::Yes
         } else {
             Handled::No

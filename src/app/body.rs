@@ -1,4 +1,5 @@
 mod address;
+mod controller;
 mod request;
 mod response;
 
@@ -10,6 +11,7 @@ use druid::{
 };
 use iter_set::Inclusion;
 
+use self::controller::TabController;
 use crate::{
     protobuf::ProtobufMethod,
     theme,
@@ -34,7 +36,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     Tabs::new(build_body).boxed()
 }
 
-fn build_body(_: TabId) -> impl Widget<TabState> {
+fn build_body() -> impl Widget<TabState> {
     Flex::column()
         .must_fill_main_axis(true)
         .with_child(address::build().lens(TabState::address))
@@ -47,6 +49,7 @@ fn build_body(_: TabId) -> impl Widget<TabState> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_flex_child(response::build().lens(TabState::response), 0.5)
         .padding(theme::GUTTER_SIZE)
+        .controller(TabController::new())
 }
 
 impl State {

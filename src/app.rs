@@ -54,14 +54,24 @@ impl State {
 
         impl Lens<State, sidebar::State> for SidebarLens {
             fn with<V, F: FnOnce(&sidebar::State) -> V>(&self, data: &State, f: F) -> V {
-                f(&sidebar::State::new(data.sidebar.clone(), data.body.selected_method()))
+                f(&sidebar::State::new(
+                    data.sidebar.clone(),
+                    data.body.selected_method(),
+                ))
             }
 
-            fn with_mut<V, F: FnOnce(&mut sidebar::State) -> V>(&self, data: &mut State, f: F) -> V {
-                let mut sidebar_data = sidebar::State::new(data.sidebar.clone(), data.body.selected_method());
+            fn with_mut<V, F: FnOnce(&mut sidebar::State) -> V>(
+                &self,
+                data: &mut State,
+                f: F,
+            ) -> V {
+                let mut sidebar_data =
+                    sidebar::State::new(data.sidebar.clone(), data.body.selected_method());
                 let result = f(&mut sidebar_data);
 
-                debug_assert!(sidebar_data.selected_method().same(&data.body.selected_method()));
+                debug_assert!(sidebar_data
+                    .selected_method()
+                    .same(&data.body.selected_method()));
                 if !sidebar_data.list_state().same(&data.sidebar) {
                     data.sidebar = sidebar_data.into_list_state();
                 }

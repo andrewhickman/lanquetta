@@ -53,7 +53,7 @@ impl Tabs {
     pub fn new<T, F, W>(build_body: F) -> impl Widget<T>
     where
         T: TabsData,
-        F: FnMut(TabId) -> W + 'static,
+        F: FnMut() -> W + 'static,
         W: Widget<T::Item> + 'static,
     {
         Flex::column()

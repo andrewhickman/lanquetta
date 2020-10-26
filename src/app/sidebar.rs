@@ -16,7 +16,7 @@ use crate::{
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    services: ServiceListState, 
+    services: ServiceListState,
     selected: Option<ProtobufMethod>,
 }
 

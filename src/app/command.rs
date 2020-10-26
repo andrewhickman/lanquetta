@@ -13,8 +13,8 @@ pub const CREATE_TAB: Selector<ProtobufMethod> = Selector::new("app.create-tab")
 /// Format a text box
 pub const FORMAT: Selector = Selector::new("app.format");
 
-/// Begin sending the request
+/// Begin sending a request
 pub const START_SEND: Selector = Selector::new("app.start-send");
 
-/// Finish sending the request
+/// Finish sending a request
 pub const FINISH_SEND: Selector<SingleUse<grpc::ResponseResult>> = Selector::new("app.finish-send");

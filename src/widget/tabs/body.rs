@@ -22,7 +22,7 @@ impl<T: TabsData, F, W> TabsBody<T, F, W> {
 impl<T, F, W> Widget<T> for TabsBody<T, F, W>
 where
     T: TabsData,
-    F: FnMut(TabId) -> W,
+    F: FnMut() -> W,
     W: Widget<T::Item>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
@@ -59,7 +59,7 @@ where
         data.for_each_changed(old_data, |id, change| match change {
             TabsDataChange::Added => {
                 self.children
-                    .insert(id, WidgetPod::new((self.make_child)(id)));
+                    .insert(id, WidgetPod::new((self.make_child)()));
                 ctx.children_changed();
             }
             TabsDataChange::Changed(label_data) => {
