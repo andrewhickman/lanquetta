@@ -240,6 +240,8 @@ fn paint_close_background(ctx: &mut PaintCtx, data: &State, env: &Env) {
         color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
     };
 
-    let bounds = ctx.size().to_rect();
+    let bounds = ctx
+        .size()
+        .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
     ctx.fill(bounds, &color);
 }

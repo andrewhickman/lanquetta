@@ -202,9 +202,9 @@ impl TabsData for State {
 
         self.selected = self
             .tabs
-            .range(..id)
-            .next_back()
-            .or_else(|| self.tabs.range(id..).next())
+            .range(id..)
+            .next()
+            .or_else(|| self.tabs.range(..id).next_back())
             .map(|(&tab_id, _)| tab_id);
     }
 }

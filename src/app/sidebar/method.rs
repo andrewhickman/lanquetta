@@ -1,6 +1,7 @@
 use druid::{
     widget::{Flex, Label, Painter},
-    ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt as _,
+    ArcStr, Color, Data, Env, FontDescriptor, FontFamily, Lens, PaintCtx, RenderContext, Widget,
+    WidgetExt as _,
 };
 
 use crate::{app::command, protobuf::ProtobufMethod, theme, widget::Icon};
@@ -26,37 +27,29 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .expand_width()
         .lens(MethodState::name())
         .lens(State::method)
-        .background(Painter::new(|ctx, data: &State, env| {
-            let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-            if ctx.is_active() {
-                color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-            } else if ctx.is_hot() {
-                color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
-            }
+        .background(Painter::new(|ctx, _, env| {
+            let color = method_background_color(ctx, env);
             let bounds = ctx.size().to_rect();
             ctx.fill(bounds, &color);
         }))
-        .on_click(|ctx, data, _| {
+        .on_click(|ctx, data: &mut State, _| {
             data.selected = true;
             ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
         });
 
     let add = Icon::add()
-        .background(Painter::new(|ctx, data: &State, env| {
-            let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-            if ctx.is_active() {
-                color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-            }
-            if ctx.is_hot() {
-                color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
-            }
-            let bounds = ctx.size().to_rect();
+        .background(Painter::new(|ctx, _, env| {
+            let color = method_background_color(ctx, env);
+            let bounds = ctx
+                .size()
+                .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
             ctx.fill(bounds, &color);
         }))
-        .on_click(|ctx, data, _| {
+        .on_click(|ctx, data: &mut State, _| {
             data.selected = true;
             ctx.submit_command(command::CREATE_TAB.with(data.method.method.clone()));
-        });
+        })
+        .padding(3.0);
 
     Flex::row()
         .with_flex_child(label, 1.0)
@@ -108,4 +101,14 @@ impl From<ProtobufMethod> for MethodState {
     fn from(method: ProtobufMethod) -> Self {
         MethodState { method }
     }
+}
+
+fn method_background_color(ctx: &mut PaintCtx, env: &Env) -> Color {
+    let mut color = env.get(theme::SIDEBAR_BACKGROUND);
+    if ctx.is_active() {
+        color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+    } else if ctx.is_hot() {
+        color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+    }
+    color
 }

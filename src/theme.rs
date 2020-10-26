@@ -14,9 +14,9 @@ pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-backgrou
 pub(crate) const TAB_BACKGROUND: Key<Color> = Key::new("app.tab-background");
 
 pub(crate) fn set(env: &mut Env) {
-    env.set(druid::theme::PRIMARY_LIGHT, color::TEXT);
-    env.set(druid::theme::PRIMARY_DARK, color::TEXT);
-    env.set(druid::theme::BORDER_DARK, color::SUBTLE_ACCENT);
+    env.set(druid::theme::PRIMARY_LIGHT, color::SUBTLE_ACCENT);
+    env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
+    env.set(druid::theme::BORDER_DARK, color::BACKGROUND);
     env.set(druid::theme::BORDER_LIGHT, color::BACKGROUND);
 
     env.set(druid::theme::LABEL_COLOR, color::TEXT);

@@ -42,10 +42,12 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .lens(State::service)
         .background(Painter::new(|ctx, data: &State, env| {
             let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-            if ctx.is_active() || (!data.service.expanded && data.has_selected()) {
+            if !data.service.expanded && data.has_selected() {
                 color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
             }
-            if !ctx.is_active() && ctx.is_hot() {
+            if ctx.is_active() {
+                color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+            } else if ctx.is_hot() {
                 color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
             }
             let bounds = ctx.size().to_rect();

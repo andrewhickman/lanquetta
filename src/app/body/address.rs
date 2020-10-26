@@ -20,7 +20,8 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .with_placeholder("localhost:80")
         .expand_width();
     let address_form_field = FormField::new(address_textbox);
-    let tls_checkbox = Checkbox::new("Use TLS");
+    let tls_checkbox = Checkbox::new("Use TLS")
+        .env_scope(|env, _| env.set(druid::theme::BORDER_LIGHT, theme::color::SUBTLE_ACCENT));
     let send_button = theme::scope(Button::new("Send").on_click(
         |ctx: &mut EventCtx, _: &mut State, _: &Env| {
             ctx.submit_command(command::START_SEND.to(Target::Global))
