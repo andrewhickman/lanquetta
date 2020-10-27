@@ -32,7 +32,7 @@ struct State {
     body: body::State,
 }
 
-const TITLE: &'static str = "gRPC Client";
+const TITLE: &str = "gRPC Client";
 
 fn build() -> impl Widget<State> {
     let sidebar = sidebar::build().lens(State::sidebar_lens());

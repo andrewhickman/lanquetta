@@ -22,7 +22,7 @@ impl<W> FormField<W> {
     pub fn new(child: W) -> Self {
         FormField {
             pristine: true,
-            child: child,
+            child,
         }
     }
 }
