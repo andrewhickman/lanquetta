@@ -9,6 +9,7 @@ mod widget;
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
+    env_logger::init();
     app::launch()?;
     Ok(())
 }

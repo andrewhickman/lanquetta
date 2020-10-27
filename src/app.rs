@@ -22,7 +22,6 @@ pub fn launch() -> Result<(), PlatformError> {
     app_launcher
         .configure_env(|env, _| theme::set(env))
         .delegate(delegate::build())
-        .use_simple_logger()
         .launch(State::default())
 }
 
