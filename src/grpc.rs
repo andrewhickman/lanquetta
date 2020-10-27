@@ -3,8 +3,8 @@ use std::sync::Arc;
 use futures::future::FutureExt;
 use http::Uri;
 use protobuf::MessageDyn;
-use tonic::{client::Grpc, IntoRequest};
 use tonic::transport::Channel;
+use tonic::{client::Grpc, IntoRequest};
 
 use crate::protobuf::ProtobufMethod;
 
@@ -44,7 +44,11 @@ impl Client {
 
         let body = self
             .grpc
-            .unary(request.body.into_request(), request.method.path()?, request.method.codec())
+            .unary(
+                request.body.into_request(),
+                request.method.path()?,
+                request.method.codec(),
+            )
             .await?;
 
         Ok(Response {

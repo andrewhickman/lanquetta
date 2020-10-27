@@ -10,8 +10,7 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    TextBox::multiline()
-        .with_font(theme::EDITOR_FONT)
+    theme::text_box_scope(TextBox::multiline().with_font(theme::EDITOR_FONT))
         .expand()
         .lens(State::body)
         .boxed()

@@ -9,7 +9,7 @@ use crate::{
     app::command,
     grpc,
     json::JsonText,
-    protobuf::{ProtobufMethod},
+    protobuf::ProtobufMethod,
     theme,
     widget::{FormField, ValidationState},
 };
@@ -22,10 +22,13 @@ pub(in crate::app) struct State {
 struct RequestController;
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    FormField::new(TextBox::multiline().with_font(theme::EDITOR_FONT).expand())
-        .controller(RequestController)
-        .lens(State::body)
-        .boxed()
+    FormField::new(theme::text_box_scope(
+        TextBox::multiline().with_font(theme::EDITOR_FONT),
+    ))
+    .controller(RequestController)
+    .expand()
+    .lens(State::body)
+    .boxed()
 }
 
 impl State {
@@ -39,7 +42,10 @@ impl State {
             body: ValidationState::new(
                 json,
                 Arc::new(move |s| match request.parse(s) {
-                    Ok(body) => Ok(grpc::Request { method: method.clone(), body }),
+                    Ok(body) => Ok(grpc::Request {
+                        method: method.clone(),
+                        body,
+                    }),
                     Err(err) => Err(err.to_string()),
                 }),
             ),

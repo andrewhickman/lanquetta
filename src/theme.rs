@@ -1,9 +1,7 @@
 pub mod color;
 mod scope;
 
-pub use scope::new as scope;
-
-use druid::{Color, Env, FontDescriptor, FontFamily, Key};
+use druid::{Color, Env, FontDescriptor, FontFamily, Key, Widget};
 
 pub(crate) const GUTTER_SIZE: f64 = 16.0;
 
@@ -58,4 +56,18 @@ pub(crate) fn set_error(env: &mut Env) {
     env.set(druid::theme::BORDER_LIGHT, color::ERROR);
     env.set(druid::theme::PRIMARY_DARK, color::ERROR);
     env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
+}
+
+pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
+    scope::new(child, |env, state| {
+        scope::set_hot_active(env, state, druid::theme::BUTTON_LIGHT);
+        scope::set_hot_active(env, state, druid::theme::BUTTON_DARK);
+    })
+}
+
+pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
+    scope::new(child, |env, state| {
+        scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
+        scope::set_hot(env, state, druid::theme::BORDER_DARK);
+    })
 }

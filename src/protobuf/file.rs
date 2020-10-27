@@ -10,7 +10,7 @@ use protobuf::{
     Message,
 };
 
-use crate::protobuf::{ProtobufRequest, ProtobufCodec};
+use crate::protobuf::{ProtobufCodec, ProtobufRequest};
 
 #[derive(Clone, Debug)]
 pub struct ProtobufService {
@@ -65,7 +65,11 @@ impl ProtobufService {
 }
 
 impl ProtobufMethod {
-    fn new(service_name: ArcStr, proto: &MethodDescriptorProto, files: &[FileDescriptor]) -> Result<Self> {
+    fn new(
+        service_name: ArcStr,
+        proto: &MethodDescriptorProto,
+        files: &[FileDescriptor],
+    ) -> Result<Self> {
         fn find_type(full_name: &str, files: &[FileDescriptor]) -> Result<MessageDescriptor> {
             files
                 .iter()
@@ -99,9 +103,12 @@ impl ProtobufMethod {
     pub fn codec(&self) -> ProtobufCodec {
         ProtobufCodec::new(self.request.clone(), self.response.clone())
     }
-    
+
     pub fn path(&self) -> Result<PathAndQuery> {
-        Ok(PathAndQuery::from_str(&format!("{}/{}", self.service_name, self.name))?)
+        Ok(PathAndQuery::from_str(&format!(
+            "{}/{}",
+            self.service_name, self.name
+        ))?)
     }
 }
 
