@@ -28,7 +28,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             .expand_width(),
     ));
     let send_button = theme::button_scope(Button::new("Send").on_click(
-        |ctx: &mut EventCtx, &valid: &bool, _: &Env| {
+        |ctx: &mut EventCtx, &mut valid: &mut bool, _: &Env| {
             if valid {
                 ctx.submit_command(command::START_SEND.to(Target::Global));
             }
@@ -54,7 +54,11 @@ static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>
     Lazy::new(|| Arc::new(|s| validate_uri(s)));
 
 fn validate_uri(s: &str) -> Result<Uri, String> {
-    Uri::from_str(s).map_err(|err| err.to_string())
+    let uri = Uri::from_str(s).map_err(|err| err.to_string())?;
+    if uri.scheme().is_none() {
+        return Err("URI must have scheme".to_owned());
+    }
+    Ok(uri)
 }
 
 impl State {
