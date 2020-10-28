@@ -27,7 +27,8 @@ pub(in crate::app) struct State {
 #[derive(Debug, Clone, Data, Lens)]
 pub struct TabState {
     method: ProtobufMethod,
-    address: address::State,
+    #[lens(ignore)]
+    address: address::AddressState,
     request: request::State,
     response: response::State,
 }
@@ -40,7 +41,7 @@ fn build_body() -> impl Widget<TabState> {
     let id = WidgetId::next();
     Flex::column()
         .must_fill_main_axis(true)
-        .with_child(address::build().lens(TabState::address))
+        .with_child(address::build().lens(TabState::address_lens()))
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(Label::new("Request").align_left())
         .with_spacer(theme::GUTTER_SIZE)
@@ -81,7 +82,7 @@ impl State {
             TabState {
                 request: request::State::new(method.clone()),
                 response: response::State::default(),
-                address: address::State::default(),
+                address: address::AddressState::default(),
                 method,
             },
         );
@@ -89,6 +90,40 @@ impl State {
 
     pub fn selected_method(&self) -> Option<ProtobufMethod> {
         self.with_selected(|_, tab_data| tab_data.method.clone())
+    }
+}
+
+impl TabState {
+    pub fn is_valid(&self) -> bool {
+        self.address.is_valid() && self.request.is_valid()
+    }
+
+    pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {
+        struct AddressLens;
+
+        impl Lens<TabState, address::State> for AddressLens {
+            fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
+                f(&address::State::new(data.address.clone(), data.is_valid()))
+            }
+
+            fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
+                &self,
+                data: &mut TabState,
+                f: F,
+            ) -> V {
+                let mut address_data = address::State::new(data.address.clone(), data.is_valid());
+                let result = f(&mut address_data);
+
+                debug_assert_eq!(data.is_valid(), address_data.valid());
+                if !data.address.same(address_data.address_state()) {
+                    data.address = address_data.into_address_state();
+                }
+
+                result
+            }
+        }
+
+        AddressLens
     }
 }
 

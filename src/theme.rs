@@ -11,6 +11,8 @@ pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-f
 pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
 pub(crate) const TAB_BACKGROUND: Key<Color> = Key::new("app.tab-background");
 
+pub(crate) const DISABLED: Key<bool> = Key::new("app.disabled");
+
 pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::PRIMARY_LIGHT, color::SUBTLE_ACCENT);
     env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
@@ -40,6 +42,8 @@ pub(crate) fn set(env: &mut Env) {
     );
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
     env.set(TAB_BACKGROUND, color::ACCENT);
+
+    env.set(DISABLED, false);
 }
 
 pub(crate) fn set_contrast(env: &mut Env) {
@@ -60,14 +64,21 @@ pub(crate) fn set_error(env: &mut Env) {
 
 pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
-        scope::set_hot_active(env, state, druid::theme::BUTTON_LIGHT);
-        scope::set_hot_active(env, state, druid::theme::BUTTON_DARK);
+        if env.get(DISABLED) {
+            scope::set_disabled(env, druid::theme::BUTTON_LIGHT);
+            scope::set_disabled(env, druid::theme::BUTTON_DARK);
+        } else {
+            scope::set_hot_active(env, state, druid::theme::BUTTON_LIGHT);
+            scope::set_hot_active(env, state, druid::theme::BUTTON_DARK);
+        }
     })
 }
 
 pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
-        scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
-        scope::set_hot(env, state, druid::theme::BORDER_DARK);
+        if !env.get(DISABLED) {
+            scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
+            scope::set_hot(env, state, druid::theme::BORDER_DARK);
+        }
     })
 }

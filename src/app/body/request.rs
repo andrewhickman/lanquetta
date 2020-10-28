@@ -51,6 +51,10 @@ impl State {
         }
     }
 
+    pub(in crate::app) fn is_valid(&self) -> bool {
+        self.body.is_valid()
+    }
+
     pub(in crate::app) fn get(&self) -> Option<&grpc::Request> {
         self.body.result().ok()
     }

@@ -120,7 +120,7 @@ where
         value
     }
 
-    fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.result.is_ok()
     }
 

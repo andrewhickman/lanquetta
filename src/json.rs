@@ -36,7 +36,6 @@ pub struct JsonText {
     styles: Arc<[(highlighting::Style, Range<usize>)]>,
 }
 
-
 fn get_styles(text: &str) -> Vec<(highlighting::Style, Range<usize>)> {
     let mut result = Vec::new();
 
@@ -97,7 +96,7 @@ impl JsonText {
         JsonText {
             data: data.into(),
             styles: Arc::new([]),
-        } 
+        }
     }
 }
 
