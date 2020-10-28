@@ -36,6 +36,13 @@ pub struct JsonText {
     styles: Arc<[(highlighting::Style, Range<usize>)]>,
 }
 
+impl JsonText {
+    pub fn pretty(data: impl AsRef<str> + Into<String>) -> Self {
+        let data = prettify(data.as_ref()).unwrap_or_else(|| data.into());
+        data.into()
+    }
+}
+
 fn get_styles(text: &str) -> Vec<(highlighting::Style, Range<usize>)> {
     let mut result = Vec::new();
 

@@ -2,7 +2,7 @@ use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt as _};
 
 use crate::json::JsonText;
-use crate::{grpc, theme};
+use crate::{grpc, protobuf, theme};
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -18,9 +18,9 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 
 impl State {
     pub(in crate::app) fn update(&mut self, result: grpc::ResponseResult) {
-        match result {
-            Ok(_) => self.body = todo!(),
-            Err(err) => self.body = JsonText::from(format!("{:?}", err)),
-        }
+        self.body = match result.and_then(|response| protobuf::to_json(&*response.body)) {
+            Ok(body) => JsonText::pretty(body),
+            Err(err) => JsonText::from(format!("{:?}", err)),
+        };
     }
 }

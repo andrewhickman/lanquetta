@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use bytes::buf::ext::{BufExt, BufMutExt};
 use protobuf::reflect::MessageDescriptor;
 use protobuf::{CodedInputStream, CodedOutputStream, MessageDyn};
@@ -53,7 +51,7 @@ impl Codec for ProtobufCodec {
 }
 
 impl Encoder for ProtobufEncoder {
-    type Item = Arc<dyn MessageDyn>;
+    type Item = Box<dyn MessageDyn>;
     type Error = Status;
 
     fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
@@ -65,7 +63,7 @@ impl Encoder for ProtobufEncoder {
 }
 
 impl Decoder for ProtobufDecoder {
-    type Item = Arc<dyn MessageDyn>;
+    type Item = Box<dyn MessageDyn>;
     type Error = Status;
 
     fn decode(&mut self, src: &mut DecodeBuf) -> Result<Option<Self::Item>, Self::Error> {

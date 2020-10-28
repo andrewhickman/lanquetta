@@ -10,7 +10,7 @@ use protobuf::{
     Message,
 };
 
-use crate::protobuf::{ProtobufCodec, ProtobufRequest};
+use crate::protobuf::{ProtobufCodec, ProtobufMessage};
 
 #[derive(Clone, Debug)]
 pub struct ProtobufService {
@@ -96,8 +96,12 @@ impl ProtobufMethod {
         &self.name
     }
 
-    pub fn request(&self) -> ProtobufRequest {
-        ProtobufRequest::new(self.request.clone())
+    pub fn request(&self) -> ProtobufMessage {
+        ProtobufMessage::new(self.request.clone())
+    }
+
+    pub fn response(&self) -> ProtobufMessage {
+        ProtobufMessage::new(self.response.clone())
     }
 
     pub fn codec(&self) -> ProtobufCodec {

@@ -33,8 +33,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 
 impl State {
     pub(in crate::app) fn new(method: ProtobufMethod) -> Self {
-        let mut json = JsonText::from(method.request().empty_json());
-        json.prettify();
+        let json = JsonText::pretty(method.request().empty_json());
 
         let request = method.request();
 

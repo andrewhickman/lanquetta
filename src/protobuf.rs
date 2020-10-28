@@ -1,54 +1,57 @@
 mod codec;
 mod file;
 
-pub use self::codec::ProtobufCodec;
-pub use self::file::{ProtobufMethod, ProtobufService};
-
-use std::sync::Arc;
+pub use self::{
+    codec::ProtobufCodec,
+    file::{ProtobufMethod, ProtobufService},
+};
 
 use anyhow::Result;
-use protobuf::json;
-use protobuf::reflect::MessageDescriptor;
-use protobuf::MessageDyn;
+use protobuf::{json, reflect::MessageDescriptor, MessageDyn};
+
+pub fn to_json(message: &dyn MessageDyn) -> Result<String> {
+    json::print_to_string_with_options(
+        message,
+        &json::PrintOptions {
+            proto_field_name: true,
+            always_output_default_values: true,
+            ..json::PrintOptions::default()
+        },
+    )
+    .map_err(|err| anyhow::format_err!("{:?}", err))
+}
 
 #[derive(Debug, Clone)]
-pub struct ProtobufRequest {
+pub struct ProtobufMessage {
     descriptor: MessageDescriptor,
 }
 
-impl ProtobufRequest {
+impl ProtobufMessage {
     pub fn new(descriptor: MessageDescriptor) -> Self {
-        ProtobufRequest { descriptor }
+        ProtobufMessage { descriptor }
     }
 
-    #[allow(unused)]
-    pub fn parse(&self, s: &str) -> Result<Arc<dyn MessageDyn>> {
-        let item = json::parse_dynamic_from_str_with_options(
+    pub fn parse(&self, s: &str) -> Result<Box<dyn MessageDyn>> {
+        Ok(json::parse_dynamic_from_str_with_options(
             &self.descriptor,
             s,
             &protobuf::json::ParseOptions {
                 ignore_unknown_fields: false,
                 ..Default::default()
             },
-        )?;
-        Ok(item.into())
+        )?)
+    }
+
+    pub fn empty(&self) -> Box<dyn MessageDyn> {
+        self.descriptor.new_instance()
     }
 
     pub fn empty_json(&self) -> String {
-        let empty = self.descriptor.new_instance();
-        json::print_to_string_with_options(
-            &*empty,
-            &json::PrintOptions {
-                proto_field_name: true,
-                always_output_default_values: true,
-                ..json::PrintOptions::default()
-            },
-        )
-        .unwrap_or_default()
+        to_json(&*self.empty()).unwrap_or_default()
     }
 }
 
-impl druid::Data for ProtobufRequest {
+impl druid::Data for ProtobufMessage {
     fn same(&self, other: &Self) -> bool {
         self.descriptor == other.descriptor
     }

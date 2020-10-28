@@ -1,10 +1,9 @@
-use std::sync::Arc;
+use std::time::Duration;
 
 use futures::future::FutureExt;
 use http::Uri;
 use protobuf::MessageDyn;
-use tonic::transport::Channel;
-use tonic::{client::Grpc, IntoRequest};
+use tonic::{client::Grpc, transport::Channel, IntoRequest};
 
 use crate::protobuf::ProtobufMethod;
 
@@ -13,12 +12,12 @@ pub type ResponseResult = Result<Response, Error>;
 #[derive(Debug, Clone)]
 pub struct Request {
     pub method: ProtobufMethod,
-    pub body: Arc<dyn MessageDyn>,
+    pub body: Box<dyn MessageDyn>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Response {
-    pub body: Arc<dyn MessageDyn>,
+    pub body: Box<dyn MessageDyn>,
 }
 
 pub type Error = anyhow::Error;
@@ -39,8 +38,13 @@ impl Client {
         tokio::spawn(self.clone().send_impl(request).map(callback));
     }
 
-    async fn send_impl(mut self, request: Request) -> ResponseResult {
+    async fn send_impl(self, request: Request) -> ResponseResult {
         #![allow(unused)]
+
+        tokio::time::delay_for(Duration::from_secs(2)).await;
+        return Ok(Response {
+            body: request.method.response().empty(),
+        });
 
         let body = self
             .grpc
