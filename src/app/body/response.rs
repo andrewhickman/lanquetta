@@ -20,7 +20,7 @@ impl State {
     pub(in crate::app) fn update(&mut self, result: grpc::ResponseResult) {
         self.body = match result.and_then(|response| protobuf::to_json(&*response.body)) {
             Ok(body) => JsonText::pretty(body),
-            Err(err) => JsonText::from(format!("{:?}", err)),
+            Err(err) => JsonText::plain_text(format!("{:?}", err)),
         };
     }
 }
