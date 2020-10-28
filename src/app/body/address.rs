@@ -1,7 +1,7 @@
 use std::string::ToString;
 use std::{str::FromStr, sync::Arc};
 
-use druid::widget::{Button, Flex, TextBox};
+use druid::widget::{Button, Flex, CrossAxisAlignment, TextBox};
 use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _};
 use http::Uri;
 use once_cell::sync::Lazy;
@@ -16,12 +16,11 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    let address_textbox = theme::text_box_scope(
+    let address_form_field = FormField::new(theme::text_box_scope(
         TextBox::new()
             .with_placeholder("http://localhost:80")
             .expand_width(),
-    );
-    let address_form_field = FormField::new(address_textbox);
+    ));
     let send_button = theme::button_scope(Button::new("Send").on_click(
         |ctx: &mut EventCtx, _: &mut State, _: &Env| {
             ctx.submit_command(command::START_SEND.to(Target::Global))
@@ -29,6 +28,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     ));
 
     Flex::row()
+        .cross_axis_alignment(CrossAxisAlignment::Baseline)
         .with_flex_child(address_form_field.lens(State::address), 1.0)
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(send_button)
