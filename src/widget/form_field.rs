@@ -31,7 +31,8 @@ impl<T, W, O, E> Widget<ValidationState<T, O, E>> for FormField<W>
 where
     T: TextStorage,
     W: Widget<T>,
-    ValidationState<T, O, E>: Data,
+    T: Data,
+    ValidationState<T, O, E>: Clone + 'static,
 {
     fn event(
         &mut self,
@@ -41,7 +42,7 @@ where
         env: &druid::Env,
     ) {
         let env = data.update_env(env, self.pristine);
-        data.with_text_mut(|text| self.child.event(ctx, event, text, &env));
+        data.with_text_mut_if_changed(|text| self.child.event(ctx, event, text, &env));
     }
 
     fn lifecycle(
@@ -131,6 +132,20 @@ where
             theme::set_error(&mut env);
             Cow::Owned(env)
         }
+    }
+}
+
+impl<T, O, E> ValidationState<T, O, E>
+where
+    T: TextStorage + Data,
+{
+    fn with_text_mut_if_changed<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
+        let old = self.raw.clone();
+        let value = f(&mut self.raw);
+        if !self.raw.same(&old) {
+            self.result = (self.validate)(self.raw.as_str());
+        }
+        value
     }
 }
 
