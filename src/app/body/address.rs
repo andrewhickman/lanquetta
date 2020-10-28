@@ -18,7 +18,7 @@ pub(in crate::app) struct AddressState {
 pub(in crate::app) struct State {
     address: AddressState,
     #[lens(name = "valid_lens")]
-    valid: bool,
+    can_send: bool,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -62,8 +62,8 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, valid: bool) -> Self {
-        State { address, valid }
+    pub fn new(address: AddressState, can_send: bool) -> Self {
+        State { address, can_send }
     }
 
     pub fn address_state(&self) -> &AddressState {
@@ -74,8 +74,8 @@ impl State {
         self.address
     }
 
-    pub fn valid(&self) -> bool {
-        self.valid
+    pub fn can_send(&self) -> bool {
+        self.can_send
     }
 }
 

@@ -94,7 +94,7 @@ impl State {
 }
 
 impl TabState {
-    pub fn is_valid(&self) -> bool {
+    pub fn can_send(&self) -> bool {
         self.address.is_valid() && self.request.is_valid()
     }
 
@@ -103,7 +103,7 @@ impl TabState {
 
         impl Lens<TabState, address::State> for AddressLens {
             fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
-                f(&address::State::new(data.address.clone(), data.is_valid()))
+                f(&address::State::new(data.address.clone(), data.can_send()))
             }
 
             fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
@@ -111,10 +111,10 @@ impl TabState {
                 data: &mut TabState,
                 f: F,
             ) -> V {
-                let mut address_data = address::State::new(data.address.clone(), data.is_valid());
+                let mut address_data = address::State::new(data.address.clone(), data.can_send());
                 let result = f(&mut address_data);
 
-                debug_assert_eq!(data.is_valid(), address_data.valid());
+                debug_assert_eq!(data.can_send(), address_data.can_send());
                 if !data.address.same(address_data.address_state()) {
                     data.address = address_data.into_address_state();
                 }
