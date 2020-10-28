@@ -24,6 +24,12 @@ pub(in crate::app) struct State {
     selected: Option<TabId>,
 }
 
+#[derive(Debug, Clone, Data, Eq, PartialEq)]
+enum RequestState {
+    NotStarted,
+    Active,
+}
+
 #[derive(Debug, Clone, Data, Lens)]
 pub struct TabState {
     method: ProtobufMethod,
@@ -31,6 +37,8 @@ pub struct TabState {
     address: address::AddressState,
     request: request::State,
     response: response::State,
+    #[lens(ignore)]
+    request_state: RequestState,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -83,6 +91,7 @@ impl State {
                 request: request::State::new(method.clone()),
                 response: response::State::default(),
                 address: address::AddressState::default(),
+                request_state: RequestState::NotStarted,
                 method,
             },
         );
@@ -95,7 +104,9 @@ impl State {
 
 impl TabState {
     pub fn can_send(&self) -> bool {
-        self.address.is_valid() && self.request.is_valid()
+        self.request_state == RequestState::NotStarted
+            && self.address.is_valid()
+            && self.request.is_valid()
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {

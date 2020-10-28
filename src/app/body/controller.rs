@@ -4,7 +4,7 @@ use druid::{
 };
 
 use crate::{
-    app::{body::TabState, command},
+    app::{body::TabState, command, body::RequestState},
     grpc,
 };
 
@@ -71,11 +71,13 @@ impl TabController {
                         .submit_command(command::FINISH_SEND, SingleUse::new(response), target)
                         .ok();
                 });
+                data.request_state = RequestState::Active;
             }
             Handled::Yes
         } else if let Some(response) = command.get(command::FINISH_SEND) {
             let result = response.take().expect("response already handled");
             data.response.update(result);
+            data.request_state = RequestState::NotStarted;
             Handled::Yes
         } else {
             Handled::No
