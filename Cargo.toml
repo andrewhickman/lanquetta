@@ -25,8 +25,8 @@ iter-set = "2.0.0"
 env_logger = "0.8.1"
 
 [dependencies.druid]
-git = "https://github.com/linebender/druid.git"
-rev = "9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
+git = "https://github.com/andrewhickman/druid.git"
+branch = "master"
 features = ["im", "svg"]
 
 [dependencies.protobuf]

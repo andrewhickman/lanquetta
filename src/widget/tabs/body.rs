@@ -26,7 +26,7 @@ where
     W: Widget<T::Item>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        if hidden_should_receive_event(event) {
+        if event.should_propagate_to_hidden() {
             self.for_each_mut(data, |_, tab, tab_data| {
                 tab.event(ctx, event, tab_data, env)
             })
@@ -41,7 +41,7 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        if hidden_should_receive_lifecycle(event) {
+        if event.should_propagate_to_hidden() {
             self.for_each(data, |_, tab, tab_data| {
                 tab.lifecycle(ctx, event, tab_data, env)
             })
@@ -127,31 +127,5 @@ where
             Some((&tab_id2, tab)) if tab_id == tab_id2 => f(tab_id, tab, tab_data),
             _ => log::error!("TabBody out of sync with data"),
         })
-    }
-}
-
-fn hidden_should_receive_event(evt: &Event) -> bool {
-    match evt {
-        Event::WindowConnected
-        | Event::WindowSize(_)
-        | Event::Timer(_)
-        | Event::AnimFrame(_)
-        | Event::Command(_)
-        | Event::Internal(_) => true,
-        Event::MouseDown(_)
-        | Event::MouseUp(_)
-        | Event::MouseMove(_)
-        | Event::Wheel(_)
-        | Event::KeyDown(_)
-        | Event::KeyUp(_)
-        | Event::Paste(_)
-        | Event::Zoom(_) => false,
-    }
-}
-
-fn hidden_should_receive_lifecycle(lc: &LifeCycle) -> bool {
-    match lc {
-        LifeCycle::WidgetAdded | LifeCycle::Internal(_) => true,
-        LifeCycle::Size(_) | LifeCycle::HotChanged(_) | LifeCycle::FocusChanged(_) => false,
     }
 }

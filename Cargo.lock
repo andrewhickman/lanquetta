@@ -367,7 +367,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid.git?rev=9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3#9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
+source = "git+https://github.com/andrewhickman/druid.git?branch=master#ad1fb0e683882ec093ee3176c95f01a73e98f00e"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -390,7 +390,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.3.1"
-source = "git+https://github.com/linebender/druid.git?rev=9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3#9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
+source = "git+https://github.com/andrewhickman/druid.git?branch=master#ad1fb0e683882ec093ee3176c95f01a73e98f00e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -400,7 +400,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid.git?rev=9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3#9d166f614ba3e70d54a684e3b8f74b1e5b5ee3a3"
+source = "git+https://github.com/andrewhickman/druid.git?branch=master#ad1fb0e683882ec093ee3176c95f01a73e98f00e"
 dependencies = [
  "anyhow",
  "bitflags",
