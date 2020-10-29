@@ -1,13 +1,13 @@
 use std::string::ToString;
 use std::{str::FromStr, sync::Arc};
 
-use druid::widget::{Button, Flex, TextBox};
+use druid::widget::{Button, Flex, Spinner, TextBox, ViewSwitcher};
 use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _};
 use http::Uri;
 use once_cell::sync::Lazy;
 
 use crate::app::{command, theme};
-use crate::widget::{FormField, ValidationState};
+use crate::widget::{FormField, ValidationState, Empty};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct AddressState {
@@ -17,6 +17,7 @@ pub(in crate::app) struct AddressState {
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     address: AddressState,
+    in_flight: bool,
     #[lens(name = "valid_lens")]
     can_send: bool,
 }
@@ -27,6 +28,16 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             .with_placeholder("http://localhost:80")
             .expand_width(),
     ));
+
+    let spinner = ViewSwitcher::new(
+        |&in_flight: &bool, _| in_flight,
+        |&in_flight, _, _| if in_flight {
+            Spinner::new().padding((0.0, 0.0, theme::GUTTER_SIZE, 0.0)).boxed()
+        } else {
+            Empty.boxed()
+        }
+    );
+
     let send_button = theme::button_scope(Button::new("Send").on_click(
         |ctx: &mut EventCtx, &mut valid: &mut bool, _: &Env| {
             if valid {
@@ -46,6 +57,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             1.0,
         )
         .with_spacer(theme::GUTTER_SIZE)
+        .with_child(spinner.lens(State::in_flight))
         .with_child(send_button.lens(State::valid_lens))
         .boxed()
 }
@@ -62,8 +74,8 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, can_send: bool) -> Self {
-        State { address, can_send }
+    pub fn new(address: AddressState, can_send: bool, in_flight: bool) -> Self {
+        State { address, can_send, in_flight }
     }
 
     pub fn address_state(&self) -> &AddressState {

@@ -103,10 +103,14 @@ impl State {
 }
 
 impl TabState {
-    pub fn can_send(&self) -> bool {
+    fn can_send(&self) -> bool {
         self.request_state == RequestState::NotStarted
             && self.address.is_valid()
             && self.request.is_valid()
+    }
+
+    fn in_flight(&self) -> bool {
+        self.request_state == RequestState::Active
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {
@@ -114,7 +118,7 @@ impl TabState {
 
         impl Lens<TabState, address::State> for AddressLens {
             fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
-                f(&address::State::new(data.address.clone(), data.can_send()))
+                f(&address::State::new(data.address.clone(), data.can_send(), data.in_flight()))
             }
 
             fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
@@ -122,7 +126,7 @@ impl TabState {
                 data: &mut TabState,
                 f: F,
             ) -> V {
-                let mut address_data = address::State::new(data.address.clone(), data.can_send());
+                let mut address_data = address::State::new(data.address.clone(), data.can_send(), data.in_flight());
                 let result = f(&mut address_data);
 
                 debug_assert_eq!(data.can_send(), address_data.can_send());
