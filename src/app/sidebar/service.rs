@@ -4,6 +4,7 @@ use druid::{
     widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter},
     ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt as _,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     app::sidebar::method,
@@ -18,11 +19,16 @@ pub(in crate::app) struct State {
     pub service: ServiceState,
 }
 
-#[derive(Debug, Clone, Data, Lens)]
+#[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
 pub(in crate::app) struct ServiceState {
     name: ArcStr,
+    #[serde(skip, default = "arc_new")]
     methods: Arc<[method::MethodState]>,
     expanded: bool,
+}
+
+fn arc_new() -> Arc<[method::MethodState]> {
+    Arc::new([])
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {

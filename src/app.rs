@@ -5,15 +5,19 @@ mod delegate;
 mod menu;
 mod sidebar;
 
-use druid::widget::Split;
+use druid::{widget::Split, WindowDesc};
 use druid::{AppLauncher, Data, Lens, PlatformError, Widget, WidgetExt as _};
+use serde::{Deserialize, Serialize};
 
-use self::config::Config;
+use self::config::{Config, ConfigController};
 use crate::theme;
 
 pub fn launch() -> Result<(), PlatformError> {
-    let main_window = Config::load()
-        .make_window(build)
+    let config = Config::load();
+
+    let main_window = config
+        .window
+        .apply(WindowDesc::new(build))
         .title(TITLE)
         .menu(menu::build())
         .with_min_size((640.0, 384.0))
@@ -23,12 +27,13 @@ pub fn launch() -> Result<(), PlatformError> {
     AppLauncher::with_window(main_window)
         .configure_env(|env, _| theme::set(env))
         .delegate(delegate::build())
-        .launch(State::default())
+        .launch(config.data)
 }
 
-#[derive(Clone, Debug, Default, Data, Lens)]
+#[derive(Clone, Debug, Default, Data, Lens, Serialize, Deserialize)]
 struct State {
     sidebar: sidebar::ServiceListState,
+    #[serde(skip)]
     body: body::State,
 }
 
@@ -44,6 +49,7 @@ fn build() -> impl Widget<State> {
         .bar_size(2.0)
         .solid_bar(true)
         .draggable(true)
+        .controller(ConfigController)
 }
 
 impl State {

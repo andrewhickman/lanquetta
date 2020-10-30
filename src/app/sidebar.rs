@@ -8,6 +8,7 @@ use druid::{
     widget::{List, ListIter},
     Data, Lens, Widget, WidgetExt as _,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     protobuf::{ProtobufMethod, ProtobufService},
@@ -20,7 +21,7 @@ pub(in crate::app) struct State {
     selected: Option<ProtobufMethod>,
 }
 
-#[derive(Debug, Default, Clone, Data)]
+#[derive(Debug, Default, Clone, Data, Serialize, Deserialize)]
 pub(in crate::app) struct ServiceListState {
     services: im::Vector<service::ServiceState>,
 }

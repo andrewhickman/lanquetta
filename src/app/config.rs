@@ -2,19 +2,16 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use dirs_next::config_dir;
-use druid::{
-    commands::CLOSE_WINDOW,
-    widget::{prelude::*, Controller},
-    Point, Size, Widget, WidgetExt as _, WindowDesc, WindowHandle,
-};
-use fs_err::{read_to_string, write, create_dir_all};
+use druid::{Data, Point, Size, Widget, WindowDesc, WindowHandle, commands::CLOSE_WINDOW, widget::{prelude::*, Controller}};
+use fs_err::{create_dir_all, read_to_string, write};
 use serde::{Deserialize, Serialize};
 
 use crate::app::State;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Config {
-    window: WindowConfig,
+pub(in crate::app) struct Config {
+    pub window: WindowConfig,
+    pub data: State,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -24,9 +21,8 @@ pub struct WindowConfig {
     position: Option<Point>,
 }
 
-struct ConfigController {
-    config: Config,
-}
+#[derive(Debug)]
+pub struct ConfigController;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -55,16 +51,6 @@ impl Config {
         }
     }
 
-    pub(in crate::app) fn make_window<W, F>(self, root: F) -> WindowDesc<State>
-    where
-        W: Widget<State> + 'static,
-        F: FnOnce() -> W + 'static,
-    {
-        let window_config = self.window;
-        let window_desc = WindowDesc::new(|| root().controller(ConfigController { config: self }));
-        window_config.apply(window_desc)
-    }
-
     fn try_load() -> Result<Config> {
         let path = Config::path()?;
         let text = read_to_string(path)?;
@@ -89,7 +75,10 @@ impl Config {
 }
 
 impl WindowConfig {
-    fn apply(&self, mut desc: WindowDesc<State>) -> WindowDesc<State> {
+    pub fn apply<T>(&self, mut desc: WindowDesc<T>) -> WindowDesc<T>
+    where
+        T: Data,
+    {
         desc = desc.window_size(self.size);
         if let Some(position) = self.position {
             desc = desc.set_position(position);
@@ -101,17 +90,22 @@ impl WindowConfig {
         desc
     }
 
-    fn update(&mut self, handle: &WindowHandle) {
-        if let Ok(scale) = handle.get_scale() {
-            let size_px = handle.get_size();
-            self.size = scale.px_to_dp_xy(size_px.width, size_px.height).into();
+    fn from_handle(handle: &WindowHandle) -> Self {
+        WindowConfig {
+            size: if let Ok(scale) = handle.get_scale() {
+                let size_px = handle.get_size();
+                scale.px_to_dp_xy(size_px.width, size_px.height).into()
+            } else {
+                WindowConfig::default().size
+            },
+            position: Some(handle.get_position()),
+            state: match handle.get_window_state() {
+                druid::WindowState::MAXIMIZED => WindowState::Maximized,
+                druid::WindowState::MINIMIZED | druid::WindowState::RESTORED => {
+                    WindowState::Restored
+                }
+            },
         }
-
-        self.position = Some(handle.get_position());
-        self.state = match handle.get_window_state() {
-            druid::WindowState::MAXIMIZED => WindowState::Maximized,
-            druid::WindowState::MINIMIZED | druid::WindowState::RESTORED => WindowState::Restored,
-        };
     }
 }
 
@@ -139,8 +133,10 @@ where
     ) {
         if let Event::Command(command) = event {
             if command.is(CLOSE_WINDOW) {
-                self.config.window.update(ctx.window());
-                Config::store(&self.config);
+                Config::store(&Config {
+                    window: WindowConfig::from_handle(ctx.window()),
+                    data: data.clone(),
+                });
             }
         }
 
