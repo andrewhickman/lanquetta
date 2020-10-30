@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use druid::{ArcStr, Data};
@@ -10,12 +11,17 @@ use protobuf::{
     Message,
 };
 
-use crate::protobuf::{ProtobufCodec, ProtobufMessage};
+use crate::{
+    data_dir,
+    protobuf::{ProtobufCodec, ProtobufMessage},
+    sha,
+};
 
 #[derive(Clone, Debug)]
 pub struct ProtobufService {
     name: ArcStr,
     methods: Vec<ProtobufMethod>,
+    path: Arc<Path>,
 }
 
 #[derive(Debug, Clone)]
@@ -30,20 +36,24 @@ pub struct ProtobufMethod {
 
 impl ProtobufService {
     pub fn load(path: &Path) -> Result<Vec<Self>> {
-        let mut file = fs_err::File::open(path)?;
+        let (bytes, path) = load_persisted_file(path)?;
 
-        let descriptor_set = FileDescriptorSet::parse_from_reader(&mut file)?;
+        let descriptor_set = FileDescriptorSet::parse_from_bytes(&bytes)?;
 
         let files = FileDescriptor::new_dynamic_fds(descriptor_set.file);
 
         files
             .iter()
             .flat_map(|file| &file.proto().service)
-            .map(|service| ProtobufService::new(service, &files))
+            .map(|service| ProtobufService::new(service, &files, path.clone()))
             .collect()
     }
 
-    fn new(proto: &ServiceDescriptorProto, files: &[FileDescriptor]) -> Result<Self> {
+    fn new(
+        proto: &ServiceDescriptorProto,
+        files: &[FileDescriptor],
+        path: Arc<Path>,
+    ) -> Result<Self> {
         let name: ArcStr = proto.get_name().into();
         Ok(ProtobufService {
             methods: proto
@@ -52,6 +62,7 @@ impl ProtobufService {
                 .map(|method| ProtobufMethod::new(name.clone(), method, files))
                 .collect::<Result<Vec<_>>>()?,
             name,
+            path,
         })
     }
 
@@ -121,5 +132,26 @@ impl Data for ProtobufMethod {
         self.name.same(&other.name)
             && self.request == other.request
             && self.response == other.response
+    }
+}
+
+fn load_persisted_file(path: &Path) -> Result<(Vec<u8>, Arc<Path>)> {
+    let bytes = fs_err::read(path)?;
+    match data_dir() {
+        Some(data_dir) => {
+            fs_err::create_dir_all(&data_dir)?;
+            let hash = sha::hash(&bytes);
+            let persisted_path = data_dir.join(hash);
+
+            if !persisted_path.exists() {
+                log::debug!("Persisting file to {}", persisted_path.display());
+                fs_err::write(&persisted_path, &bytes)?;
+            }
+            Ok((bytes, persisted_path.into()))
+        }
+        None => {
+            log::warn!("Data directory not found");
+            Ok((bytes, path.into()))
+        }
     }
 }
