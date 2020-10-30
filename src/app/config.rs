@@ -1,15 +1,16 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
+use dirs_next::config_dir;
 use druid::{
     commands::CLOSE_WINDOW,
     widget::{prelude::*, Controller},
     Point, Size, Widget, WidgetExt as _, WindowDesc, WindowHandle,
 };
-use fs_err::{create_dir_all, read_to_string, write};
+use fs_err::{read_to_string, write, create_dir_all};
 use serde::{Deserialize, Serialize};
 
-use crate::{app::State, config_dir};
+use crate::app::State;
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
@@ -80,9 +81,10 @@ impl Config {
     }
 
     fn path() -> Result<PathBuf> {
-        Ok(config_dir()
-            .context("config directory not found")?
-            .join("config.toml"))
+        let mut path = config_dir().context("no config directory found")?;
+        path.push(env!("CARGO_BIN_NAME"));
+        path.push("config.toml");
+        Ok(path)
     }
 }
 

@@ -23,10 +23,8 @@ memchr = "2.3.3"
 serde-transcode = "1.1.0"
 iter-set = "2.0.0"
 env_logger = "0.8.1"
-directories-next = "2.0.0"
+dirs-next = "2.0.0"
 toml = "0.5.7"
-crypto-hash = "0.3.4"
-hex = "0.4.2"
 
 [dependencies.druid]
 git = "https://github.com/andrewhickman/druid.git"
@@ -36,7 +34,6 @@ features = ["im", "svg"]
 [dependencies.protobuf]
 git = "https://github.com/andrewhickman/rust-protobuf.git"
 branch = "master"
-features = ["serde"]
 
 [dependencies.tonic]
 version = "0.3.0"
@@ -54,7 +51,7 @@ features = ["parsing", "regex-onig", "assets", "dump-load"]
 
 [dependencies.serde]
 version = "1.0.117"
-features = ["derive", "rc"]
+features = ["derive"]
 
 [dependencies.kurbo] 
 version = "0.7.0"
