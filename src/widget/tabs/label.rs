@@ -88,8 +88,10 @@ impl Widget<State> for TabLabel {
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &State, env: &Env) {
-        if let LifeCycle::HotChanged(_) | LifeCycle::FocusChanged(_) = event {
-            ctx.request_paint();
+        if let LifeCycle::HotChanged(_) = event {
+            if !data.selected {
+                ctx.request_paint();
+            }
         }
 
         self.label.lifecycle(ctx, event, data, env);
@@ -215,7 +217,7 @@ where
         data: &State,
         env: &Env,
     ) {
-        if let LifeCycle::HotChanged(_) | LifeCycle::FocusChanged(_) = event {
+        if let LifeCycle::HotChanged(_) = event {
             ctx.request_paint();
         }
 

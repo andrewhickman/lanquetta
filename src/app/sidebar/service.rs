@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use druid::{
     widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter},
     ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt as _,
@@ -19,7 +21,7 @@ pub(in crate::app) struct State {
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct ServiceState {
     name: ArcStr,
-    methods: im::Vector<method::MethodState>,
+    methods: Arc<[method::MethodState]>,
     expanded: bool,
 }
 
@@ -108,7 +110,7 @@ impl ListIter<method::State> for State {
     }
 
     fn for_each_mut(&mut self, mut cb: impl FnMut(&mut method::State, usize)) {
-        for (i, method) in self.service.methods.iter_mut().enumerate() {
+        for (i, method) in self.service.methods.iter().enumerate() {
             let selected = match &self.selected {
                 Some(selected_method) => selected_method.same(method.method()),
                 None => false,
