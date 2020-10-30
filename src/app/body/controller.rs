@@ -4,7 +4,10 @@ use druid::{
 };
 
 use crate::{
-    app::{body::TabState, command, body::RequestState},
+    app::{
+        body::{RequestState, TabState},
+        command,
+    },
     grpc,
 };
 

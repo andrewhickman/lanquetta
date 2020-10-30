@@ -26,7 +26,7 @@ env_logger = "0.8.1"
 
 [dependencies.druid]
 git = "https://github.com/andrewhickman/druid.git"
-branch = "master"
+branch = "me"
 features = ["im", "svg"]
 
 [dependencies.protobuf]

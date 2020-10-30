@@ -7,7 +7,7 @@ use http::Uri;
 use once_cell::sync::Lazy;
 
 use crate::app::{command, theme};
-use crate::widget::{FormField, ValidationState, Empty};
+use crate::widget::{Empty, FormField, ValidationState};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct AddressState {
@@ -31,11 +31,15 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 
     let spinner = ViewSwitcher::new(
         |&in_flight: &bool, _| in_flight,
-        |&in_flight, _, _| if in_flight {
-            Spinner::new().padding((0.0, 0.0, theme::GUTTER_SIZE, 0.0)).boxed()
-        } else {
-            Empty.boxed()
-        }
+        |&in_flight, _, _| {
+            if in_flight {
+                Spinner::new()
+                    .padding((0.0, 0.0, theme::GUTTER_SIZE, 0.0))
+                    .boxed()
+            } else {
+                Empty.boxed()
+            }
+        },
     );
 
     let send_button = theme::button_scope(Button::new("Send").on_click(
@@ -75,7 +79,11 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 
 impl State {
     pub fn new(address: AddressState, can_send: bool, in_flight: bool) -> Self {
-        State { address, can_send, in_flight }
+        State {
+            address,
+            can_send,
+            in_flight,
+        }
     }
 
     pub fn address_state(&self) -> &AddressState {

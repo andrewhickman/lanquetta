@@ -388,7 +388,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.6.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=master#6407860840fa2bfd63a93db82965cd89baa7d158"
+source = "git+https://github.com/andrewhickman/druid.git?branch=me#fcc8accdab3e281f4bd4f74efc7f9ba46b0d0c81"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -411,7 +411,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.3.1"
-source = "git+https://github.com/andrewhickman/druid.git?branch=master#6407860840fa2bfd63a93db82965cd89baa7d158"
+source = "git+https://github.com/andrewhickman/druid.git?branch=me#fcc8accdab3e281f4bd4f74efc7f9ba46b0d0c81"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -421,7 +421,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.6.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=master#6407860840fa2bfd63a93db82965cd89baa7d158"
+source = "git+https://github.com/andrewhickman/druid.git?branch=me#fcc8accdab3e281f4bd4f74efc7f9ba46b0d0c81"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -1321,9 +1321,9 @@ dependencies = [
 
 [[package]]
 name = "num-integer"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d59457e662d541ba17869cf51cf177c0b5f0cbf476c66bdc90bf1edac4f875b"
+checksum = "d2cc698a63b549a70bc047073d2949cce27cd1c7b0a4a862d08a8031bc2801db"
 dependencies = [
  "autocfg",
  "num-traits",
@@ -1331,9 +1331,9 @@ dependencies = [
 
 [[package]]
 name = "num-traits"
-version = "0.2.12"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac267bcc07f48ee5f8935ab0d24f316fb722d7a1292e2913f0cc196b29ffd611"
+checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg",
 ]
