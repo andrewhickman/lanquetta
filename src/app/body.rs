@@ -18,7 +18,7 @@ use crate::{
     widget::{TabId, TabLabelState, Tabs, TabsData, TabsDataChange},
 };
 
-#[derive(Debug, Default, Clone, Data, Lens)]
+#[derive(Debug, Default, Clone, Data)]
 pub(in crate::app) struct State {
     tabs: Arc<BTreeMap<TabId, TabState>>,
     selected: Option<TabId>,
@@ -32,6 +32,7 @@ enum RequestState {
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct TabState {
+    #[lens(ignore)]
     method: ProtobufMethod,
     #[lens(ignore)]
     address: address::AddressState,
@@ -64,6 +65,13 @@ fn build_body() -> impl Widget<TabState> {
 }
 
 impl State {
+    pub fn new(tabs: BTreeMap<TabId, TabState>, selected: Option<TabId>) -> Self {
+        State {
+            tabs: Arc::new(tabs),
+            selected,
+        }
+    }
+
     pub fn select_or_create_tab(&mut self, method: ProtobufMethod) {
         if self
             .with_selected(|_, tab_data| tab_data.method.same(&method))
@@ -85,24 +93,33 @@ impl State {
     pub fn create_tab(&mut self, method: ProtobufMethod) {
         let id = TabId::next();
         self.selected = Some(id);
-        Arc::make_mut(&mut self.tabs).insert(
-            id,
-            TabState {
-                request: request::State::new(method.clone()),
-                response: response::State::default(),
-                address: address::AddressState::default(),
-                request_state: RequestState::NotStarted,
-                method,
-            },
-        );
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::new(method));
     }
 
     pub fn selected_method(&self) -> Option<ProtobufMethod> {
         self.with_selected(|_, tab_data| tab_data.method.clone())
     }
+
+    pub fn tabs<'a>(&'a self) -> impl Iterator<Item = (TabId, &'a TabState)> {
+        self.tabs.iter().map(|(&id, tab)| (id, tab))
+    }
 }
 
 impl TabState {
+    pub fn new(method: ProtobufMethod) -> Self {
+        TabState {
+            request: request::State::new(method.clone()),
+            response: response::State::default(),
+            address: address::AddressState::default(),
+            request_state: RequestState::NotStarted,
+            method,
+        }
+    }
+
+    pub fn method(&self) -> &ProtobufMethod {
+        &self.method
+    }
+
     fn can_send(&self) -> bool {
         self.request_state == RequestState::NotStarted
             && self.address.is_valid()

@@ -17,12 +17,15 @@ use crate::protobuf::{ProtobufCodec, ProtobufMessage};
 pub struct ProtobufService {
     name: ArcStr,
     methods: Vec<ProtobufMethod>,
-    raw_files: Arc<FileDescriptorSet>,
-    raw_files_index: usize,
+    fd_set: Arc<FileDescriptorSet>,
+    service_index: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct ProtobufMethod {
+    fd_set: Arc<FileDescriptorSet>,
+    service_index: usize,
+    method_index: usize,
     name: ArcStr,
     service_name: ArcStr,
     request: MessageDescriptor,
@@ -54,20 +57,30 @@ impl ProtobufService {
     }
 
     fn new(
-        raw_files: Arc<FileDescriptorSet>,
-        raw_files_index: usize,
+        fd_set: Arc<FileDescriptorSet>,
+        service_index: usize,
         proto: &ServiceDescriptorProto,
         files: &[FileDescriptor],
     ) -> Result<Self> {
         let name: ArcStr = proto.get_name().into();
         Ok(ProtobufService {
-            raw_files,
-            raw_files_index,
             methods: proto
                 .method
                 .iter()
-                .map(|method| ProtobufMethod::new(name.clone(), method, files))
+                .enumerate()
+                .map(|(method_index, method)| {
+                    ProtobufMethod::new(
+                        fd_set.clone(),
+                        service_index,
+                        method_index,
+                        name.clone(),
+                        method,
+                        files,
+                    )
+                })
                 .collect::<Result<Vec<_>>>()?,
+            fd_set,
+            service_index,
             name,
         })
     }
@@ -76,21 +89,28 @@ impl ProtobufService {
         &self.name
     }
 
+    pub fn get_method(&self, index: usize) -> Option<&ProtobufMethod> {
+        self.methods.get(index)
+    }
+
     pub fn methods<'a>(&'a self) -> impl Iterator<Item = ProtobufMethod> + 'a {
         self.methods.iter().cloned()
     }
 
-    pub fn raw_files(&self) -> Arc<FileDescriptorSet> {
-        self.raw_files.clone()
+    pub fn fd_set(&self) -> Arc<FileDescriptorSet> {
+        self.fd_set.clone()
     }
 
-    pub fn raw_files_index(&self) -> usize {
-        self.raw_files_index
+    pub fn service_index(&self) -> usize {
+        self.service_index
     }
 }
 
 impl ProtobufMethod {
     fn new(
+        fd_set: Arc<FileDescriptorSet>,
+        service_index: usize,
+        method_index: usize,
         service_name: ArcStr,
         proto: &MethodDescriptorProto,
         files: &[FileDescriptor],
@@ -108,6 +128,9 @@ impl ProtobufMethod {
         }
 
         Ok(ProtobufMethod {
+            fd_set,
+            service_index,
+            method_index,
             service_name,
             name: proto.get_name().into(),
             request: find_type(proto.get_input_type(), files)?,
@@ -138,6 +161,18 @@ impl ProtobufMethod {
             "{}/{}",
             self.service_name, self.name
         ))?)
+    }
+
+    pub fn fd_set(&self) -> Arc<FileDescriptorSet> {
+        self.fd_set.clone()
+    }
+
+    pub fn service_index(&self) -> usize {
+        self.service_index
+    }
+
+    pub fn method_index(&self) -> usize {
+        self.method_index
     }
 }
 

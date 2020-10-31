@@ -38,6 +38,16 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        if let LifeCycle::WidgetAdded = event {
+            let mut index = 0;
+            data.for_each(|tab_id, _| {
+                self.children
+                    .insert(index, WidgetPod::new(TabLabel::new(self.id, tab_id)));
+                index += 1;
+                ctx.children_changed();
+            });
+        }
+
         self.for_each_label(data, |_, label, label_data| {
             label.lifecycle(ctx, event, label_data, env)
         })

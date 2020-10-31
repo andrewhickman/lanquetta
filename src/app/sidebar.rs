@@ -1,7 +1,5 @@
 mod method;
-mod service;
-
-pub(in crate::app) use self::service::ServiceState;
+pub(in crate::app) mod service;
 
 use std::{iter::FromIterator, path::Path};
 
@@ -24,7 +22,7 @@ pub(in crate::app) struct State {
 
 #[derive(Debug, Default, Clone, Data)]
 pub(in crate::app) struct ServiceListState {
-    services: im::Vector<ServiceState>,
+    services: im::Vector<service::ServiceState>,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -57,20 +55,20 @@ impl ServiceListState {
         self.services.extend(
             ProtobufService::load_file(path)?
                 .into_iter()
-                .map(ServiceState::from),
+                .map(service::ServiceState::from),
         );
         Ok(())
     }
 
-    pub fn services(&self) -> &im::Vector<ServiceState> {
+    pub fn services(&self) -> &im::Vector<service::ServiceState> {
         &self.services
     }
 }
 
-impl FromIterator<ServiceState> for ServiceListState {
+impl FromIterator<service::ServiceState> for ServiceListState {
     fn from_iter<T>(iter: T) -> Self
     where
-        T: IntoIterator<Item = ServiceState>,
+        T: IntoIterator<Item = service::ServiceState>,
     {
         ServiceListState {
             services: im::Vector::from_iter(iter),

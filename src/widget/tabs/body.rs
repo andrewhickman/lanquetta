@@ -41,6 +41,14 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        if let LifeCycle::WidgetAdded = event {
+            data.for_each(|tab_id, _| {
+                self.children
+                    .insert(tab_id, WidgetPod::new((self.make_child)()));
+                ctx.children_changed();
+            });
+        }
+
         if event.should_propagate_to_hidden() {
             self.for_each(data, |_, tab, tab_data| {
                 tab.lifecycle(ctx, event, tab_data, env)

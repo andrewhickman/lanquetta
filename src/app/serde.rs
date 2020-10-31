@@ -1,4 +1,8 @@
-use std::{convert::TryFrom, convert::TryInto, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    convert::{TryFrom, TryInto},
+    sync::Arc,
+};
 
 use anyhow::{Context, Error, Result};
 use protobuf::descriptor::FileDescriptorSet;
@@ -8,7 +12,11 @@ use serde::{
     Deserialize, Serialize,
 };
 
-use crate::{app, protobuf::ProtobufService};
+use crate::{
+    app,
+    protobuf::ProtobufService,
+    widget::{TabId, TabsData},
+};
 
 impl Serialize for app::State {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -36,12 +44,19 @@ impl<'de> Deserialize<'de> for app::State {
 struct AppState {
     file_descriptor_sets: Vec<AppFileDescriptorSetState>,
     services: Vec<AppServiceState>,
+    body: AppBodyState,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AppServiceRef {
+    fd_set: usize,
+    service: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppServiceState {
-    fd_set: usize,
-    service: usize,
+    #[serde(flatten)]
+    idx: AppServiceRef,
     expanded: bool,
 }
 
@@ -52,6 +67,19 @@ struct AppFileDescriptorSetState {
     files: Arc<FileDescriptorSet>,
     #[serde(skip)]
     services: Vec<ProtobufService>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AppBodyState {
+    tabs: Vec<AppBodyTabState>,
+    selected: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AppBodyTabState {
+    #[serde(flatten)]
+    idx: AppServiceRef,
+    method: usize,
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -66,18 +94,43 @@ impl<'a> TryFrom<&'a app::State> for AppState {
             .iter()
             .map(|service| {
                 let fd_set =
-                    get_or_insert_fd_set(&mut file_descriptor_sets, service.service().raw_files())?;
+                    get_or_insert_fd_set(&mut file_descriptor_sets, service.service().fd_set())?;
                 Ok(AppServiceState {
-                    fd_set,
-                    service: service.service().raw_files_index(),
+                    idx: AppServiceRef {
+                        fd_set,
+                        service: service.service().service_index(),
+                    },
                     expanded: service.expanded(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
 
+        let body = AppBodyState {
+            tabs: data
+                .body
+                .tabs()
+                .map(|(_, tab)| {
+                    let fd_set =
+                        get_or_insert_fd_set(&mut file_descriptor_sets, tab.method().fd_set())?;
+                    Ok(AppBodyTabState {
+                        idx: AppServiceRef {
+                            fd_set,
+                            service: tab.method().service_index(),
+                        },
+                        method: tab.method().method_index(),
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+            selected: data
+                .body
+                .selected()
+                .and_then(|selected| data.body.tabs().position(|(id, _)| id == selected)),
+        };
+
         Ok(AppState {
             file_descriptor_sets,
             services,
+            body,
         })
     }
 }
@@ -89,26 +142,43 @@ impl TryInto<app::State> for AppState {
         let AppState {
             file_descriptor_sets,
             services,
+            body,
         } = self;
 
         Ok(app::State {
             sidebar: services
                 .into_iter()
                 .map(|service| {
-                    Ok(app::sidebar::ServiceState::new(
-                        file_descriptor_sets
-                            .get(service.fd_set)
-                            .context("invalid fd set index")?
-                            .services
-                            .get(service.service)
-                            .context("invalid service index")?
-                            .clone(),
+                    Ok(app::sidebar::service::ServiceState::new(
+                        get_service(&file_descriptor_sets, &service.idx)?,
                         service.expanded,
                     ))
                 })
                 .collect::<Result<app::sidebar::ServiceListState>>()?,
-            body: Default::default(),
+            body: body.to_state(&file_descriptor_sets)?,
         })
+    }
+}
+
+impl AppBodyState {
+    fn to_state(self, fd_sets: &[AppFileDescriptorSetState]) -> Result<app::body::State> {
+        let tabs = self
+            .tabs
+            .into_iter()
+            .map(|tab| {
+                let method = get_service(fd_sets, &tab.idx)?
+                    .get_method(tab.method)
+                    .context("invalid method index")?
+                    .clone();
+                Ok((TabId::next(), app::body::TabState::new(method)))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
+
+        let selected = self
+            .selected
+            .and_then(|selected| tabs.iter().nth(selected).map(|(&id, _)| id));
+
+        Ok(app::body::State::new(tabs, selected))
     }
 }
 
@@ -134,4 +204,14 @@ fn get_or_insert_fd_set(
             Ok(index)
         }
     }
+}
+
+fn get_service(vec: &[AppFileDescriptorSetState], idx: &AppServiceRef) -> Result<ProtobufService> {
+    Ok(vec
+        .get(idx.fd_set)
+        .context("invalid fd set index")?
+        .services
+        .get(idx.service)
+        .context("invalid service index")?
+        .clone())
 }
