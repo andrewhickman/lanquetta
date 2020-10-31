@@ -3,7 +3,6 @@ use druid::{
     ArcStr, Color, Data, Env, FontDescriptor, FontFamily, Lens, PaintCtx, RenderContext, Widget,
     WidgetExt as _,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{app::command, protobuf::ProtobufMethod, theme, widget::Icon};
 

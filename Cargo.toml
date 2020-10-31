@@ -23,16 +23,16 @@ serde-transcode = "1.1.0"
 iter-set = "2.0.0"
 env_logger = "0.8.1"
 dirs-next = "2.0.0"
-toml = "0.5.7"
 
 [dependencies.druid]
-git = "https://github.com/andrewhickman/druid.git"
-branch = "me"
+git = "https://github.com/linebender/druid.git"
+rev = "a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
 features = ["im", "svg"]
 
 [dependencies.protobuf]
 git = "https://github.com/andrewhickman/rust-protobuf.git"
 branch = "master"
+features = ["with-serde"]
 
 [dependencies.tonic]
 version = "0.3.0"

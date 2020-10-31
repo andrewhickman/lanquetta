@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use druid::{ArcStr, Data};
@@ -16,6 +17,8 @@ use crate::protobuf::{ProtobufCodec, ProtobufMessage};
 pub struct ProtobufService {
     name: ArcStr,
     methods: Vec<ProtobufMethod>,
+    raw_files: Arc<FileDescriptorSet>,
+    raw_files_index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -29,23 +32,37 @@ pub struct ProtobufMethod {
 }
 
 impl ProtobufService {
-    pub fn load(path: &Path) -> Result<Vec<Self>> {
-        let mut file = fs_err::File::open(path)?;
-
-        let descriptor_set = FileDescriptorSet::parse_from_reader(&mut file)?;
-
-        let files = FileDescriptor::new_dynamic_fds(descriptor_set.file);
+    pub fn load(descriptor_set: &Arc<FileDescriptorSet>) -> Result<Vec<Self>> {
+        let files = FileDescriptor::new_dynamic_fds(descriptor_set.file.clone());
 
         files
             .iter()
             .flat_map(|file| &file.proto().service)
-            .map(|service| ProtobufService::new(service, &files))
+            .enumerate()
+            .map(|(index, service)| {
+                ProtobufService::new(descriptor_set.clone(), index, service, &files)
+            })
             .collect()
     }
 
-    fn new(proto: &ServiceDescriptorProto, files: &[FileDescriptor]) -> Result<Self> {
+    pub fn load_file(path: &Path) -> Result<Vec<Self>> {
+        let mut file = fs_err::File::open(path)?;
+
+        let descriptor_set = Arc::new(FileDescriptorSet::parse_from_reader(&mut file)?);
+
+        ProtobufService::load(&descriptor_set)
+    }
+
+    fn new(
+        raw_files: Arc<FileDescriptorSet>,
+        raw_files_index: usize,
+        proto: &ServiceDescriptorProto,
+        files: &[FileDescriptor],
+    ) -> Result<Self> {
         let name: ArcStr = proto.get_name().into();
         Ok(ProtobufService {
+            raw_files,
+            raw_files_index,
             methods: proto
                 .method
                 .iter()
@@ -61,6 +78,14 @@ impl ProtobufService {
 
     pub fn methods<'a>(&'a self) -> impl Iterator<Item = ProtobufMethod> + 'a {
         self.methods.iter().cloned()
+    }
+
+    pub fn raw_files(&self) -> Arc<FileDescriptorSet> {
+        self.raw_files.clone()
+    }
+
+    pub fn raw_files_index(&self) -> usize {
+        self.raw_files_index
     }
 }
 

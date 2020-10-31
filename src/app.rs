@@ -3,11 +3,11 @@ mod command;
 mod config;
 mod delegate;
 mod menu;
+mod serde;
 mod sidebar;
 
 use druid::{widget::Split, WindowDesc};
 use druid::{AppLauncher, Data, Lens, PlatformError, Widget, WidgetExt as _};
-use serde::{Deserialize, Serialize};
 
 use self::config::{Config, ConfigController};
 use crate::theme;
@@ -30,10 +30,9 @@ pub fn launch() -> Result<(), PlatformError> {
         .launch(config.data)
 }
 
-#[derive(Clone, Debug, Default, Data, Lens, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Data, Lens)]
 struct State {
     sidebar: sidebar::ServiceListState,
-    #[serde(skip)]
     body: body::State,
 }
 

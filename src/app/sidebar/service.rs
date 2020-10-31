@@ -4,7 +4,6 @@ use druid::{
     widget::{CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter, Painter},
     ArcStr, Data, FontDescriptor, FontFamily, Lens, RenderContext, Widget, WidgetExt as _,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
     app::sidebar::method,
@@ -19,16 +18,16 @@ pub(in crate::app) struct State {
     pub service: ServiceState,
 }
 
-#[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
+#[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct ServiceState {
     name: ArcStr,
-    #[serde(skip, default = "arc_new")]
+    #[lens(ignore)]
     methods: Arc<[method::MethodState]>,
+    #[lens(ignore)]
     expanded: bool,
-}
-
-fn arc_new() -> Arc<[method::MethodState]> {
-    Arc::new([])
+    #[data(ignore)]
+    #[lens(ignore)]
+    service: ProtobufService,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -93,13 +92,28 @@ impl State {
     }
 }
 
-impl From<ProtobufService> for ServiceState {
-    fn from(service: ProtobufService) -> Self {
+impl ServiceState {
+    pub fn new(service: ProtobufService, expanded: bool) -> Self {
         ServiceState {
             name: service.name().into(),
             methods: service.methods().map(method::MethodState::from).collect(),
-            expanded: true,
+            expanded,
+            service,
         }
+    }
+
+    pub fn service(&self) -> &ProtobufService {
+        &self.service
+    }
+
+    pub fn expanded(&self) -> bool {
+        self.expanded
+    }
+}
+
+impl From<ProtobufService> for ServiceState {
+    fn from(service: ProtobufService) -> Self {
+        ServiceState::new(service, true)
     }
 }
 

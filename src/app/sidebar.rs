@@ -1,14 +1,15 @@
 mod method;
 mod service;
 
-use std::path::Path;
+pub(in crate::app) use self::service::ServiceState;
+
+use std::{iter::FromIterator, path::Path};
 
 use anyhow::Result;
 use druid::{
     widget::{List, ListIter},
     Data, Lens, Widget, WidgetExt as _,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::{
     protobuf::{ProtobufMethod, ProtobufService},
@@ -21,9 +22,9 @@ pub(in crate::app) struct State {
     selected: Option<ProtobufMethod>,
 }
 
-#[derive(Debug, Default, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Data)]
 pub(in crate::app) struct ServiceListState {
-    services: im::Vector<service::ServiceState>,
+    services: im::Vector<ServiceState>,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -54,11 +55,26 @@ impl State {
 impl ServiceListState {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
         self.services.extend(
-            ProtobufService::load(path)?
+            ProtobufService::load_file(path)?
                 .into_iter()
-                .map(service::ServiceState::from),
+                .map(ServiceState::from),
         );
         Ok(())
+    }
+
+    pub fn services(&self) -> &im::Vector<ServiceState> {
+        &self.services
+    }
+}
+
+impl FromIterator<ServiceState> for ServiceListState {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = ServiceState>,
+    {
+        ServiceListState {
+            services: im::Vector::from_iter(iter),
+        }
     }
 }
 

@@ -2,19 +2,23 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use dirs_next::config_dir;
-use druid::{Data, Point, Size, Widget, WindowDesc, WindowHandle, commands::CLOSE_WINDOW, widget::{prelude::*, Controller}};
+use druid::{
+    commands::CLOSE_WINDOW,
+    widget::{prelude::*, Controller},
+    Data, Point, Size, Widget, WindowDesc, WindowHandle,
+};
 use fs_err::{create_dir_all, read_to_string, write};
 use serde::{Deserialize, Serialize};
 
 use crate::app::State;
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub(in crate::app) struct Config {
     pub window: WindowConfig,
     pub data: State,
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct WindowConfig {
     state: WindowState,
     size: Size,
@@ -25,7 +29,7 @@ pub struct WindowConfig {
 pub struct ConfigController;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "lowercase")]
 enum WindowState {
     Maximized,
     Restored,
@@ -54,13 +58,13 @@ impl Config {
     fn try_load() -> Result<Config> {
         let path = Config::path()?;
         let text = read_to_string(path)?;
-        let config = toml::from_str(&text)?;
+        let config = serde_json::from_str(&text)?;
         Ok(config)
     }
 
     fn try_store(config: &Config) -> Result<()> {
         let path = Config::path()?;
-        let text = toml::to_string(config)?;
+        let text = serde_json::to_string(config)?;
         create_dir_all(path.parent().unwrap())?;
         write(path, text)?;
         Ok(())
@@ -69,7 +73,7 @@ impl Config {
     fn path() -> Result<PathBuf> {
         let mut path = config_dir().context("no config directory found")?;
         path.push(env!("CARGO_BIN_NAME"));
-        path.push("config.toml");
+        path.push("config.json");
         Ok(path)
     }
 }

@@ -409,7 +409,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.6.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=me#fcc8accdab3e281f4bd4f74efc7f9ba46b0d0c81"
+source = "git+https://github.com/linebender/druid.git?rev=a30b1ef75dfd8867cf622eb52cb6880d716fb39d#a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -432,7 +432,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.3.1"
-source = "git+https://github.com/andrewhickman/druid.git?branch=me#fcc8accdab3e281f4bd4f74efc7f9ba46b0d0c81"
+source = "git+https://github.com/linebender/druid.git?rev=a30b1ef75dfd8867cf622eb52cb6880d716fb39d#a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -442,7 +442,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.6.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=me#fcc8accdab3e281f4bd4f74efc7f9ba46b0d0c81"
+source = "git+https://github.com/linebender/druid.git?rev=a30b1ef75dfd8867cf622eb52cb6880d716fb39d#a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -913,7 +913,6 @@ dependencies = [
  "serde_json",
  "syntect",
  "tokio",
- "toml",
  "tonic",
 ]
 
@@ -1676,6 +1675,10 @@ dependencies = [
 name = "protobuf"
 version = "3.0.0-pre"
 source = "git+https://github.com/andrewhickman/rust-protobuf.git?branch=master#4e66c17ad2a5811b7e8419ab38101d92f11bb71e"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
 
 [[package]]
 name = "quote"
