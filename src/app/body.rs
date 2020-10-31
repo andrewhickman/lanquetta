@@ -13,6 +13,7 @@ use iter_set::Inclusion;
 
 use self::controller::TabController;
 use crate::{
+    json::JsonText,
     protobuf::ProtobufMethod,
     theme,
     widget::{TabId, TabLabelState, Tabs, TabsData, TabsDataChange},
@@ -36,6 +37,7 @@ pub struct TabState {
     method: ProtobufMethod,
     #[lens(ignore)]
     address: address::AddressState,
+    #[lens(name = "request_lens")]
     request: request::State,
     response: response::State,
     #[lens(ignore)]
@@ -54,7 +56,7 @@ fn build_body() -> impl Widget<TabState> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(Label::new("Request").align_left())
         .with_spacer(theme::GUTTER_SIZE)
-        .with_flex_child(request::build().lens(TabState::request), 0.5)
+        .with_flex_child(request::build().lens(TabState::request_lens), 0.5)
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(Label::new("Response").align_left())
         .with_spacer(theme::GUTTER_SIZE)
@@ -93,7 +95,7 @@ impl State {
     pub fn create_tab(&mut self, method: ProtobufMethod) {
         let id = TabId::next();
         self.selected = Some(id);
-        Arc::make_mut(&mut self.tabs).insert(id, TabState::new(method));
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty(method));
     }
 
     pub fn selected_method(&self) -> Option<ProtobufMethod> {
@@ -106,9 +108,9 @@ impl State {
 }
 
 impl TabState {
-    pub fn new(method: ProtobufMethod) -> Self {
+    pub fn empty(method: ProtobufMethod) -> Self {
         TabState {
-            request: request::State::new(method.clone()),
+            request: request::State::empty(method.clone()),
             response: response::State::default(),
             address: address::AddressState::default(),
             request_state: RequestState::NotStarted,
@@ -116,8 +118,26 @@ impl TabState {
         }
     }
 
+    pub fn new(method: ProtobufMethod, address: String, request: impl Into<JsonText>) -> Self {
+        TabState {
+            address: address::AddressState::new(address),
+            request: request::State::with_text(method.clone(), request),
+            response: response::State::default(),
+            request_state: RequestState::NotStarted,
+            method,
+        }
+    }
+
     pub fn method(&self) -> &ProtobufMethod {
         &self.method
+    }
+
+    pub(in crate::app) fn address(&self) -> &address::AddressState {
+        &self.address
+    }
+
+    pub(in crate::app) fn request(&self) -> &request::State {
+        &self.request
     }
 
     fn can_send(&self) -> bool {

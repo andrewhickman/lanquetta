@@ -32,14 +32,17 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 }
 
 impl State {
-    pub(in crate::app) fn new(method: ProtobufMethod) -> Self {
+    pub fn empty(method: ProtobufMethod) -> Self {
         let json = JsonText::pretty(method.request().empty_json());
+        State::with_text(method, json)
+    }
 
+    pub fn with_text(method: ProtobufMethod, json: impl Into<JsonText>) -> Self {
         let request = method.request();
 
         State {
             body: ValidationState::new(
-                json,
+                json.into(),
                 Arc::new(move |s| match request.parse(s) {
                     Ok(body) => Ok(grpc::Request {
                         method: method.clone(),
@@ -57,6 +60,10 @@ impl State {
 
     pub(in crate::app) fn get(&self) -> Option<&grpc::Request> {
         self.body.result().ok()
+    }
+
+    pub fn text(&self) -> &JsonText {
+        self.body.text()
     }
 }
 

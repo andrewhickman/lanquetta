@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::{Context, Error, Result};
+use druid::piet::TextStorage;
 use protobuf::descriptor::FileDescriptorSet;
 use serde::{
     de::{self, Deserializer},
@@ -80,6 +81,8 @@ struct AppBodyTabState {
     #[serde(flatten)]
     idx: AppServiceRef,
     method: usize,
+    address: String,
+    request: String,
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -118,6 +121,8 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                             service: tab.method().service_index(),
                         },
                         method: tab.method().method_index(),
+                        address: tab.address().text().to_owned(),
+                        request: tab.request().text().as_str().to_owned(),
                     })
                 })
                 .collect::<Result<Vec<_>>>()?,
@@ -170,7 +175,10 @@ impl AppBodyState {
                     .get_method(tab.method)
                     .context("invalid method index")?
                     .clone();
-                Ok((TabId::next(), app::body::TabState::new(method)))
+                Ok((
+                    TabId::next(),
+                    app::body::TabState::new(method, tab.address, tab.request),
+                ))
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
 

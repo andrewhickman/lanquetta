@@ -101,15 +101,23 @@ impl State {
 
 impl Default for AddressState {
     fn default() -> Self {
-        AddressState {
-            uri: ValidationState::new(String::default(), VALIDATE_URI.clone()),
-        }
+        AddressState::new(String::new())
     }
 }
 
 impl AddressState {
+    pub fn new(address: String) -> Self {
+        AddressState {
+            uri: ValidationState::new(address, VALIDATE_URI.clone()),
+        }
+    }
+
     pub fn is_valid(&self) -> bool {
         self.uri.is_valid()
+    }
+
+    pub fn text(&self) -> &str {
+        self.uri.text()
     }
 
     pub fn get(&self) -> Option<&Uri> {
