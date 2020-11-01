@@ -409,7 +409,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid.git?rev=a30b1ef75dfd8867cf622eb52cb6880d716fb39d#a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
+source = "git+https://github.com/andrewhickman/druid.git?branch=textbox-env-update#f8ec6b01b53065a5d1c82853f38f8eb53bd11ae6"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -432,7 +432,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.3.1"
-source = "git+https://github.com/linebender/druid.git?rev=a30b1ef75dfd8867cf622eb52cb6880d716fb39d#a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
+source = "git+https://github.com/andrewhickman/druid.git?branch=textbox-env-update#f8ec6b01b53065a5d1c82853f38f8eb53bd11ae6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -442,7 +442,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid.git?rev=a30b1ef75dfd8867cf622eb52cb6880d716fb39d#a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
+source = "git+https://github.com/andrewhickman/druid.git?branch=textbox-env-update#f8ec6b01b53065a5d1c82853f38f8eb53bd11ae6"
 dependencies = [
  "anyhow",
  "bitflags",

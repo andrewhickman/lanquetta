@@ -25,8 +25,8 @@ env_logger = "0.8.1"
 dirs-next = "2.0.0"
 
 [dependencies.druid]
-git = "https://github.com/linebender/druid.git"
-rev = "a30b1ef75dfd8867cf622eb52cb6880d716fb39d"
+git = "https://github.com/andrewhickman/druid.git"
+branch = "textbox-env-update"
 features = ["im", "svg"]
 
 [dependencies.protobuf]
