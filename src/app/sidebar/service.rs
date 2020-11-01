@@ -1,9 +1,15 @@
 use std::sync::Arc;
 
-use druid::{ArcStr, Data, FontDescriptor, FontFamily, Lens, MouseButton, Point, Rect, RenderContext, Widget, WidgetExt as _, WidgetPod, widget::{prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter}};
+use druid::{
+    widget::Controller,
+    widget::Painter,
+    widget::{prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter},
+    ArcStr, Data, FontDescriptor, FontFamily, Lens, MouseButton, Point, Rect, RenderContext,
+    Widget, WidgetExt as _, WidgetPod,
+};
 
 use crate::{
-    app::sidebar::method,
+    app::{command::REMOVE_SERVICE, sidebar::method},
     protobuf::{ProtobufMethod, ProtobufService},
     theme,
     widget::{Empty, Icon},
@@ -12,7 +18,7 @@ use crate::{
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     pub index: usize,
-    pub selected: Option<ProtobufMethod>, // TODO generate from selected tab in body
+    pub selected: Option<ProtobufMethod>,
     pub service: ServiceState,
 }
 
@@ -31,10 +37,14 @@ pub(in crate::app) struct ServiceState {
 struct Service {
     expanded: WidgetPod<ServiceState, Box<dyn Widget<ServiceState>>>,
     label: WidgetPod<ServiceState, Box<dyn Widget<ServiceState>>>,
-    // close: WidgetPod<State, Box<dyn Widget<State>>>,
+    close: WidgetPod<State, Box<dyn Widget<State>>>,
 }
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+struct CloseButtonController {
+    sidebar_id: WidgetId,
+}
+
+pub(in crate::app) fn build(sidebar_id: WidgetId) -> Box<dyn Widget<State>> {
     let service = Service {
         expanded: WidgetPod::new(
             Either::new(
@@ -52,8 +62,14 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
                 .lens(ServiceState::name)
                 .boxed(),
         ),
-        // close:
-    }.expand_width();
+        close: WidgetPod::new(
+            Icon::close()
+                .background(Painter::new(paint_close_background))
+                .controller(CloseButtonController { sidebar_id })
+                .boxed(),
+        ),
+    }
+    .expand_width();
 
     let methods = Either::new(
         |state: &State, _| state.service.expanded,
@@ -69,8 +85,12 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 }
 
 impl State {
-    pub fn new(selected: Option<ProtobufMethod>, service: ServiceState) -> Self {
-        State { selected, service }
+    pub fn new(selected: Option<ProtobufMethod>, service: ServiceState, index: usize) -> Self {
+        State {
+            selected,
+            service,
+            index,
+        }
     }
 
     fn has_selected(&self) -> bool {
@@ -146,11 +166,11 @@ impl Widget<State> for Service {
         self.expanded.event(ctx, event, &mut data.service, env);
         self.label.event(ctx, event, &mut data.service, env);
 
-        // let close_was_hot = self.close.is_hot();
-        // self.close.event(ctx, event, data, env);
-        // if self.close.is_hot() != close_was_hot {
-        //     ctx.request_paint();
-        // }
+        let close_was_hot = self.close.is_hot();
+        self.close.event(ctx, event, data, env);
+        if self.close.is_hot() != close_was_hot {
+            ctx.request_paint();
+        }
 
         if !ctx.is_handled() {
             match event {
@@ -181,11 +201,13 @@ impl Widget<State> for Service {
 
         self.expanded.lifecycle(ctx, event, &data.service, env);
         self.label.lifecycle(ctx, event, &data.service, env);
+        self.close.lifecycle(ctx, event, data, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _: &State, data: &State, env: &Env) {
         self.expanded.update(ctx, &data.service, env);
         self.label.update(ctx, &data.service, env);
+        self.close.update(ctx, data, env);
     }
 
     fn layout(
@@ -207,10 +229,14 @@ impl Widget<State> for Service {
 
         let expanded_icon_size = self.expanded.layout(ctx, &child_bc, &data.service, env);
         let label_size = self.label.layout(ctx, &child_bc, &data.service, env);
+        let close_size = self.close.layout(ctx, &child_bc, data, env);
 
         let total_size = Size::new(
             bc.max().width,
-            expanded_icon_size.height.max(label_size.height),
+            expanded_icon_size
+                .height
+                .max(label_size.height)
+                .max(close_size.height),
         )
         .clamp(bc.min(), bc.max());
 
@@ -228,10 +254,22 @@ impl Widget<State> for Service {
                 PADDING + (total_size.height - label_size.height) / 2.0,
             ),
             label_size,
-        );
+        )
+        .expand();
+        let close_rect = Rect::from_origin_size(
+            Point::new(
+                PADDING + total_size.width - close_size.width,
+                PADDING + (total_size.height - close_size.height) / 2.0,
+            ),
+            close_size,
+        )
+        .expand();
 
-        self.expanded.set_layout_rect(ctx, &data.service, env, expanded_icon_rect);
-        self.label.set_layout_rect(ctx, &data.service, env, label_rect);
+        self.expanded
+            .set_layout_rect(ctx, &data.service, env, expanded_icon_rect);
+        self.label
+            .set_layout_rect(ctx, &data.service, env, label_rect);
+        self.close.set_layout_rect(ctx, data, env, close_rect);
 
         Size::new(
             PADDING * 2.0 + total_size.width,
@@ -248,7 +286,7 @@ impl Widget<State> for Service {
         if ctx.is_active() {
             background_color =
                 theme::color::active(background_color, env.get(druid::theme::LABEL_COLOR));
-        } else if ctx.is_hot() {
+        } else if ctx.is_hot() && !self.close.is_hot() {
             background_color =
                 theme::color::hot(background_color, env.get(druid::theme::LABEL_COLOR));
         }
@@ -257,5 +295,79 @@ impl Widget<State> for Service {
 
         self.expanded.paint(ctx, &data.service, env);
         self.label.paint(ctx, &data.service, env);
+        self.close.paint(ctx, data, env);
     }
+}
+
+impl<W> Controller<State, W> for CloseButtonController
+where
+    W: Widget<State>,
+{
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut State,
+        env: &Env,
+    ) {
+        match event {
+            Event::MouseDown(mouse_event) => {
+                if mouse_event.button == MouseButton::Left {
+                    ctx.set_active(true);
+                    ctx.request_paint();
+                    ctx.set_handled();
+                }
+            }
+            Event::MouseUp(mouse_event) => {
+                if ctx.is_active() && mouse_event.button == MouseButton::Left {
+                    ctx.set_active(false);
+                    if ctx.is_hot() {
+                        ctx.submit_command(REMOVE_SERVICE.with(data.index).to(self.sidebar_id))
+                    }
+                    ctx.request_paint();
+                    ctx.set_handled();
+                }
+            }
+            _ => {}
+        }
+
+        child.event(ctx, event, data, env);
+    }
+
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &State,
+        env: &Env,
+    ) {
+        if let LifeCycle::HotChanged(_) = event {
+            ctx.request_paint();
+        }
+
+        child.lifecycle(ctx, event, data, env);
+    }
+}
+
+fn paint_close_background(ctx: &mut PaintCtx, data: &State, env: &Env) {
+    if !ctx.is_active() && !ctx.is_hot() {
+        return;
+    }
+
+    let mut color = env.get(theme::SIDEBAR_BACKGROUND);
+    if !data.service.expanded && data.has_selected() {
+        color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+    }
+    if ctx.is_active() {
+        color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+    } else if ctx.is_hot() {
+        color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+    };
+
+    let bounds = ctx
+        .size()
+        .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
+    ctx.fill(bounds, &color);
 }

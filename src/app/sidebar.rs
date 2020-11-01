@@ -5,11 +5,12 @@ use std::{iter::FromIterator, path::Path};
 
 use anyhow::Result;
 use druid::{
-    widget::{List, ListIter},
-    Data, Lens, Widget, WidgetExt as _,
+    widget::{prelude::*, Controller, List, ListIter},
+    Data, Lens, Widget, WidgetExt as _, WidgetId,
 };
 
 use crate::{
+    app::command::REMOVE_SERVICE,
     protobuf::{ProtobufMethod, ProtobufService},
     theme,
 };
@@ -25,10 +26,15 @@ pub(in crate::app) struct ServiceListState {
     services: im::Vector<service::ServiceState>,
 }
 
+struct SidebarController;
+
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    List::new(service::build)
+    let sidebar_id = WidgetId::next();
+    List::new(move || service::build(sidebar_id))
         .background(theme::SIDEBAR_BACKGROUND)
         .env_scope(|env, _| theme::set_contrast(env))
+        .controller(SidebarController)
+        .with_id(sidebar_id)
         .boxed()
 }
 
@@ -79,14 +85,14 @@ impl FromIterator<service::ServiceState> for ServiceListState {
 impl ListIter<service::State> for State {
     fn for_each(&self, mut cb: impl FnMut(&service::State, usize)) {
         for (i, service) in self.services.services.iter().enumerate() {
-            let state = service::State::new(self.selected.to_owned(), service.to_owned());
+            let state = service::State::new(self.selected.to_owned(), service.to_owned(), i);
             cb(&state, i);
         }
     }
 
     fn for_each_mut(&mut self, mut cb: impl FnMut(&mut service::State, usize)) {
         for (i, service) in self.services.services.iter_mut().enumerate() {
-            let mut state = service::State::new(self.selected.to_owned(), service.to_owned());
+            let mut state = service::State::new(self.selected.to_owned(), service.to_owned(), i);
             cb(&mut state, i);
 
             debug_assert!(self.selected.same(&state.selected));
@@ -98,5 +104,28 @@ impl ListIter<service::State> for State {
 
     fn data_len(&self) -> usize {
         self.services.services.len()
+    }
+}
+
+impl<W> Controller<State, W> for SidebarController
+where
+    W: Widget<State>,
+{
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut State,
+        env: &Env,
+    ) {
+        if let Event::Command(command) = event {
+            if let Some(&index) = command.get(REMOVE_SERVICE) {
+                data.services.services.remove(index);
+                return;
+            }
+        }
+
+        child.event(ctx, event, data, env)
     }
 }

@@ -142,7 +142,8 @@ impl Widget<State> for TabLabel {
                 PADDING + (total_size.height - close_size.height) / 2.0,
             ),
             close_size,
-        );
+        )
+        .expand();
 
         self.label.set_layout_rect(ctx, data, env, label_rect);
         self.close.set_layout_rect(ctx, data, env, close_rect);
