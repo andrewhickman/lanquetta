@@ -134,16 +134,14 @@ impl Widget<State> for TabLabel {
                 PADDING + (total_size.height - label_size.height) / 2.0,
             ),
             label_size,
-        )
-        .expand();
+        );
         let close_rect = Rect::from_origin_size(
             Point::new(
                 PADDING + total_size.width - close_size.width,
                 PADDING + (total_size.height - close_size.height) / 2.0,
             ),
             close_size,
-        )
-        .expand();
+        );
 
         self.label.set_layout_rect(ctx, data, env, label_rect);
         self.close.set_layout_rect(ctx, data, env, close_rect);

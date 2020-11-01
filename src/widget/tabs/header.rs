@@ -79,13 +79,19 @@ where
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let mut height = bc.min().height;
-        let mut x = 0.0;
+        let mut x = 0.0f64;
         let mut paint_rect = Rect::ZERO;
+
+        let mut remaining_max_width = bc.max().width;
+        let mut remaining_children = self.children.len();
 
         self.for_each_label(data, |_, label, label_data| {
             let label_bc = BoxConstraints::new(
                 Size::new(MIN_TAB_SIZE, bc.min().height),
-                Size::new(f64::INFINITY, bc.max().height),
+                Size::new(
+                    remaining_max_width / remaining_children as f64,
+                    bc.max().height,
+                ),
             );
 
             let child_size = label.layout(ctx, &label_bc, label_data, env);
@@ -95,6 +101,8 @@ where
             paint_rect = paint_rect.union(rect);
             height = height.max(child_size.height);
             x += child_size.width;
+            remaining_max_width -= child_size.width;
+            remaining_children -= 1;
         });
 
         let size = bc.constrain(Size::new(x, height));
