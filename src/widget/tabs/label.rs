@@ -143,6 +143,7 @@ impl Widget<State> for TabLabel {
             ),
             close_size,
         );
+
         self.label.set_layout_rect(ctx, data, env, label_rect);
         self.close.set_layout_rect(ctx, data, env, close_rect);
 
