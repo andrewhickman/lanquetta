@@ -1,5 +1,5 @@
 use std::fmt;
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use druid::{piet::TextStorage, LifeCycle};
 use druid::{Data, Env, Widget};
@@ -9,6 +9,7 @@ use crate::theme;
 pub struct FormField<W> {
     pristine: bool,
     child: W,
+    env: Option<Env>,
 }
 
 #[derive(Clone)]
@@ -23,6 +24,24 @@ impl<W> FormField<W> {
         FormField {
             pristine: true,
             child,
+            env: None,
+        }
+    }
+
+    fn is_valid_or_pristine<T, O, E>(&self, data: &ValidationState<T, O, E>) -> bool {
+        data.is_valid() || self.pristine
+    }
+
+    fn update_env<T, O, E>(&mut self, data: &ValidationState<T, O, E>, env: &Env) -> bool {
+        if self.is_valid_or_pristine(data) != self.env.is_none() {
+            self.env = if self.is_valid_or_pristine(data) {
+                None
+            } else {
+                Some(env.clone().adding(theme::INVALID, true))
+            };
+            true
+        } else {
+            false
         }
     }
 }
@@ -41,8 +60,10 @@ where
         data: &mut ValidationState<T, O, E>,
         env: &druid::Env,
     ) {
-        let env = data.update_env(env, self.pristine);
-        data.with_text_mut_if_changed(|text| self.child.event(ctx, event, text, &env));
+        data.with_text_mut_if_changed(|text| {
+            self.child
+                .event(ctx, event, text, self.env.as_ref().unwrap_or(env))
+        });
     }
 
     fn lifecycle(
@@ -54,10 +75,14 @@ where
     ) {
         if let LifeCycle::FocusChanged(false) = event {
             self.pristine = false;
+            if self.update_env(data, &env) {
+                log::info!("request paint");
+                ctx.request_paint();
+            }
         }
 
         self.child
-            .lifecycle(ctx, event, &data.raw, &data.update_env(env, self.pristine));
+            .lifecycle(ctx, event, &data.raw, self.env.as_ref().unwrap_or(env));
     }
 
     fn update(
@@ -71,8 +96,15 @@ where
             ctx,
             &old_data.raw,
             &data.raw,
-            &data.update_env(env, self.pristine),
+            self.env.as_ref().unwrap_or(env),
         );
+
+        if ctx.env_changed() {
+            self.env = None;
+        }
+        if self.update_env(data, &env) {
+            ctx.request_paint();
+        }
     }
 
     fn layout(
@@ -83,7 +115,7 @@ where
         env: &druid::Env,
     ) -> druid::Size {
         self.child
-            .layout(ctx, bc, &data.raw, &data.update_env(env, self.pristine))
+            .layout(ctx, bc, &data.raw, self.env.as_ref().unwrap_or(env))
     }
 
     fn paint(
@@ -93,7 +125,7 @@ where
         env: &druid::Env,
     ) {
         self.child
-            .paint(ctx, &data.raw, &data.update_env(env, self.pristine))
+            .paint(ctx, &data.raw, self.env.as_ref().unwrap_or(env))
     }
 }
 
@@ -123,19 +155,11 @@ where
     pub fn text(&self) -> &T {
         &self.raw
     }
+}
 
+impl<T, O, E> ValidationState<T, O, E> {
     pub fn is_valid(&self) -> bool {
         self.result.is_ok()
-    }
-
-    fn update_env<'a>(&self, env: &'a Env, pristine: bool) -> Cow<'a, Env> {
-        if pristine || self.is_valid() {
-            Cow::Borrowed(env)
-        } else {
-            let mut env = env.clone();
-            env.set(theme::INVALID, true);
-            Cow::Owned(env)
-        }
     }
 }
 
