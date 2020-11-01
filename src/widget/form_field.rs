@@ -133,7 +133,7 @@ where
             Cow::Borrowed(env)
         } else {
             let mut env = env.clone();
-            theme::set_error(&mut env);
+            env.set(theme::INVALID, true);
             Cow::Owned(env)
         }
     }

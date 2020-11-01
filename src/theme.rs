@@ -11,6 +11,7 @@ pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-f
 pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
 pub(crate) const TAB_BACKGROUND: Key<Color> = Key::new("app.tab-background");
 
+pub(crate) const INVALID: Key<bool> = Key::new("app.invalid");
 pub(crate) const DISABLED: Key<bool> = Key::new("app.disabled");
 
 pub(crate) fn set(env: &mut Env) {
@@ -44,6 +45,7 @@ pub(crate) fn set(env: &mut Env) {
     env.set(TAB_BACKGROUND, color::ACCENT);
 
     env.set(DISABLED, false);
+    env.set(INVALID, false);
 }
 
 pub(crate) fn set_contrast(env: &mut Env) {
@@ -53,13 +55,6 @@ pub(crate) fn set_contrast(env: &mut Env) {
     env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
     env.set(druid::theme::LABEL_COLOR, color::ACCENT);
     env.set(druid::theme::CURSOR_COLOR, color::ACCENT);
-}
-
-pub(crate) fn set_error(env: &mut Env) {
-    env.set(druid::theme::BORDER_DARK, color::ERROR);
-    env.set(druid::theme::BORDER_LIGHT, color::ERROR);
-    env.set(druid::theme::PRIMARY_DARK, color::ERROR);
-    env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
 }
 
 pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
@@ -77,6 +72,13 @@ pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
 pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
         if !env.get(DISABLED) {
+            if env.get(INVALID) {
+                env.set(druid::theme::BORDER_DARK, color::ERROR);
+                env.set(druid::theme::BORDER_LIGHT, color::ERROR);
+                env.set(druid::theme::PRIMARY_DARK, color::ERROR);
+                env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
+            } 
+
             scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
             scope::set_hot(env, state, druid::theme::BORDER_DARK);
         }
