@@ -25,9 +25,12 @@ pub(in crate::app) struct State {
     selected: Option<TabId>,
 }
 
-#[derive(Debug, Clone, Data, Eq, PartialEq)]
-enum RequestState {
+#[derive(Debug, Clone, Copy, Data, Eq, PartialEq)]
+pub enum RequestState {
     NotStarted,
+    ConnectInProgress,
+    Connected,
+    ConnectFailed,
     Active,
 }
 
@@ -40,8 +43,6 @@ pub struct TabState {
     #[lens(name = "request_lens")]
     request: request::State,
     response: response::State,
-    #[lens(ignore)]
-    request_state: RequestState,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -52,7 +53,7 @@ fn build_body() -> impl Widget<TabState> {
     let id = WidgetId::next();
     Flex::column()
         .must_fill_main_axis(true)
-        .with_child(address::build().lens(TabState::address_lens()))
+        .with_child(address::build(id).lens(TabState::address_lens()))
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(Label::new("Request").align_left())
         .with_spacer(theme::GUTTER_SIZE)
@@ -62,7 +63,7 @@ fn build_body() -> impl Widget<TabState> {
         .with_spacer(theme::GUTTER_SIZE)
         .with_flex_child(response::build().lens(TabState::response), 0.5)
         .padding(theme::GUTTER_SIZE)
-        .controller(TabController::new(id))
+        .controller(TabController::new())
         .with_id(id)
 }
 
@@ -113,7 +114,6 @@ impl TabState {
             request: request::State::empty(method.clone()),
             response: response::State::default(),
             address: address::AddressState::default(),
-            request_state: RequestState::NotStarted,
             method,
         }
     }
@@ -123,7 +123,6 @@ impl TabState {
             address: address::AddressState::new(address),
             request: request::State::with_text(method.clone(), request),
             response: response::State::default(),
-            request_state: RequestState::NotStarted,
             method,
         }
     }
@@ -141,13 +140,10 @@ impl TabState {
     }
 
     fn can_send(&self) -> bool {
-        self.request_state == RequestState::NotStarted
+        (self.address.request_state() == RequestState::NotStarted
+            || self.address.request_state() == RequestState::Connected)
             && self.address.is_valid()
             && self.request.is_valid()
-    }
-
-    fn in_flight(&self) -> bool {
-        self.request_state == RequestState::Active
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {
@@ -155,11 +151,7 @@ impl TabState {
 
         impl Lens<TabState, address::State> for AddressLens {
             fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
-                f(&address::State::new(
-                    data.address.clone(),
-                    data.can_send(),
-                    data.in_flight(),
-                ))
+                f(&address::State::new(data.address.clone(), data.can_send()))
             }
 
             fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
@@ -167,8 +159,7 @@ impl TabState {
                 data: &mut TabState,
                 f: F,
             ) -> V {
-                let mut address_data =
-                    address::State::new(data.address.clone(), data.can_send(), data.in_flight());
+                let mut address_data = address::State::new(data.address.clone(), data.can_send());
                 let result = f(&mut address_data);
 
                 debug_assert_eq!(data.can_send(), address_data.can_send());

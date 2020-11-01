@@ -13,15 +13,11 @@ use crate::{
 
 pub struct TabController {
     grpc_client: Option<grpc::Client>,
-    id: WidgetId,
 }
 
 impl TabController {
-    pub fn new(id: WidgetId) -> TabController {
-        TabController {
-            grpc_client: None,
-            id,
-        }
+    pub fn new() -> TabController {
+        TabController { grpc_client: None }
     }
 }
 
@@ -42,45 +38,63 @@ where
             _ => child.event(ctx, event, data, env),
         }
     }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut UpdateCtx,
-        old_data: &TabState,
-        data: &TabState,
-        env: &Env,
-    ) {
-        if old_data.address.get() != data.address.get() {
-            if let Some(uri) = data.address.get() {
-                self.grpc_client = grpc::Client::new(uri.clone()).ok();
-            } else {
-                self.grpc_client = None;
-            }
-        }
-
-        child.update(ctx, old_data, data, env)
-    }
 }
 
 impl TabController {
     fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
-        if command.is(command::START_SEND) {
+        if let Some(uri) = command.get(command::START_CONNECT) {
+            self.grpc_client = None;
+            let event_sink = ctx.get_external_handle();
+            let target = Target::Widget(ctx.widget_id());
+            grpc::Client::new(uri.clone(), move |result| {
+                event_sink
+                    .submit_command(command::FINISH_CONNECT, SingleUse::new(result), target)
+                    .ok();
+            });
+            data.address
+                .set_request_state(RequestState::ConnectInProgress);
+            Handled::Yes
+        } else if let Some(result) = command.get(command::FINISH_CONNECT) {
+            let (uri, result) = result.take().unwrap();
+            if data.address.uri() != Some(&uri) {
+                return Handled::Yes;
+            }
+
+            self.grpc_client = match result {
+                Ok(client) => {
+                    data.address.set_request_state(RequestState::Connected);
+                    Some(client)
+                }
+                Err(err) => {
+                    log::error!("Connect failed {:?}", err);
+                    data.address.set_request_state(RequestState::ConnectFailed);
+                    // TODO
+                    None
+                }
+            };
+            Handled::Yes
+        } else if command.is(command::START_SEND) {
+            if self.grpc_client.is_none() {
+                if let Some(uri) = data.address.uri() {
+                    self.grpc_client = Some(grpc::Client::new_lazy(uri.clone()));
+                }
+            }
+
             if let (Some(grpc_client), Some(request)) = (&self.grpc_client, data.request.get()) {
                 let event_sink = ctx.get_external_handle();
-                let target = Target::Widget(self.id);
+                let target = Target::Widget(ctx.widget_id());
                 grpc_client.send(request.clone(), move |response| {
                     event_sink
                         .submit_command(command::FINISH_SEND, SingleUse::new(response), target)
                         .ok();
                 });
-                data.request_state = RequestState::Active;
+                data.address.set_request_state(RequestState::Active);
             }
             Handled::Yes
         } else if let Some(response) = command.get(command::FINISH_SEND) {
             let result = response.take().expect("response already handled");
             data.response.update(result);
-            data.request_state = RequestState::NotStarted;
+            data.address.set_request_state(RequestState::Connected);
             Handled::Yes
         } else {
             Handled::No

@@ -1,43 +1,65 @@
 use std::string::ToString;
 use std::{str::FromStr, sync::Arc};
 
-use druid::widget::{Button, Flex, Spinner, TextBox, ViewSwitcher};
-use druid::{Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _};
+use druid::{
+    widget::{prelude::*, Button, Controller, Flex, Spinner, TextBox, ViewSwitcher},
+    Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _,
+};
 use http::Uri;
 use once_cell::sync::Lazy;
 
-use crate::app::{command, theme};
-use crate::widget::{Empty, FormField, ValidationState};
+use crate::{
+    app::{body::RequestState, command, theme},
+    widget::{Empty, FormField, Icon, ValidationState},
+};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct AddressState {
+    #[lens(name = "uri_lens")]
     uri: ValidationState<String, Uri, String>,
+    #[lens(name = "request_state_lens")]
+    request_state: RequestState,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     address: AddressState,
-    in_flight: bool,
     #[lens(name = "valid_lens")]
     can_send: bool,
 }
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+struct AddressController {
+    body_id: WidgetId,
+}
+
+pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
     let address_form_field = FormField::new(theme::text_box_scope(
         TextBox::new()
             .with_placeholder("http://localhost:80")
             .expand_width(),
-    ));
+    ))
+    .controller(AddressController { body_id });
 
     let spinner = ViewSwitcher::new(
-        |&in_flight: &bool, _| in_flight,
-        |&in_flight, _, _| {
-            if in_flight {
-                Spinner::new()
-                    .padding((0.0, 0.0, theme::GUTTER_SIZE, 0.0))
-                    .boxed()
-            } else {
-                Empty.boxed()
+        |&request_state: &RequestState, _| request_state,
+        |&request_state, _, _| {
+            let width = 24.0;
+            let padding = (0.0, 0.0, theme::GUTTER_SIZE, 0.0);
+            match request_state {
+                RequestState::NotStarted => Empty.boxed(),
+                RequestState::ConnectInProgress | RequestState::Active => {
+                    Spinner::new().fix_width(width).padding(padding).boxed()
+                }
+                RequestState::Connected => Icon::check()
+                    .with_color(theme::color::BOLD_ACCENT)
+                    .fix_width(width)
+                    .padding(padding)
+                    .boxed(),
+                RequestState::ConnectFailed => Icon::close()
+                    .with_color(theme::color::ERROR)
+                    .fix_width(width)
+                    .padding(padding)
+                    .boxed(),
             }
         },
     );
@@ -56,12 +78,16 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     Flex::row()
         .with_flex_child(
             address_form_field
-                .lens(AddressState::uri)
+                .lens(AddressState::uri_lens)
                 .lens(State::address),
             1.0,
         )
         .with_spacer(theme::GUTTER_SIZE)
-        .with_child(spinner.lens(State::in_flight))
+        .with_child(
+            spinner
+                .lens(AddressState::request_state_lens)
+                .lens(State::address),
+        )
         .with_child(send_button.lens(State::valid_lens))
         .boxed()
 }
@@ -78,12 +104,8 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, can_send: bool, in_flight: bool) -> Self {
-        State {
-            address,
-            can_send,
-            in_flight,
-        }
+    pub fn new(address: AddressState, can_send: bool) -> Self {
+        State { address, can_send }
     }
 
     pub fn address_state(&self) -> &AddressState {
@@ -109,6 +131,7 @@ impl AddressState {
     pub fn new(address: String) -> Self {
         AddressState {
             uri: ValidationState::new(address, VALIDATE_URI.clone()),
+            request_state: RequestState::NotStarted,
         }
     }
 
@@ -120,7 +143,37 @@ impl AddressState {
         self.uri.text()
     }
 
-    pub fn get(&self) -> Option<&Uri> {
+    pub fn uri(&self) -> Option<&Uri> {
         self.uri.result().ok()
+    }
+
+    pub fn request_state(&self) -> RequestState {
+        self.request_state
+    }
+
+    pub fn set_request_state(&mut self, request_state: RequestState) {
+        self.request_state = request_state;
+    }
+}
+
+impl<W> Controller<ValidationState<String, Uri, String>, W> for AddressController
+where
+    W: Widget<ValidationState<String, Uri, String>>,
+{
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &ValidationState<String, Uri, String>,
+        env: &Env,
+    ) {
+        if let LifeCycle::WidgetAdded | LifeCycle::FocusChanged(false) = event {
+            if let Ok(uri) = data.result() {
+                ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(self.body_id));
+            }
+        }
+
+        child.lifecycle(ctx, event, data, env)
     }
 }

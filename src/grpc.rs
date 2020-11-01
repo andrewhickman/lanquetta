@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use anyhow::Result;
 use futures::future::FutureExt;
 use http::Uri;
 use protobuf::MessageDyn;
@@ -7,6 +8,7 @@ use tonic::{client::Grpc, transport::Channel, IntoRequest};
 
 use crate::protobuf::ProtobufMethod;
 
+pub type ConnectResult = (Uri, Result<Client, Error>);
 pub type ResponseResult = Result<Response, Error>;
 
 #[derive(Debug, Clone)]
@@ -28,10 +30,28 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(uri: Uri) -> Result<Self, tonic::transport::Error> {
-        Ok(Client {
-            grpc: Grpc::new(Channel::builder(uri).connect_lazy()?),
-        })
+    pub fn new_lazy(uri: Uri) -> Self {
+        let channel = Channel::builder(uri)
+            .connect_lazy()
+            .expect("lazy connect cannot fail");
+        Client {
+            grpc: Grpc::new(channel),
+        }
+    }
+
+    pub fn new(uri: Uri, callback: impl FnOnce(ConnectResult) + Send + 'static) {
+        tokio::spawn(Self::new_impl(uri).map(callback));
+    }
+
+    async fn new_impl(uri: Uri) -> ConnectResult {
+        let result = Channel::builder(uri.clone())
+            .connect()
+            .await
+            .map_err(Into::into)
+            .map(|channel| Client {
+                grpc: Grpc::new(channel),
+            });
+        (uri, result)
     }
 
     pub fn send(&self, request: Request, callback: impl FnOnce(ResponseResult) + Send + 'static) {

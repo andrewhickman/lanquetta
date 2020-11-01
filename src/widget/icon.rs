@@ -29,12 +29,21 @@ impl Icon {
         Icon::new("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z")
     }
 
+    pub fn check() -> Self {
+        Icon::new("M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z")
+    }
+
     fn new(svg_path: &str) -> Self {
         Icon {
             path: BezPath::from_svg(svg_path).unwrap(),
             fill: FillStrat::default(),
             color: druid::theme::LABEL_COLOR.into(),
         }
+    }
+
+    pub fn with_color(mut self, color: impl Into<KeyOrValue<Color>>) -> Self {
+        self.color = color.into();
+        self
     }
 }
 
