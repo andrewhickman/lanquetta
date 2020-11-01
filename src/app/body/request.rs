@@ -67,14 +67,18 @@ impl State {
     }
 }
 
-impl<W> Controller<ValidationState<JsonText, grpc::Request, String>, FormField<W>>
+<<<<<<< HEAD
+impl<W> Controller<ValidationState<JsonText, grpc::Request, String>, FormField<JsonText, W>>
     for RequestController
+=======
+impl<W> Controller<RequestValidationState, FormField<JsonText, W>> for RequestController
+>>>>>>> 9dc168f (fixup! use widgetpod in formfield)
 where
     W: Widget<JsonText>,
 {
     fn event(
         &mut self,
-        child: &mut FormField<W>,
+        child: &mut FormField<JsonText, W>,
         ctx: &mut EventCtx,
         event: &Event,
         data: &mut ValidationState<JsonText, grpc::Request, String>,
@@ -90,7 +94,7 @@ where
 
     fn lifecycle(
         &mut self,
-        child: &mut FormField<W>,
+        child: &mut FormField<JsonText, W>,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
         data: &ValidationState<JsonText, grpc::Request, String>,

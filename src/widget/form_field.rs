@@ -1,14 +1,14 @@
 use std::fmt;
 use std::sync::Arc;
 
-use druid::{piet::TextStorage, LifeCycle};
+use druid::{piet::TextStorage, LifeCycle, WidgetPod};
 use druid::{Data, Env, Widget};
 
 use crate::theme;
 
-pub struct FormField<W> {
+pub struct FormField<T, W> {
     pristine: bool,
-    child: W,
+    child: WidgetPod<T, W>,
     env: Option<Env>,
 }
 
@@ -19,20 +19,23 @@ pub struct ValidationState<T, O, E> {
     result: Result<O, E>,
 }
 
-impl<W> FormField<W> {
-    pub fn new(child: W) -> Self {
+impl<T, W> FormField<T, W> {
+    pub fn new(child: W) -> Self
+    where
+        W: Widget<T>,
+    {
         FormField {
             pristine: true,
-            child,
+            child: WidgetPod::new(child),
             env: None,
         }
     }
 
-    fn is_valid_or_pristine<T, O, E>(&self, data: &ValidationState<T, O, E>) -> bool {
+    fn is_valid_or_pristine<O, E>(&self, data: &ValidationState<T, O, E>) -> bool {
         data.is_valid() || self.pristine
     }
 
-    fn update_env<T, O, E>(&mut self, data: &ValidationState<T, O, E>, env: &Env) -> bool {
+    fn update_env<O, E>(&mut self, data: &ValidationState<T, O, E>, env: &Env) -> bool {
         if self.is_valid_or_pristine(data) != self.env.is_none() {
             self.env = if self.is_valid_or_pristine(data) {
                 None
@@ -46,7 +49,7 @@ impl<W> FormField<W> {
     }
 }
 
-impl<T, W, O, E> Widget<ValidationState<T, O, E>> for FormField<W>
+impl<T, W, O, E> Widget<ValidationState<T, O, E>> for FormField<T, W>
 where
     T: TextStorage,
     W: Widget<T>,
@@ -73,12 +76,15 @@ where
         data: &ValidationState<T, O, E>,
         env: &druid::Env,
     ) {
-        if let LifeCycle::FocusChanged(false) = event {
-            self.pristine = false;
-            if self.update_env(data, &env) {
-                log::info!("request paint");
-                ctx.request_paint();
+        match event {
+            LifeCycle::WidgetAdded => ctx.children_changed(),
+            LifeCycle::FocusChanged(false) => {
+                self.pristine = false;
+                if self.update_env(data, &env) {
+                    ctx.request_paint();
+                }
             }
+            _ => (),
         }
 
         self.child
@@ -88,16 +94,17 @@ where
     fn update(
         &mut self,
         ctx: &mut druid::UpdateCtx,
-        old_data: &ValidationState<T, O, E>,
+        _: &ValidationState<T, O, E>,
         data: &ValidationState<T, O, E>,
         env: &druid::Env,
     ) {
-        self.child.update(
-            ctx,
-            &old_data.raw,
-            &data.raw,
-            self.env.as_ref().unwrap_or(env),
-        );
+        if ctx.env_changed() {
+            self.env = None;
+        }
+        self.update_env(data, &env);
+
+        self.child
+            .update(ctx, &data.raw, self.env.as_ref().unwrap_or(env));
 
         if ctx.env_changed() {
             self.env = None;
@@ -114,8 +121,10 @@ where
         data: &ValidationState<T, O, E>,
         env: &druid::Env,
     ) -> druid::Size {
-        self.child
-            .layout(ctx, bc, &data.raw, self.env.as_ref().unwrap_or(env))
+        let env = self.env.as_ref().unwrap_or(env);
+        let size = self.child.layout(ctx, bc, &data.raw, &env);
+        self.child.set_layout_rect(ctx, &data.raw, &env, size.to_rect());
+        size
     }
 
     fn paint(
