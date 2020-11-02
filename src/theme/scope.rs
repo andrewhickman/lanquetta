@@ -95,9 +95,7 @@ where
 }
 
 pub fn set_disabled(env: &mut Env, key: Key<Color>) {
-    let (r, g, b, a) = env.get(key.clone()).as_rgba();
-    let grey = (r + b + g) / 3.0;
-    env.set(key, Color::rgba(grey, grey, grey, a * 0.38));
+    env.set(key.clone(), color::disabled(env.get(key)));
 }
 
 pub fn set_hot(env: &mut Env, state: &WidgetState, key: Key<Color>) {

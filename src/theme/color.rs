@@ -16,6 +16,12 @@ pub fn hot(color: Color, text: Color) -> Color {
     mix(text, color, 0.08)
 }
 
+pub fn disabled(color: Color) -> Color {
+    let (r, g, b, a) = color.as_rgba();
+    let grey = (r + b + g) / 3.0;
+    Color::rgba(grey, grey, grey, a * 0.38)
+}
+
 fn mix(color1: Color, color2: Color, weight: f64) -> Color {
     let color1 = color1.as_rgba();
     let color2 = color2.as_rgba();

@@ -1,7 +1,7 @@
 pub mod color;
 mod scope;
 
-use druid::{Color, Env, FontDescriptor, FontFamily, Key, Widget};
+use druid::{widget::Container, Color, Data, Env, FontDescriptor, FontFamily, Key, Widget};
 
 pub(crate) const GUTTER_SIZE: f64 = 16.0;
 
@@ -77,10 +77,17 @@ pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
                 env.set(druid::theme::BORDER_LIGHT, color::ERROR);
                 env.set(druid::theme::PRIMARY_DARK, color::ERROR);
                 env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
-            } 
+            }
 
             scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
             scope::set_hot(env, state, druid::theme::BORDER_DARK);
         }
     })
+}
+
+pub(crate) fn error_label_scope<T: Data>(child: impl Widget<T> + 'static) -> impl Widget<T> {
+    Container::new(child)
+        .border(color::ERROR, 1.0)
+        .background(color::ERROR.with_alpha(0.38))
+        .rounded(druid::theme::TEXTBOX_BORDER_RADIUS)
 }
