@@ -1,15 +1,21 @@
 use std::fmt;
 use std::sync::Arc;
 
-use druid::{piet::TextStorage, LifeCycle, WidgetPod};
+use druid::{
+    piet::TextStorage,
+    widget::{prelude::*, Controller},
+    LifeCycle, Selector, WidgetExt, WidgetPod,
+};
 use druid::{Data, Env, Widget};
 
 use crate::theme;
 
-pub struct FormField<T, W> {
-    pristine: bool,
-    child: WidgetPod<T, W>,
+const SET_DIRTY: Selector = Selector::new("app.set-dirty");
+
+pub struct FormField<T> {
+    child: WidgetPod<T, Box<dyn Widget<T>>>,
     env: Option<Env>,
+    id: WidgetId,
 }
 
 #[derive(Clone)]
@@ -17,27 +23,26 @@ pub struct ValidationState<T, O, E> {
     raw: T,
     validate: Arc<dyn Fn(&str) -> Result<O, E>>,
     result: Result<O, E>,
+    pristine: bool,
 }
 
-impl<T, W> FormField<T, W> {
-    pub fn new(child: W) -> Self
+impl<T: TextStorage> FormField<T> {
+    pub fn new<W>(child: W) -> Self
     where
-        W: Widget<T>,
+        T: Data,
+        W: Widget<T> + 'static,
     {
+        let id = WidgetId::next();
         FormField {
-            pristine: true,
-            child: WidgetPod::new(child),
+            child: WidgetPod::new(child.controller(PristineController(id)).boxed()),
             env: None,
+            id,
         }
     }
 
-    fn is_valid_or_pristine<O, E>(&self, data: &ValidationState<T, O, E>) -> bool {
-        data.is_valid() || self.pristine
-    }
-
     fn update_env<O, E>(&mut self, data: &ValidationState<T, O, E>, env: &Env) -> bool {
-        if self.is_valid_or_pristine(data) != self.env.is_none() {
-            self.env = if self.is_valid_or_pristine(data) {
+        if data.is_pristine_or_valid() != self.env.is_none() {
+            self.env = if data.is_pristine_or_valid() {
                 None
             } else {
                 Some(env.clone().adding(theme::INVALID, true))
@@ -49,20 +54,24 @@ impl<T, W> FormField<T, W> {
     }
 }
 
-impl<T, W, O, E> Widget<ValidationState<T, O, E>> for FormField<T, W>
+impl<T, O, E> Widget<ValidationState<T, O, E>> for FormField<T>
 where
-    T: TextStorage,
-    W: Widget<T>,
-    T: Data,
+    T: Data + TextStorage,
     ValidationState<T, O, E>: Clone + 'static,
 {
     fn event(
         &mut self,
-        ctx: &mut druid::EventCtx,
-        event: &druid::Event,
+        ctx: &mut EventCtx,
+        event: &Event,
         data: &mut ValidationState<T, O, E>,
-        env: &druid::Env,
+        env: &Env,
     ) {
+        if let Event::Command(command) = event {
+            if command.is(SET_DIRTY) {
+                data.set_dirty();
+            }
+        }
+
         data.with_text_mut_if_changed(|text| {
             self.child
                 .event(ctx, event, text, self.env.as_ref().unwrap_or(env))
@@ -71,20 +80,14 @@ where
 
     fn lifecycle(
         &mut self,
-        ctx: &mut druid::LifeCycleCtx,
-        event: &druid::LifeCycle,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
         data: &ValidationState<T, O, E>,
-        env: &druid::Env,
+        env: &Env,
     ) {
-        match event {
-            LifeCycle::WidgetAdded => ctx.children_changed(),
-            LifeCycle::FocusChanged(false) => {
-                self.pristine = false;
-                if self.update_env(data, &env) {
-                    ctx.request_paint();
-                }
-            }
-            _ => (),
+        if let LifeCycle::WidgetAdded = event {
+            self.update_env(data, &env);
+            ctx.children_changed();
         }
 
         self.child
@@ -93,10 +96,10 @@ where
 
     fn update(
         &mut self,
-        ctx: &mut druid::UpdateCtx,
+        ctx: &mut UpdateCtx,
         _: &ValidationState<T, O, E>,
         data: &ValidationState<T, O, E>,
-        env: &druid::Env,
+        env: &Env,
     ) {
         if ctx.env_changed() {
             self.env = None;
@@ -116,25 +119,25 @@ where
 
     fn layout(
         &mut self,
-        ctx: &mut druid::LayoutCtx,
-        bc: &druid::BoxConstraints,
+        ctx: &mut LayoutCtx,
+        bc: &BoxConstraints,
         data: &ValidationState<T, O, E>,
-        env: &druid::Env,
+        env: &Env,
     ) -> druid::Size {
         let env = self.env.as_ref().unwrap_or(env);
         let size = self.child.layout(ctx, bc, &data.raw, &env);
-        self.child.set_layout_rect(ctx, &data.raw, &env, size.to_rect());
+        self.child
+            .set_layout_rect(ctx, &data.raw, &env, size.to_rect());
         size
     }
 
-    fn paint(
-        &mut self,
-        ctx: &mut druid::PaintCtx,
-        data: &ValidationState<T, O, E>,
-        env: &druid::Env,
-    ) {
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &ValidationState<T, O, E>, env: &Env) {
         self.child
             .paint(ctx, &data.raw, self.env.as_ref().unwrap_or(env))
+    }
+
+    fn id(&self) -> Option<WidgetId> {
+        Some(self.id)
     }
 }
 
@@ -148,6 +151,17 @@ where
             raw,
             result,
             validate,
+            pristine: true,
+        }
+    }
+
+    pub fn dirty(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E>>) -> Self {
+        let result = validate(raw.as_str());
+        ValidationState {
+            raw,
+            result,
+            validate,
+            pristine: false,
         }
     }
 
@@ -169,6 +183,14 @@ where
 impl<T, O, E> ValidationState<T, O, E> {
     pub fn is_valid(&self) -> bool {
         self.result.is_ok()
+    }
+
+    pub fn is_pristine_or_valid(&self) -> bool {
+        self.pristine || self.is_valid()
+    }
+
+    pub fn set_dirty(&mut self) {
+        self.pristine = false;
     }
 }
 
@@ -193,6 +215,8 @@ where
 {
     fn same(&self, other: &Self) -> bool {
         self.raw.same(&other.raw)
+            && self.validate.same(&other.validate)
+            && self.pristine.same(&other.pristine)
     }
 }
 
@@ -206,5 +230,27 @@ where
             .field("raw", &self.raw)
             .field("result", &self.result)
             .finish()
+    }
+}
+
+struct PristineController(WidgetId);
+
+impl<T, W> Controller<T, W> for PristineController
+where
+    W: Widget<T>,
+{
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &T,
+        env: &Env,
+    ) {
+        if let LifeCycle::FocusChanged(false) = event {
+            ctx.submit_command(SET_DIRTY.to(self.0));
+        }
+
+        child.lifecycle(ctx, event, data, env)
     }
 }

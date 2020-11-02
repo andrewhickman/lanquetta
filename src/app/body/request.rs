@@ -34,7 +34,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
             data.result().err().cloned().unwrap_or_default()
         }));
     let error = Either::new(
-        |data: &RequestValidationState, _| !data.is_valid(),
+        |data: &RequestValidationState, _| !data.is_pristine_or_valid(),
         error_label,
         Empty,
     )
@@ -57,7 +57,7 @@ impl State {
         let request = method.request();
 
         State {
-            body: ValidationState::new(
+            body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| match request.parse(s) {
                     Ok(body) => Ok(grpc::Request {
@@ -83,13 +83,10 @@ impl State {
     }
 }
 
-impl<W> Controller<RequestValidationState, FormField<JsonText, W>> for RequestController
-where
-    W: Widget<JsonText>,
-{
+impl Controller<RequestValidationState, FormField<JsonText>> for RequestController {
     fn event(
         &mut self,
-        child: &mut FormField<JsonText, W>,
+        child: &mut FormField<JsonText>,
         ctx: &mut EventCtx,
         event: &Event,
         data: &mut RequestValidationState,
@@ -105,7 +102,7 @@ where
 
     fn lifecycle(
         &mut self,
-        child: &mut FormField<JsonText, W>,
+        child: &mut FormField<JsonText>,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
         data: &RequestValidationState,
