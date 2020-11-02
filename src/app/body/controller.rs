@@ -81,7 +81,9 @@ impl TabController {
             if self.grpc_client.is_none() {
                 if let Some(uri) = data.address.uri() {
                     self.grpc_client = Some(grpc::Client::new_lazy(uri.clone()));
-                    ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(ctx.widget_id()));
+                    ctx.submit_command(
+                        command::START_CONNECT.with(uri.clone()).to(ctx.widget_id()),
+                    );
                 }
             }
 

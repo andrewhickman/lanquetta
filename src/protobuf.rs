@@ -7,6 +7,7 @@ pub use self::{
 };
 
 use anyhow::Result;
+use druid::Data;
 use protobuf::{json, reflect::MessageDescriptor, MessageDyn};
 
 pub fn to_json(message: &dyn MessageDyn) -> Result<String> {
@@ -19,6 +20,14 @@ pub fn to_json(message: &dyn MessageDyn) -> Result<String> {
         },
     )
     .map_err(|err| anyhow::format_err!("{:?}", err))
+}
+
+#[derive(Copy, Clone, Data, Debug, Eq, PartialEq)]
+pub enum ProtobufMethodKind {
+    Unary,
+    ClientStreaming,
+    ServerStreaming,
+    Streaming,
 }
 
 #[derive(Debug, Clone)]

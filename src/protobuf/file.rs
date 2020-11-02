@@ -11,7 +11,7 @@ use protobuf::{
     Message,
 };
 
-use crate::protobuf::{ProtobufCodec, ProtobufMessage};
+use crate::protobuf::{ProtobufCodec, ProtobufMessage, ProtobufMethodKind};
 
 #[derive(Clone, Debug)]
 pub struct ProtobufService {
@@ -28,10 +28,9 @@ pub struct ProtobufMethod {
     method_index: usize,
     name: ArcStr,
     service_name: ArcStr,
+    kind: ProtobufMethodKind,
     request: MessageDescriptor,
-    request_streaming: bool,
     response: MessageDescriptor,
-    response_streaming: bool,
 }
 
 impl ProtobufService {
@@ -127,21 +126,31 @@ impl ProtobufMethod {
                 })
         }
 
+        let kind = match (proto.has_client_streaming(), proto.has_server_streaming()) {
+            (false, false) => ProtobufMethodKind::Unary,
+            (true, false) => ProtobufMethodKind::ClientStreaming,
+            (false, true) => ProtobufMethodKind::ServerStreaming,
+            (true, true) => ProtobufMethodKind::Streaming,
+        };
+
         Ok(ProtobufMethod {
             fd_set,
             service_index,
             method_index,
             service_name,
             name: proto.get_name().into(),
+            kind,
             request: find_type(proto.get_input_type(), files)?,
-            request_streaming: proto.has_client_streaming(),
             response: find_type(proto.get_output_type(), files)?,
-            response_streaming: proto.has_server_streaming(),
         })
     }
 
     pub fn name(&self) -> &ArcStr {
         &self.name
+    }
+
+    pub fn kind(&self) -> ProtobufMethodKind {
+        self.kind
     }
 
     pub fn request(&self) -> ProtobufMessage {

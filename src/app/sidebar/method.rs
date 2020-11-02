@@ -1,10 +1,15 @@
 use druid::{
-    widget::{Flex, Label, Painter},
+    widget::{Flex, Label, Painter, ViewSwitcher},
     ArcStr, Color, Data, Env, FontDescriptor, FontFamily, Lens, PaintCtx, RenderContext, Widget,
     WidgetExt as _,
 };
 
-use crate::{app::command, protobuf::ProtobufMethod, theme, widget::Icon};
+use crate::{
+    app::command,
+    protobuf::{ProtobufMethod, ProtobufMethodKind},
+    theme,
+    widget::Icon,
+};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -18,12 +23,27 @@ pub(in crate::app) struct MethodState {
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+    let kind = ViewSwitcher::new(
+        |data: &MethodState, _| data.method.kind(),
+        |&kind: &ProtobufMethodKind, _, _| match kind {
+            ProtobufMethodKind::Unary => Icon::unary().boxed(),
+            ProtobufMethodKind::ClientStreaming => Icon::client_streaming().boxed(),
+            ProtobufMethodKind::ServerStreaming => Icon::server_streaming().boxed(),
+            ProtobufMethodKind::Streaming => Icon::streaming().boxed(),
+        },
+    )
+    .padding((6.0, 3.0));
+
     let label = Label::raw()
         .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
         .with_text_size(16.0)
         .padding((theme::GUTTER_SIZE, theme::GUTTER_SIZE / 4.0))
         .expand_width()
-        .lens(MethodState::name())
+        .lens(MethodState::name());
+
+    let icon_and_label = Flex::row()
+        .with_child(kind)
+        .with_flex_child(label, 1.0)
         .lens(State::method)
         .background(Painter::new(|ctx, _, env| {
             let color = method_background_color(ctx, env);
@@ -45,10 +65,10 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .on_click(|ctx, data: &mut State, _| {
             ctx.submit_command(command::CREATE_TAB.with(data.method.method.clone()));
         })
-        .padding(3.0);
+        .padding((6.0, 3.0));
 
     Flex::row()
-        .with_flex_child(label, 1.0)
+        .with_flex_child(icon_and_label, 1.0)
         .with_child(add)
         .background(theme::SIDEBAR_BACKGROUND)
         .env_scope(|env, data| {
