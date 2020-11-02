@@ -6,12 +6,11 @@ use druid::{
 };
 
 use crate::{
-    app::command,
     grpc,
     json::JsonText,
     protobuf::ProtobufMethod,
     theme,
-    widget::{Empty, FormField, ValidationState},
+    widget::{Empty, FormField, ValidationState, FINISH_EDIT},
 };
 
 type RequestValidationState = ValidationState<JsonText, grpc::Request, String>;
@@ -93,25 +92,10 @@ impl Controller<RequestValidationState, FormField<JsonText>> for RequestControll
         env: &Env,
     ) {
         if let Event::Command(command) = event {
-            if command.is(command::FORMAT) {
-                data.with_text_mut(JsonText::prettify);
+            if command.is(FINISH_EDIT) {
+                data.text_mut().prettify();
             }
         }
         child.event(ctx, event, data, env)
-    }
-
-    fn lifecycle(
-        &mut self,
-        child: &mut FormField<JsonText>,
-        ctx: &mut LifeCycleCtx,
-        event: &LifeCycle,
-        data: &RequestValidationState,
-        env: &Env,
-    ) {
-        if let LifeCycle::FocusChanged(false) = event {
-            ctx.submit_command(command::FORMAT.to(ctx.widget_id()));
-        }
-
-        child.lifecycle(ctx, event, data, env)
     }
 }

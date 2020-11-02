@@ -13,7 +13,7 @@ use once_cell::sync::Lazy;
 
 use crate::{
     app::{body::RequestState, command, theme},
-    widget::{Empty, FormField, Icon, ValidationState},
+    widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT},
 };
 
 type AddressValidationState = ValidationState<String, Uri, String>;
@@ -42,8 +42,8 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
         TextBox::new()
             .with_placeholder("http://localhost:80")
             .expand_width()
-            .controller(AddressController { body_id })
     ))
+    .controller(AddressController { body_id })
     .lens(AddressState::uri_lens);
 
     let error_label =
@@ -161,20 +161,34 @@ impl AddressState {
     }
 }
 
-impl<T, W> Controller<T, W> for AddressController
+impl<W> Controller<AddressValidationState, W> for AddressController
 where
-    W: Widget<T>,
+    W: Widget<AddressValidationState>,
 {
+    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut AddressValidationState, env: &Env) {
+        if let Event::Command(command) = event {
+            if command.is(FINISH_EDIT) {
+                if let Ok(uri) = data.result() {
+                    ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(self.body_id));
+                }
+            }
+        }
+
+        child.event(ctx, event, data, env)
+    }
+
     fn lifecycle(
         &mut self,
         child: &mut W,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
-        data: &T,
+        data: &AddressValidationState,
         env: &Env,
     ) {
-        if let LifeCycle::WidgetAdded | LifeCycle::FocusChanged(false) = event {
-            ctx.submit_command(command::START_CONNECT.to(self.body_id));
+        if let LifeCycle::WidgetAdded = event {
+            if let Ok(uri) = data.result() {
+                ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(self.body_id));
+            }
         }
 
         child.lifecycle(ctx, event, data, env)

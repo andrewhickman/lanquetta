@@ -10,7 +10,7 @@ use druid::{Data, Env, Widget};
 
 use crate::theme;
 
-const SET_DIRTY: Selector = Selector::new("app.set-dirty");
+pub const FINISH_EDIT: Selector = Selector::new("app.finish-edit");
 
 pub struct FormField<T> {
     child: WidgetPod<T, Box<dyn Widget<T>>>,
@@ -26,6 +26,10 @@ pub struct ValidationState<T, O, E> {
     pristine: bool,
 }
 
+struct FinishEditController {
+    field_id: WidgetId
+}
+
 impl<T: TextStorage> FormField<T> {
     pub fn new<W>(child: W) -> Self
     where
@@ -34,7 +38,7 @@ impl<T: TextStorage> FormField<T> {
     {
         let id = WidgetId::next();
         FormField {
-            child: WidgetPod::new(child.controller(PristineController(id)).boxed()),
+            child: WidgetPod::new(child.controller(FinishEditController { field_id: id }).boxed()),
             env: None,
             id,
         }
@@ -67,12 +71,13 @@ where
         env: &Env,
     ) {
         if let Event::Command(command) = event {
-            if command.is(SET_DIRTY) {
+            if command.is(FINISH_EDIT) {
                 data.set_dirty();
             }
         }
 
-        data.with_text_mut_if_changed(|text| {
+        data.with_text_mut(|text| {
+
             self.child
                 .event(ctx, event, text, self.env.as_ref().unwrap_or(env))
         });
@@ -169,14 +174,12 @@ where
         self.result.as_ref()
     }
 
-    pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
-        let value = f(&mut self.raw);
-        self.result = (self.validate)(self.raw.as_str());
-        value
-    }
-
     pub fn text(&self) -> &T {
         &self.raw
+    }
+
+    pub fn text_mut(&mut self) -> &mut T {
+        &mut self.raw
     }
 }
 
@@ -198,7 +201,7 @@ impl<T, O, E> ValidationState<T, O, E>
 where
     T: TextStorage + Data,
 {
-    fn with_text_mut_if_changed<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
+    fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
         let old = self.raw.clone();
         let value = f(&mut self.raw);
         if !self.raw.same(&old) {
@@ -233,9 +236,7 @@ where
     }
 }
 
-struct PristineController(WidgetId);
-
-impl<T, W> Controller<T, W> for PristineController
+impl<T, W> Controller<T, W> for FinishEditController
 where
     W: Widget<T>,
 {
@@ -248,7 +249,7 @@ where
         env: &Env,
     ) {
         if let LifeCycle::FocusChanged(false) = event {
-            ctx.submit_command(SET_DIRTY.to(self.0));
+            ctx.submit_command(FINISH_EDIT.to(self.field_id));
         }
 
         child.lifecycle(ctx, event, data, env)

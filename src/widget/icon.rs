@@ -54,14 +54,11 @@ impl<T: Data> Widget<T> for Icon {
 
     fn update(&mut self, _: &mut UpdateCtx, _: &T, _: &T, _: &Env) {}
 
-    fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &T, env: &Env) -> Size {
+    fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &T, _: &Env) -> Size {
         if bc.is_width_bounded() && bc.is_height_bounded() {
             bc.max()
         } else {
-            bc.constrain(Size::new(
-                env.get(druid::theme::BASIC_WIDGET_HEIGHT),
-                env.get(druid::theme::BASIC_WIDGET_HEIGHT),
-            ))
+            bc.constrain(DEFAULT_SIZE)
         }
     }
 
