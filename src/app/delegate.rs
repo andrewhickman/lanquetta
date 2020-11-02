@@ -17,7 +17,7 @@ impl AppDelegate<app::State> for Delegate {
         data: &mut app::State,
         _env: &Env,
     ) -> Handled {
-        log::info!("Received command: {:?}", cmd);
+        log::debug!("Received command: {:?}", cmd);
         if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
             if let Err(err) = data.sidebar.add_from_path(file.path()) {
                 log::error!("Error loading file: {:?}", err);

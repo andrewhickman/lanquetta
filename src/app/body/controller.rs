@@ -42,7 +42,7 @@ where
 
 impl TabController {
     fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
-        log::info!("Body received command: {:?}", command);
+        log::debug!("Body received command: {:?}", command);
 
         if command.is(command::START_CONNECT) {
             if let Some(uri) = data.address.uri() {
