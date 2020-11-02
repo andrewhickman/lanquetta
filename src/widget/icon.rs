@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
 use druid::{
     kurbo::BezPath,
     widget::{prelude::*, FillStrat},
     Color, Data, KeyOrValue, Size,
 };
+use once_cell::sync::Lazy;
 
 const DEFAULT_SIZE: Size = Size::new(24.0, 24.0);
 
