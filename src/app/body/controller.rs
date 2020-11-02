@@ -42,17 +42,19 @@ where
 
 impl TabController {
     fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
-        if let Some(uri) = command.get(command::START_CONNECT) {
-            self.grpc_client = None;
-            let event_sink = ctx.get_external_handle();
-            let target = Target::Widget(ctx.widget_id());
-            grpc::Client::new(uri.clone(), move |result| {
-                event_sink
-                    .submit_command(command::FINISH_CONNECT, SingleUse::new(result), target)
-                    .ok();
-            });
-            data.address
-                .set_request_state(RequestState::ConnectInProgress);
+        if command.is(command::START_CONNECT) {
+            if let Some(uri) = data.address.uri() {
+                self.grpc_client = None;
+                let event_sink = ctx.get_external_handle();
+                let target = Target::Widget(ctx.widget_id());
+                grpc::Client::new(uri.clone(), move |result| {
+                    event_sink
+                        .submit_command(command::FINISH_CONNECT, SingleUse::new(result), target)
+                        .ok();
+                });
+                data.address
+                    .set_request_state(RequestState::ConnectInProgress);
+            }
             Handled::Yes
         } else if let Some(result) = command.get(command::FINISH_CONNECT) {
             let (uri, result) = result.take().unwrap();

@@ -2,7 +2,10 @@ use std::string::ToString;
 use std::{str::FromStr, sync::Arc};
 
 use druid::{
-    widget::{prelude::*, Button, Controller, Flex, Spinner, TextBox, ViewSwitcher},
+    widget::{
+        prelude::*, Button, Controller, CrossAxisAlignment, Either, Flex, Label, Spinner, TextBox,
+        ViewSwitcher,
+    },
     Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _,
 };
 use http::Uri;
@@ -13,10 +16,12 @@ use crate::{
     widget::{Empty, FormField, Icon, ValidationState},
 };
 
+type AddressValidationState = ValidationState<String, Uri, String>;
+
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct AddressState {
     #[lens(name = "uri_lens")]
-    uri: ValidationState<String, Uri, String>,
+    uri: AddressValidationState,
     #[lens(name = "request_state_lens")]
     request_state: RequestState,
 }
@@ -33,34 +38,38 @@ struct AddressController {
 }
 
 pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
-    let address_form_field = FormField::new(theme::text_box_scope(
+    let address_textbox = FormField::new(theme::text_box_scope(
         TextBox::new()
             .with_placeholder("http://localhost:80")
-            .expand_width(),
+            .expand_width()
+            .controller(AddressController { body_id })
     ))
-    .controller(AddressController { body_id });
+    .lens(AddressState::uri_lens);
+
+    let error_label =
+        theme::error_label_scope(Label::dynamic(|data: &AddressValidationState, _| {
+            data.result().err().cloned().unwrap_or_default()
+        }));
+    let error = Either::new(
+        |data: &AddressValidationState, _| !data.is_pristine_or_valid(),
+        error_label,
+        Empty,
+    )
+    .expand_width();
+
+    let address_form_field = Flex::column()
+        .with_child(address_textbox)
+        .with_child(error.lens(AddressState::uri_lens));
 
     let spinner = ViewSwitcher::new(
         |&request_state: &RequestState, _| request_state,
-        |&request_state, _, _| {
-            let width = 24.0;
-            let padding = (0.0, 0.0, theme::GUTTER_SIZE, 0.0);
-            match request_state {
-                RequestState::NotStarted => Empty.boxed(),
-                RequestState::ConnectInProgress | RequestState::Active => {
-                    Spinner::new().fix_width(width).padding(padding).boxed()
-                }
-                RequestState::Connected => Icon::check()
-                    .with_color(theme::color::BOLD_ACCENT)
-                    .fix_width(width)
-                    .padding(padding)
-                    .boxed(),
-                RequestState::ConnectFailed => Icon::close()
-                    .with_color(theme::color::ERROR)
-                    .fix_width(width)
-                    .padding(padding)
-                    .boxed(),
+        |&request_state, _, _| match request_state {
+            RequestState::NotStarted => Empty.boxed(),
+            RequestState::ConnectInProgress | RequestState::Active => {
+                layout_spinner(Spinner::new(), 2.0)
             }
+            RequestState::Connected => layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0),
+            RequestState::ConnectFailed => layout_spinner(Icon::close().with_color(theme::color::ERROR), 0.0),
         },
     );
 
@@ -76,12 +85,8 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
     });
 
     Flex::row()
-        .with_flex_child(
-            address_form_field
-                .lens(AddressState::uri_lens)
-                .lens(State::address),
-            1.0,
-        )
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_flex_child(address_form_field.lens(State::address), 1.0)
         .with_spacer(theme::GUTTER_SIZE)
         .with_child(
             spinner
@@ -156,24 +161,31 @@ impl AddressState {
     }
 }
 
-impl<W> Controller<ValidationState<String, Uri, String>, W> for AddressController
+impl<T, W> Controller<T, W> for AddressController
 where
-    W: Widget<ValidationState<String, Uri, String>>,
+    W: Widget<T>,
 {
     fn lifecycle(
         &mut self,
         child: &mut W,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
-        data: &ValidationState<String, Uri, String>,
+        data: &T,
         env: &Env,
     ) {
         if let LifeCycle::WidgetAdded | LifeCycle::FocusChanged(false) = event {
-            if let Ok(uri) = data.result() {
-                ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(self.body_id));
-            }
+            ctx.submit_command(command::START_CONNECT.to(self.body_id));
         }
 
         child.lifecycle(ctx, event, data, env)
     }
+}
+
+fn layout_spinner<T>(child: impl Widget<T> + 'static, padding: f64) -> Box<dyn Widget<T>> where T: Data {
+    child
+        .padding(padding)
+        .center()
+        .fix_size(24.0, 24.0)
+        .padding((0.0, 0.0, theme::GUTTER_SIZE, 0.0))
+        .boxed()
 }

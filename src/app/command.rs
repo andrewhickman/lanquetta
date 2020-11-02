@@ -1,5 +1,4 @@
 use druid::{Selector, SingleUse};
-use http::Uri;
 
 use crate::grpc;
 use crate::protobuf::ProtobufMethod;
@@ -18,7 +17,7 @@ pub const CREATE_TAB: Selector<ProtobufMethod> = Selector::new("app.create-tab")
 pub const FORMAT: Selector = Selector::new("app.format");
 
 /// Begin connecting to the server
-pub const START_CONNECT: Selector<Uri> = Selector::new("app.start-connect");
+pub const START_CONNECT: Selector = Selector::new("app.start-connect");
 
 /// Finish connecting to the server
 pub const FINISH_CONNECT: Selector<SingleUse<grpc::ConnectResult>> =
