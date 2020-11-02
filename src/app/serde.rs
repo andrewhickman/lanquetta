@@ -205,10 +205,11 @@ fn get_or_insert_fd_set(
     vec: &mut Vec<AppFileDescriptorSetState>,
     files: Arc<FileDescriptorSet>,
 ) -> Result<usize> {
-    match vec.binary_search_by_key(&Arc::as_ptr(&files), |data| Arc::as_ptr(&data.files)) {
-        Ok(index) => Ok(index),
-        Err(index) => {
-            vec.insert(index, AppFileDescriptorSetState::try_from(files)?);
+    match vec.iter().position(|data| Arc::ptr_eq(&data.files, &files)) {
+        Some(index) => Ok(index),
+        None => {
+            let index = vec.len();
+            vec.push(AppFileDescriptorSetState::try_from(files)?);
             Ok(index)
         }
     }
