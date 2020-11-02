@@ -140,10 +140,7 @@ impl TabState {
     }
 
     fn can_send(&self) -> bool {
-        (self.address.request_state() == RequestState::NotStarted
-            || self.address.request_state() == RequestState::Connected)
-            && self.address.is_valid()
-            && self.request.is_valid()
+        self.address.request_state() != RequestState::ConnectInProgress && self.address.is_valid() && self.request.is_valid()
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {

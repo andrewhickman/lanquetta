@@ -27,7 +27,7 @@ pub struct ValidationState<T, O, E> {
 }
 
 struct FinishEditController {
-    field_id: WidgetId
+    field_id: WidgetId,
 }
 
 impl<T: TextStorage> FormField<T> {
@@ -38,7 +38,11 @@ impl<T: TextStorage> FormField<T> {
     {
         let id = WidgetId::next();
         FormField {
-            child: WidgetPod::new(child.controller(FinishEditController { field_id: id }).boxed()),
+            child: WidgetPod::new(
+                child
+                    .controller(FinishEditController { field_id: id })
+                    .boxed(),
+            ),
             env: None,
             id,
         }
@@ -77,7 +81,6 @@ where
         }
 
         data.with_text_mut(|text| {
-
             self.child
                 .event(ctx, event, text, self.env.as_ref().unwrap_or(env))
         });

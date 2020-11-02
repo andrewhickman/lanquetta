@@ -29,7 +29,7 @@ pub(in crate::app) struct AddressState {
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     address: AddressState,
-    #[lens(name = "valid_lens")]
+    #[lens(name = "can_send_lens")]
     can_send: bool,
 }
 
@@ -41,7 +41,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
     let address_textbox = FormField::new(theme::text_box_scope(
         TextBox::new()
             .with_placeholder("http://localhost:80")
-            .expand_width()
+            .expand_width(),
     ))
     .controller(AddressController { body_id })
     .lens(AddressState::uri_lens);
@@ -68,8 +68,12 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
             RequestState::ConnectInProgress | RequestState::Active => {
                 layout_spinner(Spinner::new(), 2.0)
             }
-            RequestState::Connected => layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0),
-            RequestState::ConnectFailed => layout_spinner(Icon::close().with_color(theme::color::ERROR), 0.0),
+            RequestState::Connected => {
+                layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0)
+            }
+            RequestState::ConnectFailed => {
+                layout_spinner(Icon::close().with_color(theme::color::ERROR), 0.0)
+            }
         },
     );
 
@@ -93,7 +97,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
                 .lens(AddressState::request_state_lens)
                 .lens(State::address),
         )
-        .with_child(send_button.lens(State::valid_lens))
+        .with_child(send_button.lens(State::can_send_lens))
         .boxed()
 }
 
@@ -165,7 +169,14 @@ impl<W> Controller<AddressValidationState, W> for AddressController
 where
     W: Widget<AddressValidationState>,
 {
-    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut AddressValidationState, env: &Env) {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut AddressValidationState,
+        env: &Env,
+    ) {
         if let Event::Command(command) = event {
             if command.is(FINISH_EDIT) {
                 if let Ok(uri) = data.result() {
@@ -195,7 +206,10 @@ where
     }
 }
 
-fn layout_spinner<T>(child: impl Widget<T> + 'static, padding: f64) -> Box<dyn Widget<T>> where T: Data {
+fn layout_spinner<T>(child: impl Widget<T> + 'static, padding: f64) -> Box<dyn Widget<T>>
+where
+    T: Data,
+{
     child
         .padding(padding)
         .center()

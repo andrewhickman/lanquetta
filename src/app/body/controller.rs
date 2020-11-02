@@ -42,6 +42,8 @@ where
 
 impl TabController {
     fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
+        log::info!("Body received command: {:?}", command);
+
         if command.is(command::START_CONNECT) {
             if let Some(uri) = data.address.uri() {
                 self.grpc_client = None;
@@ -79,6 +81,7 @@ impl TabController {
             if self.grpc_client.is_none() {
                 if let Some(uri) = data.address.uri() {
                     self.grpc_client = Some(grpc::Client::new_lazy(uri.clone()));
+                    ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(ctx.widget_id()));
                 }
             }
 
@@ -96,7 +99,6 @@ impl TabController {
         } else if let Some(response) = command.get(command::FINISH_SEND) {
             let result = response.take().expect("response already handled");
             data.response.update(result);
-            data.address.set_request_state(RequestState::Connected);
             Handled::Yes
         } else {
             Handled::No
