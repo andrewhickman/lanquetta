@@ -80,7 +80,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
     let send_button = theme::button_scope(Button::new("Send").on_click(
         |ctx: &mut EventCtx, &mut valid: &mut bool, _: &Env| {
             if valid {
-                ctx.submit_command(command::START_SEND.to(Target::Global));
+                ctx.submit_command(command::SEND.to(Target::Global));
             }
         },
     ))
@@ -179,8 +179,8 @@ where
     ) {
         if let Event::Command(command) = event {
             if command.is(FINISH_EDIT) {
-                if let Ok(uri) = data.result() {
-                    ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(self.body_id));
+                if data.is_valid() {
+                    ctx.submit_command(command::CONNECT.to(self.body_id));
                 }
             }
         }
@@ -197,8 +197,8 @@ where
         env: &Env,
     ) {
         if let LifeCycle::WidgetAdded = event {
-            if let Ok(uri) = data.result() {
-                ctx.submit_command(command::START_CONNECT.with(uri.clone()).to(self.body_id));
+            if data.is_valid() {
+                ctx.submit_command(command::CONNECT.to(self.body_id));
             }
         }
 

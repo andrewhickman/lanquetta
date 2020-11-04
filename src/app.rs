@@ -44,7 +44,7 @@ fn build() -> impl Widget<State> {
 
     Split::columns(sidebar, body)
         .split_point(0.2)
-        .min_size(100.0)
+        .min_size(0.0, 200.0)
         .bar_size(2.0)
         .solid_bar(true)
         .draggable(true)

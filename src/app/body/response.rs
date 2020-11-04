@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt as _};
 
@@ -18,7 +20,9 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 
 impl State {
     pub(in crate::app) fn update(&mut self, result: grpc::ResponseResult) {
-        self.body = match result.and_then(|response| protobuf::to_json(&*response.body)) {
+        self.body = match result
+            .and_then(|response| protobuf::to_json(&*response.body).map_err(Arc::new))
+        {
             Ok(body) => JsonText::pretty(body),
             Err(err) => JsonText::plain_text(format!("{:?}", err)),
         };
