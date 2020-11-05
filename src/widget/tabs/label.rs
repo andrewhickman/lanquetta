@@ -1,9 +1,4 @@
-use druid::{
-    widget::Controller,
-    widget::Painter,
-    widget::{prelude::*, RawLabel},
-    ArcStr, Data, Lens, MouseButton, Point, Rect, Widget, WidgetExt as _, WidgetId, WidgetPod,
-};
+use druid::{ArcStr, Data, Lens, widget::LineBreaking, MouseButton, Point, Rect, Widget, WidgetExt as _, WidgetId, WidgetPod, widget::Controller, widget::Painter, widget::{prelude::*, RawLabel}};
 
 use super::{TabId, CLOSE_TAB};
 use crate::{theme, widget::Icon};
@@ -31,6 +26,7 @@ impl TabLabel {
             label: WidgetPod::new(
                 RawLabel::new()
                     .with_font(theme::TAB_LABEL_FONT)
+                    .with_line_break_mode(LineBreaking::Clip)
                     .lens(State::name)
                     .boxed(),
             ),
@@ -116,13 +112,8 @@ impl Widget<State> for TabLabel {
 
         let bc = bc.shrink((PADDING * 2.0, PADDING * 2.0));
 
-        let child_bc = BoxConstraints::new(
-            Size::new(0.0, bc.min().height),
-            Size::new(f64::INFINITY, bc.max().height),
-        );
-
-        let label_size = self.label.layout(ctx, &child_bc, data, env);
-        let close_size = self.close.layout(ctx, &child_bc, data, env);
+        let close_size = self.close.layout(ctx, &bc.loosen(), data, env);
+        let label_size = self.label.layout(ctx, &bc.shrink((close_size.width, 0.0)), data, env);
 
         let total_size = Size::new(
             label_size.width + close_size.width,
