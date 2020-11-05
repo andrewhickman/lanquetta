@@ -1,4 +1,7 @@
-use std::{cell::UnsafeCell, sync::{Arc, Weak}};
+use std::{
+    cell::UnsafeCell,
+    sync::{Arc, Weak},
+};
 
 use tokio::sync::Semaphore;
 
@@ -60,7 +63,7 @@ impl<T> Receiver<T> {
 impl<T> Clone for Receiver<T> {
     fn clone(&self) -> Self {
         Receiver {
-            inner: self.inner.clone()
+            inner: self.inner.clone(),
         }
     }
 }

@@ -77,15 +77,19 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
         },
     );
 
-    let send_button = theme::button_scope(Button::new("Send").on_click(
-        |ctx: &mut EventCtx, &mut valid: &mut bool, _: &Env| {
-            if valid {
+    let send_button = theme::button_scope(
+        Button::dynamic(|data: &State, _| match data.address.request_state {
+            RequestState::Active => "Sending...".to_owned(),
+            _ => "Send".to_owned(),
+        })
+        .on_click(|ctx: &mut EventCtx, data: &mut State, _: &Env| {
+            if data.can_send {
                 ctx.submit_command(command::SEND.to(Target::Global));
             }
-        },
-    ))
-    .env_scope(|env, &valid: &bool| {
-        env.set(theme::DISABLED, !valid);
+        }),
+    )
+    .env_scope(|env, data: &State| {
+        env.set(theme::DISABLED, !data.can_send);
     });
 
     Flex::row()
@@ -97,7 +101,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
                 .lens(AddressState::request_state_lens)
                 .lens(State::address),
         )
-        .with_child(send_button.lens(State::can_send_lens))
+        .with_child(send_button)
         .boxed()
 }
 
