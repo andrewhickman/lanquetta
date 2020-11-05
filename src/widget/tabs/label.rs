@@ -1,4 +1,10 @@
-use druid::{ArcStr, Data, Lens, widget::LineBreaking, MouseButton, Point, Rect, Widget, WidgetExt as _, WidgetId, WidgetPod, widget::Controller, widget::Painter, widget::{prelude::*, RawLabel}};
+use druid::{
+    widget::Controller,
+    widget::LineBreaking,
+    widget::Painter,
+    widget::{prelude::*, RawLabel},
+    ArcStr, Data, Lens, MouseButton, Point, Rect, Widget, WidgetExt as _, WidgetId, WidgetPod,
+};
 
 use super::{TabId, CLOSE_TAB};
 use crate::{theme, widget::Icon};
@@ -113,7 +119,9 @@ impl Widget<State> for TabLabel {
         let bc = bc.shrink((PADDING * 2.0, PADDING * 2.0));
 
         let close_size = self.close.layout(ctx, &bc.loosen(), data, env);
-        let label_size = self.label.layout(ctx, &bc.shrink((close_size.width, 0.0)), data, env);
+        let label_size = self
+            .label
+            .layout(ctx, &bc.shrink((close_size.width, 0.0)), data, env);
 
         let total_size = Size::new(
             label_size.width + close_size.width,

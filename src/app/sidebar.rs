@@ -33,6 +33,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let sidebar_id = WidgetId::next();
     Scroll::new(List::new(move || service::build(sidebar_id)))
         .vertical()
+        .expand_height()
         .env_scope(|env, _| theme::set_contrast(env))
         .background(theme::SIDEBAR_BACKGROUND)
         .controller(SidebarController)

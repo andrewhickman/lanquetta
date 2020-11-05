@@ -161,6 +161,7 @@ impl TryInto<app::State> for AppState {
                 })
                 .collect::<Result<app::sidebar::ServiceListState>>()?,
             body: body.to_state(&file_descriptor_sets)?,
+            error: None,
         })
     }
 }
