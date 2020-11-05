@@ -28,23 +28,15 @@ impl ClientState {
                 uri: prev_uri,
                 client,
             } if prev_uri == uri => {
-                let (sender, receiver) = oneshot::channel();
-                sender.send(Ok(client.clone()));
-                receiver
+                let client = client.clone();
+                oneshot::new(async move { Ok(client) })
             }
             ClientState::ConnectInProgress {
                 uri: prev_uri,
                 receiver,
             } if prev_uri == uri => receiver.clone(),
             _ => {
-                let (sender, receiver) = oneshot::channel();
-                tokio::spawn({
-                    let uri = uri.clone();
-                    async move {
-                        let client = grpc::Client::new(uri).await;
-                        let _ = sender.send(client);
-                    }
-                });
+                let receiver = oneshot::new(grpc::Client::new(uri.clone()));
                 *self = ClientState::ConnectInProgress {
                     uri: uri.clone(),
                     receiver: receiver.clone(),

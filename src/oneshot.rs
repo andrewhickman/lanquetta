@@ -1,69 +1,55 @@
-use std::{
-    cell::UnsafeCell,
-    sync::{Arc, Weak},
-};
+use std::future::Future;
 
-use tokio::sync::Semaphore;
+use futures::future::{select, Either};
+use tokio::sync::watch;
 
-pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
-    let inner = Arc::new(Inner {
-        semaphore: Semaphore::new(0),
-        value: UnsafeCell::new(None),
+pub fn new<T, F>(fut: F) -> Receiver<T>
+where
+    T: Clone + Send + Sync + 'static,
+    F: Future<Output = T> + Send + 'static,
+{
+    let (mut sender, receiver) = watch::channel(None);
+
+    tokio::spawn(async move {
+        let value = {
+            let closed = sender.closed();
+            futures::pin_mut!(fut);
+            futures::pin_mut!(closed);
+            match select(fut, closed).await {
+                Either::Left((value, _)) => value,
+                Either::Right(_) => return,
+            }
+        };
+
+        let _ = sender.broadcast(Some(value));
     });
 
-    (
-        Sender {
-            inner: Arc::downgrade(&inner),
-        },
-        Receiver { inner },
-    )
-}
-
-pub struct Sender<T> {
-    inner: Weak<Inner<T>>,
+    Receiver { watch: receiver }
 }
 
 pub struct Receiver<T> {
-    inner: Arc<Inner<T>>,
+    watch: watch::Receiver<Option<T>>,
 }
 
-struct Inner<T> {
-    semaphore: Semaphore,
-    value: UnsafeCell<Option<T>>,
-}
-
-impl<T> Sender<T> {
-    pub fn send(self, value: T) {
-        if let Some(inner) = self.inner.upgrade() {
-            unsafe {
-                *inner.value.get() = Some(value);
-            }
+impl<T: Clone> Receiver<T> {
+    pub async fn recv(&mut self) -> T {
+        let value = self.watch.recv().await.expect("sender did not complete");
+        match value {
+            Some(value) => value,
+            None => self
+                .watch
+                .recv()
+                .await
+                .expect("sender did not complete")
+                .expect("sender sent None"),
         }
-    }
-}
-
-impl<T> Drop for Sender<T> {
-    fn drop(&mut self) {
-        if let Some(inner) = self.inner.upgrade() {
-            inner.semaphore.add_permits(usize::MAX >> 4);
-        }
-    }
-}
-
-unsafe impl<T: Send + Sync> Send for Inner<T> {}
-unsafe impl<T: Send + Sync> Sync for Inner<T> {}
-
-impl<T> Receiver<T> {
-    pub async fn borrow<'a>(&'a self) -> Option<&'a T> {
-        let _guard = self.inner.semaphore.acquire().await;
-        unsafe { &*self.inner.value.get() }.as_ref()
     }
 }
 
 impl<T> Clone for Receiver<T> {
     fn clone(&self) -> Self {
         Receiver {
-            inner: self.inner.clone(),
+            watch: self.watch.clone(),
         }
     }
 }

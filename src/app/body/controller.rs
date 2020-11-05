@@ -110,12 +110,12 @@ impl TabController {
 
 impl TabController {
     fn start_connect(&mut self, ctx: &mut EventCtx, uri: Uri) {
-        let receiver = self.client.get(&uri);
+        let mut receiver = self.client.get(&uri);
 
         let event_sink = ctx.get_external_handle();
         let target = ctx.widget_id();
         tokio::spawn(async move {
-            let result = receiver.borrow().await.expect("connect did not complete");
+            let result = receiver.recv().await;
             let _ = event_sink.submit_command(FINISH_CONNECT, (uri, result.clone()), target);
         });
     }
@@ -131,13 +131,13 @@ impl TabController {
         }
         self.active = true;
 
-        let receiver = self.client.get(&uri);
+        let mut receiver = self.client.get(&uri);
 
         let event_sink = ctx.get_external_handle();
         let target = ctx.widget_id();
 
         tokio::spawn(async move {
-            let client_result = receiver.borrow().await.unwrap().clone();
+            let client_result = receiver.recv().await;
 
             let _ = event_sink.submit_command(FINISH_CONNECT, (uri, client_result.clone()), target);
 
