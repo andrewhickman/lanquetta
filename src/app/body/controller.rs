@@ -90,7 +90,7 @@ impl TabController {
                 self.start_send(ctx, uri.clone(), request.clone());
                 self.update_request_state(data);
             } else {
-                log::error!("Connect called with no address/request");
+                log::error!("Send called with no address/request");
             }
             Handled::Yes
         } else if let Some(response) = command.get(FINISH_SEND) {

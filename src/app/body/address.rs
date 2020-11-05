@@ -6,7 +6,7 @@ use druid::{
         prelude::*, Button, Controller, CrossAxisAlignment, Either, Flex, Label, Spinner, TextBox,
         ViewSwitcher,
     },
-    Data, Env, EventCtx, Lens, Target, Widget, WidgetExt as _,
+    Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
 };
 use http::Uri;
 use once_cell::sync::Lazy;
@@ -82,9 +82,9 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
             RequestState::Active => "Sending...".to_owned(),
             _ => "Send".to_owned(),
         })
-        .on_click(|ctx: &mut EventCtx, data: &mut State, _: &Env| {
+        .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
             if data.can_send {
-                ctx.submit_command(command::SEND.to(Target::Global));
+                ctx.submit_command(command::SEND.to(body_id));
             }
         }),
     )
