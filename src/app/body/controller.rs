@@ -5,7 +5,6 @@ use druid::{
     Command, Handled, Selector, SingleUse,
 };
 use http::Uri;
-use tokio::sync::broadcast::RecvError;
 
 use self::client::ClientState;
 use crate::{
@@ -111,14 +110,13 @@ impl TabController {
 
 impl TabController {
     fn start_connect(&mut self, ctx: &mut EventCtx, uri: Uri) {
-        let mut receiver = self.client.get(&uri);
+        let receiver = self.client.get(&uri);
 
         let event_sink = ctx.get_external_handle();
         let target = ctx.widget_id();
         tokio::spawn(async move {
-            if let Ok(result) = receiver.recv().await {
-                let _ = event_sink.submit_command(FINISH_CONNECT, (uri, result), target);
-            }
+            let result = receiver.borrow().await.expect("connect did not complete");
+            let _ = event_sink.submit_command(FINISH_CONNECT, (uri, result.clone()), target);
         });
     }
 
@@ -133,17 +131,13 @@ impl TabController {
         }
         self.active = true;
 
-        let mut receiver = self.client.get(&uri);
+        let receiver = self.client.get(&uri);
 
         let event_sink = ctx.get_external_handle();
         let target = ctx.widget_id();
 
         tokio::spawn(async move {
-            let client_result = match receiver.recv().await {
-                Ok(result) => result,
-                Err(RecvError::Closed) => return,
-                Err(err @ RecvError::Lagged(_)) => panic!("Unexpected error: {}", err),
-            };
+            let client_result = receiver.borrow().await.unwrap().clone();
 
             let _ = event_sink.submit_command(FINISH_CONNECT, (uri, client_result.clone()), target);
 
@@ -173,6 +167,6 @@ impl TabController {
             (true, _) => RequestState::Active,
         };
 
-        data.address.set_request_state(dbg!(request_state));
+        data.address.set_request_state(request_state);
     }
 }

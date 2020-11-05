@@ -1,6 +1,7 @@
 mod app;
 mod grpc;
 mod json;
+mod oneshot;
 mod protobuf;
 mod theme;
 mod widget;

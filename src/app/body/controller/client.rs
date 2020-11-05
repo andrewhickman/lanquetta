@@ -1,14 +1,13 @@
 use http::Uri;
-use tokio::sync::broadcast;
 
-use crate::grpc;
+use crate::{grpc, oneshot};
 
 pub enum ClientState {
     NotConnected,
     ConnectFailed,
     ConnectInProgress {
         uri: Uri,
-        sender: broadcast::Sender<grpc::ConnectResult>,
+        receiver: oneshot::Receiver<grpc::ConnectResult>,
     },
     Connected {
         uri: Uri,
@@ -23,25 +22,24 @@ impl ClientState {
 
     /// Get a channel that will return a client for the given uri. The channel may return `RecvError::Closed`
     /// if `get` and `set` are called with a different uri before the connection completes.
-    pub fn get(&mut self, uri: &Uri) -> broadcast::Receiver<grpc::ConnectResult> {
+    pub fn get(&mut self, uri: &Uri) -> oneshot::Receiver<grpc::ConnectResult> {
         match self {
             ClientState::Connected {
                 uri: prev_uri,
                 client,
             } if prev_uri == uri => {
-                let (sender, receiver) = broadcast::channel(1);
-                sender.send(Ok(client.clone())).unwrap();
+                let (sender, receiver) = oneshot::channel();
+                sender.send(Ok(client.clone()));
                 receiver
             }
             ClientState::ConnectInProgress {
                 uri: prev_uri,
-                sender,
-            } if prev_uri == uri => sender.subscribe(),
+                receiver,
+            } if prev_uri == uri => receiver.clone(),
             _ => {
-                let (sender, receiver) = broadcast::channel(1);
+                let (sender, receiver) = oneshot::channel();
                 tokio::spawn({
                     let uri = uri.clone();
-                    let sender = sender.clone();
                     async move {
                         let client = grpc::Client::new(uri).await;
                         let _ = sender.send(client);
@@ -49,7 +47,7 @@ impl ClientState {
                 });
                 *self = ClientState::ConnectInProgress {
                     uri: uri.clone(),
-                    sender,
+                    receiver: receiver.clone(),
                 };
                 receiver
             }
