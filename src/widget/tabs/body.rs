@@ -89,6 +89,8 @@ where
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        bc.debug_check("TabsBody");
+
         data.with_selected(|id, tab_data| {
             let body = self.children.get_mut(&id).unwrap();
             let size = body.layout(ctx, bc, tab_data, env);

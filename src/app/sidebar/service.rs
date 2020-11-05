@@ -217,6 +217,8 @@ impl Widget<State> for Service {
         data: &State,
         env: &Env,
     ) -> Size {
+        bc.debug_check("Service");
+
         const GUTTER: f64 = 8.0;
         const PADDING: f64 = 8.0;
 

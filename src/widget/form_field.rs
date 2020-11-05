@@ -132,6 +132,8 @@ where
         data: &ValidationState<T, O, E>,
         env: &Env,
     ) -> druid::Size {
+        bc.debug_check("FormField");
+
         let env = self.env.as_ref().unwrap_or(env);
         let size = self.child.layout(ctx, bc, &data.raw, &env);
         self.child

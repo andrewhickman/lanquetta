@@ -78,6 +78,8 @@ where
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        bc.debug_check("TabsHeader");
+
         let mut height = bc.min().height;
         let mut x = 0.0f64;
         let mut paint_rect = Rect::ZERO;
@@ -86,10 +88,11 @@ where
         let mut remaining_children = self.children.len();
 
         self.for_each_label(data, |_, label, label_data| {
+            let max_width= remaining_max_width / remaining_children as f64;
             let label_bc = BoxConstraints::new(
-                Size::new(MIN_TAB_SIZE, bc.min().height),
+                Size::new(MIN_TAB_SIZE.min(max_width), bc.min().height),
                 Size::new(
-                    remaining_max_width / remaining_children as f64,
+                    max_width,
                     bc.max().height,
                 ),
             );

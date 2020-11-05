@@ -55,6 +55,8 @@ impl<T: Data> Widget<T> for Icon {
     fn update(&mut self, _: &mut UpdateCtx, _: &T, _: &T, _: &Env) {}
 
     fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &T, _: &Env) -> Size {
+        bc.debug_check("Icon");
+
         if bc.is_width_bounded() && bc.is_height_bounded() {
             bc.constrain_aspect_ratio(1.0, f64::INFINITY)
         } else {
