@@ -33,6 +33,9 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::BUTTON_DARK, color::BOLD_ACCENT);
     env.set(druid::theme::BUTTON_LIGHT, color::BOLD_ACCENT);
 
+    env.set(druid::theme::SCROLLBAR_COLOR, color::TEXT.with_alpha(0.38));
+    env.set(druid::theme::SCROLLBAR_BORDER_COLOR, color::TEXT);
+
     env.set(
         EDITOR_FONT,
         FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0),
@@ -55,6 +58,11 @@ pub(crate) fn set_contrast(env: &mut Env) {
     env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
     env.set(druid::theme::LABEL_COLOR, color::ACCENT);
     env.set(druid::theme::CURSOR_COLOR, color::ACCENT);
+    env.set(
+        druid::theme::SCROLLBAR_COLOR,
+        color::BACKGROUND.with_alpha(0.38),
+    );
+    env.set(druid::theme::SCROLLBAR_BORDER_COLOR, color::BACKGROUND);
 }
 
 pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {

@@ -36,7 +36,7 @@ impl Icon {
     fn new(path: &'static BezPath) -> Self {
         Icon {
             path,
-            fill: FillStrat::default(),
+            fill: FillStrat::Cover,
             color: druid::theme::LABEL_COLOR.into(),
         }
     }
@@ -56,7 +56,7 @@ impl<T: Data> Widget<T> for Icon {
 
     fn layout(&mut self, _: &mut LayoutCtx, bc: &BoxConstraints, _: &T, _: &Env) -> Size {
         if bc.is_width_bounded() && bc.is_height_bounded() {
-            bc.max()
+            bc.constrain_aspect_ratio(1.0, f64::INFINITY)
         } else {
             bc.constrain(DEFAULT_SIZE)
         }

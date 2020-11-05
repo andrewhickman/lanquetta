@@ -20,8 +20,7 @@ impl ClientState {
         ClientState::NotConnected
     }
 
-    /// Get a channel that will return a client for the given uri. The channel may return `RecvError::Closed`
-    /// if `get` and `set` are called with a different uri before the connection completes.
+    /// Get a channel that will return a client for the given uri.
     pub fn get(&mut self, uri: &Uri) -> oneshot::Receiver<grpc::ConnectResult> {
         match self {
             ClientState::Connected {

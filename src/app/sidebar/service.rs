@@ -4,8 +4,8 @@ use druid::{
     widget::Controller,
     widget::Painter,
     widget::{prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, ListIter},
-    ArcStr, Data, FontDescriptor, FontFamily, Lens, MouseButton, Point, Rect, RenderContext,
-    Widget, WidgetExt as _, WidgetPod,
+    ArcStr, Data, FontDescriptor, FontFamily, Lens, MouseButton, Rect, RenderContext, Vec2, Widget,
+    WidgetExt as _, WidgetPod,
 };
 
 use crate::{
@@ -220,47 +220,53 @@ impl Widget<State> for Service {
         const GUTTER: f64 = 8.0;
         const PADDING: f64 = 8.0;
 
-        let bc = bc.shrink((PADDING * 2.0, PADDING * 2.0));
+        let padding = Size::new(PADDING * 2.0, PADDING * 2.0).clamp(Size::ZERO, bc.max());
+        let inner_bc = bc.shrink(padding);
+        let origin = (padding / 2.0).to_vec2().to_point();
 
-        let child_bc = BoxConstraints::new(
-            Size::new(0.0, bc.min().height),
-            Size::new(f64::INFINITY, bc.max().height),
+        let icon_bc = BoxConstraints::new(
+            Size::new(0.0, inner_bc.min().height),
+            Size::new(inner_bc.max().width / 2.0, inner_bc.max().height),
         );
 
-        let expanded_icon_size = self.expanded.layout(ctx, &child_bc, &data.service, env);
-        let label_size = self.label.layout(ctx, &child_bc, &data.service, env);
-        let close_size = self.close.layout(ctx, &child_bc, data, env);
+        let expanded_icon_size = self.expanded.layout(ctx, &icon_bc, &data.service, env);
+        let close_size = self.close.layout(ctx, &icon_bc, data, env);
+
+        let label_bc = inner_bc.shrink((
+            expanded_icon_size.width + GUTTER + GUTTER + close_size.width,
+            0.0,
+        ));
+        let label_size = self.label.layout(ctx, &label_bc, &data.service, env);
 
         let total_size = Size::new(
-            bc.max().width,
+            inner_bc.max().width,
             expanded_icon_size
                 .height
                 .max(label_size.height)
                 .max(close_size.height),
         )
-        .clamp(bc.min(), bc.max());
+        .clamp(inner_bc.min(), inner_bc.max());
 
         let expanded_icon_rect = Rect::from_origin_size(
-            Point::new(
-                PADDING,
-                PADDING + (total_size.height - expanded_icon_size.height) / 2.0,
-            ),
+            origin + Vec2::new(0.0, (total_size.height - expanded_icon_size.height) / 2.0),
             expanded_icon_size,
         )
         .expand();
         let label_rect = Rect::from_origin_size(
-            Point::new(
-                PADDING + expanded_icon_size.width + GUTTER,
-                PADDING + (total_size.height - label_size.height) / 2.0,
-            ),
+            origin
+                + Vec2::new(
+                    expanded_icon_size.width + GUTTER,
+                    (total_size.height - label_size.height) / 2.0,
+                ),
             label_size,
         )
         .expand();
         let close_rect = Rect::from_origin_size(
-            Point::new(
-                PADDING + total_size.width - close_size.width,
-                PADDING + (total_size.height - close_size.height) / 2.0,
-            ),
+            origin
+                + Vec2::new(
+                    total_size.width - close_size.width,
+                    (total_size.height - close_size.height) / 2.0,
+                ),
             close_size,
         )
         .expand();
@@ -271,10 +277,7 @@ impl Widget<State> for Service {
             .set_layout_rect(ctx, &data.service, env, label_rect);
         self.close.set_layout_rect(ctx, data, env, close_rect);
 
-        Size::new(
-            PADDING * 2.0 + total_size.width,
-            PADDING * 2.0 + total_size.height,
-        )
+        padding + total_size
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {

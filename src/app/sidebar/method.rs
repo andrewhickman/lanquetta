@@ -1,4 +1,5 @@
 use druid::{
+    widget::LineBreaking,
     widget::{Flex, Label, Painter, ViewSwitcher},
     ArcStr, Color, Data, Env, FontDescriptor, FontFamily, Lens, PaintCtx, RenderContext, Widget,
     WidgetExt as _,
@@ -37,6 +38,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let label = Label::raw()
         .with_font(FontDescriptor::new(FontFamily::SANS_SERIF))
         .with_text_size(16.0)
+        .with_line_break_mode(LineBreaking::Clip)
         .padding((theme::GUTTER_SIZE, theme::GUTTER_SIZE / 4.0))
         .expand_width()
         .lens(MethodState::name());

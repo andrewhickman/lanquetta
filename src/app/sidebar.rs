@@ -5,6 +5,7 @@ use std::{iter::FromIterator, path::Path};
 
 use anyhow::Result;
 use druid::{
+    widget::Scroll,
     widget::{prelude::*, Controller, List, ListIter},
     Data, Lens, Widget, WidgetExt as _, WidgetId,
 };
@@ -30,9 +31,10 @@ struct SidebarController;
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     let sidebar_id = WidgetId::next();
-    List::new(move || service::build(sidebar_id))
-        .background(theme::SIDEBAR_BACKGROUND)
+    Scroll::new(List::new(move || service::build(sidebar_id)))
+        .vertical()
         .env_scope(|env, _| theme::set_contrast(env))
+        .background(theme::SIDEBAR_BACKGROUND)
         .controller(SidebarController)
         .with_id(sidebar_id)
         .boxed()
