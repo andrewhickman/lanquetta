@@ -87,11 +87,11 @@ fn build() -> impl Widget<State> {
         .min_size(0.0, 200.0)
         .bar_size(2.0)
         .solid_bar(true)
-        .draggable(true)
-        .controller(ConfigController);
+        .draggable(true);
     Flex::column()
         .with_child(error.lens(State::error))
         .with_flex_child(split, 1.0)
+        .controller(ConfigController)
 }
 
 impl State {

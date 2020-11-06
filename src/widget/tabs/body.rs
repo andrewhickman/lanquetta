@@ -103,7 +103,7 @@ where
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         data.with_selected(|id, tab_data| {
             let bounds = ctx.size().to_rect();
-            ctx.fill(bounds, &env.get(theme::TAB_BACKGROUND));
+            ctx.fill(bounds, &env.get(theme::SELECTED_TAB_BACKGROUND));
 
             self.children
                 .get_mut(&id)

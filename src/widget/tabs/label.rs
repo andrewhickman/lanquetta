@@ -19,6 +19,7 @@ pub struct State {
 pub struct TabLabel {
     label: WidgetPod<State, Box<dyn Widget<State>>>,
     close: WidgetPod<State, Box<dyn Widget<State>>>,
+    show_close: bool,
 }
 
 struct CloseButtonController {
@@ -43,6 +44,7 @@ impl TabLabel {
                     .controller(CloseButtonController { tabs_id, tab_id }),
             )
             .boxed(),
+            show_close: false,
         }
     }
 }
@@ -90,17 +92,30 @@ impl Widget<State> for TabLabel {
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &State, env: &Env) {
-        if let LifeCycle::HotChanged(_) = event {
-            if !data.selected {
-                ctx.request_paint();
+        match event {
+            LifeCycle::WidgetAdded => {
+                self.show_close = ctx.is_hot() || data.selected;
+                ctx.request_layout();
             }
+            LifeCycle::HotChanged(_) => {
+                if !data.selected {
+                    self.show_close = ctx.is_hot();
+                    ctx.request_layout();
+                }
+            }
+            _ => (),
         }
 
         self.label.lifecycle(ctx, event, data, env);
         self.close.lifecycle(ctx, event, data, env);
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, _: &State, data: &State, env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &State, data: &State, env: &Env) {
+        if !old_data.selected.same(&data.selected) {
+            self.show_close = ctx.is_hot() || data.selected;
+            ctx.request_layout();
+        }
+
         self.label.update(ctx, data, env);
         self.close.update(ctx, data, env);
     }
@@ -118,7 +133,11 @@ impl Widget<State> for TabLabel {
 
         let bc = bc.shrink((PADDING * 2.0, PADDING * 2.0));
 
-        let close_size = self.close.layout(ctx, &bc.loosen(), data, env);
+        let close_size = if self.show_close {
+            self.close.layout(ctx, &bc.loosen(), data, env)
+        } else {
+            Size::ZERO
+        };
         let label_size = self
             .label
             .layout(ctx, &bc.shrink((close_size.width, 0.0)), data, env);
@@ -155,7 +174,7 @@ impl Widget<State> for TabLabel {
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &State, env: &Env) {
         let background_color = if data.selected {
-            env.get(theme::TAB_BACKGROUND)
+            env.get(theme::SELECTED_TAB_BACKGROUND)
         } else {
             let mut color = env.get(druid::theme::WINDOW_BACKGROUND_COLOR);
             if ctx.is_active() {
@@ -170,7 +189,9 @@ impl Widget<State> for TabLabel {
         ctx.fill(bounds, &background_color);
 
         self.label.paint(ctx, data, env);
-        self.close.paint(ctx, data, env);
+        if self.show_close {
+            self.close.paint(ctx, data, env);
+        }
     }
 }
 
@@ -232,7 +253,7 @@ fn paint_close_background(ctx: &mut PaintCtx, data: &State, env: &Env) {
     }
 
     let mut color = if data.selected {
-        env.get(theme::TAB_BACKGROUND)
+        env.get(theme::SELECTED_TAB_BACKGROUND)
     } else {
         env.get(druid::theme::WINDOW_BACKGROUND_COLOR)
     };

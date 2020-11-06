@@ -9,7 +9,8 @@ pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("app.editor-font");
 pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-font");
 
 pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
-pub(crate) const TAB_BACKGROUND: Key<Color> = Key::new("app.tab-background");
+pub(crate) const SELECTED_TAB_BACKGROUND: Key<Color> = Key::new("app.selected-tab-background");
+pub(crate) const HIDDEN_TAB_BACKGROUND: Key<Color> = Key::new("app.hidden-tab-background");
 
 pub(crate) const INVALID: Key<bool> = Key::new("app.invalid");
 pub(crate) const DISABLED: Key<bool> = Key::new("app.disabled");
@@ -45,7 +46,8 @@ pub(crate) fn set(env: &mut Env) {
         FontDescriptor::new(FontFamily::SANS_SERIF).with_size(16.0),
     );
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
-    env.set(TAB_BACKGROUND, color::ACCENT);
+    env.set(SELECTED_TAB_BACKGROUND, color::ACCENT);
+    env.set(HIDDEN_TAB_BACKGROUND, color::BACKGROUND);
 
     env.set(DISABLED, false);
     env.set(INVALID, false);
