@@ -1,12 +1,8 @@
-mod client;
-
 use druid::{
     widget::{prelude::*, Controller},
     Command, Handled, Selector, SingleUse,
 };
-use http::Uri;
 
-use self::client::ClientState;
 use crate::{
     app::{
         body::{RequestState, TabState},
@@ -16,15 +12,13 @@ use crate::{
 };
 
 pub struct TabController {
-    client: ClientState,
-    active: bool,
+    client: Option<grpc::Client>,
 }
 
 impl TabController {
     pub fn new() -> TabController {
         TabController {
-            client: ClientState::new(),
-            active: false,
+            client: None,
         }
     }
 }
@@ -63,7 +57,7 @@ where
     }
 }
 
-const FINISH_CONNECT: Selector<(Uri, grpc::ConnectResult)> =
+const FINISH_CONNECT: Selector<grpc::ConnectResult> =
     Selector::new("app.body.finish-connect");
 const DISCONNECT: Selector = Selector::new("app.body.disconnect");
 const FINISH_SEND: Selector<SingleUse<grpc::ResponseResult>> =
@@ -74,33 +68,19 @@ impl TabController {
         log::debug!("Body received command: {:?}", command);
 
         if command.is(command::CONNECT) {
-            if let Some(uri) = data.address.uri() {
-                self.start_connect(ctx, uri.clone());
-                self.update_request_state(data);
-            } else {
-                log::error!("Connect called with no address");
-            }
+            self.start_connect(ctx, data);
             Handled::Yes
-        } else if let Some((uri, result)) = command.get(FINISH_CONNECT) {
-            self.finish_connect(uri, result.clone());
-            self.update_request_state(data);
+        } else if let Some(result) = command.get(FINISH_CONNECT) {
+            self.finish_connect(ctx, data, result.clone());
             Handled::Yes
         } else if command.is(command::SEND) {
-            if let (Some(uri), Some(request)) = (data.address.uri(), data.request.get()) {
-                self.start_send(ctx, uri.clone(), request.clone());
-                self.update_request_state(data);
-            } else {
-                log::error!("Send called with no address/request");
-            }
+            self.start_send(ctx, data);
             Handled::Yes
         } else if let Some(response) = command.get(FINISH_SEND) {
-            self.finish_send();
-            data.response.update(response.take().unwrap());
-            self.update_request_state(data);
+            self.finish_send(ctx, data, response.take().unwrap());
             Handled::Yes
         } else if command.is(DISCONNECT) {
-            self.client.reset();
-            self.update_request_state(data);
+            self.disconnect(ctx, data);
             Handled::Yes
         } else {
             Handled::No
@@ -109,64 +89,91 @@ impl TabController {
 }
 
 impl TabController {
-    fn start_connect(&mut self, ctx: &mut EventCtx, uri: Uri) {
-        let mut receiver = self.client.get(&uri);
-
-        let event_sink = ctx.get_external_handle();
-        let target = ctx.widget_id();
-        tokio::spawn(async move {
-            let result = receiver.recv().await;
-            let _ = event_sink.submit_command(FINISH_CONNECT, (uri, result.clone()), target);
-        });
-    }
-
-    fn finish_connect(&mut self, uri: &Uri, result: grpc::ConnectResult) {
-        self.client.set(uri, result);
-    }
-
-    fn start_send(&mut self, ctx: &mut EventCtx, uri: Uri, request: grpc::Request) {
-        if self.active {
-            log::error!("Send started while active");
-            return;
-        }
-        self.active = true;
-
-        let mut receiver = self.client.get(&uri);
-
-        let event_sink = ctx.get_external_handle();
-        let target = ctx.widget_id();
-
-        tokio::spawn(async move {
-            let client_result = receiver.recv().await;
-
-            let _ = event_sink.submit_command(FINISH_CONNECT, (uri, client_result.clone()), target);
-
-            let send_result = match client_result {
-                Ok(client) => client.send(request).await,
-                Err(err) => Err(err),
-            };
-
-            let _ = event_sink.submit_command(FINISH_SEND, SingleUse::new(send_result), target);
-        });
-    }
-
-    fn finish_send(&mut self) {
-        if !self.active {
-            log::error!("Send finished while not active");
-            return;
-        }
-        self.active = false;
-    }
-
-    fn update_request_state(&mut self, data: &mut TabState) {
-        let request_state = match (self.active, &self.client) {
-            (false, ClientState::NotConnected { .. }) => RequestState::NotStarted,
-            (false, ClientState::ConnectInProgress { .. }) => RequestState::ConnectInProgress,
-            (false, ClientState::Connected { .. }) => RequestState::Connected,
-            (false, ClientState::ConnectFailed { .. }) => RequestState::ConnectFailed,
-            (true, _) => RequestState::Active,
+    fn start_connect(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
+        let uri = match data.address.uri() {
+            Some(uri) => uri.clone(),
+            None => {
+                log::error!("Connect called with no address");
+                return;
+            }
         };
 
-        data.address.set_request_state(request_state);
+        match &self.client {
+            Some(client) if client.uri() == &uri => return,
+            _ => (),
+        }
+
+        let event_sink = ctx.get_external_handle();
+        let target = ctx.widget_id();
+
+        tokio::spawn(async move {
+            let client_result =  grpc::Client::new(uri).await;
+            let _ = event_sink.submit_command(FINISH_CONNECT, client_result, target);
+        });
+
+        if data.address.request_state() != RequestState::Active {
+            data.address.set_request_state(RequestState::ConnectInProgress);
+        }
+    }
+
+    fn finish_connect(&mut self, _: &mut EventCtx, data: &mut TabState, result: grpc::ConnectResult) {
+        match result {
+            Ok(client) if Some(client.uri()) == data.address.uri() => {
+                self.client = Some(client);
+
+                if data.address.request_state() != RequestState::Active {
+                    data.address.set_request_state(RequestState::Connected);
+                }
+            },
+            Err((uri, _)) if Some(&uri) == data.address.uri() => {
+                data.address.set_request_state(RequestState::ConnectFailed);
+            },
+            _ => (),
+        }
+    }
+
+    fn start_send(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
+        let (uri, request) = if let (Some(uri), Some(request)) = (data.address.uri(), data.request.get()) {
+            (uri.clone(), request.clone())
+        } else {
+            log::error!("Send called with no address/request");
+            return
+        };
+
+        let client = match &self.client {
+            Some(client) if client.uri() == &uri => client.clone(),
+            _ => {
+                log::error!("Send called with invalid client");
+                return
+            },
+        };
+
+        let event_sink = ctx.get_external_handle();
+        let target = ctx.widget_id();
+
+        tokio::spawn(async move {
+            let response = client.send(request).await;
+            let _ = event_sink.submit_command(FINISH_SEND, SingleUse::new(response), target);
+        });
+
+        data.address.set_request_state(RequestState::Active);
+    }
+
+    fn finish_send(&mut self, _: &mut EventCtx, data: &mut TabState, response: grpc::ResponseResult) {
+        data.response.update(response);
+        
+        if self.client.is_some() {
+            data.address.set_request_state(RequestState::Connected);
+        } else {
+            data.address.set_request_state(RequestState::NotStarted);
+        }
+    }
+
+    fn disconnect(&mut self, _: &mut EventCtx , data: &mut TabState) {
+        self.client = None;
+
+        if data.address.request_state() != RequestState::Active {
+            data.address.set_request_state(RequestState::NotStarted);
+        }
     }
 }

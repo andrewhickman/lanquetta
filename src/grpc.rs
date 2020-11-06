@@ -7,7 +7,7 @@ use tonic::{client::Grpc, transport::Channel, IntoRequest};
 
 use crate::protobuf::ProtobufMethod;
 
-pub type ConnectResult = Result<Client, Error>;
+pub type ConnectResult = Result<Client, (Uri, Error)>;
 pub type ResponseResult = Result<Response, Error>;
 
 #[derive(Debug, Clone)]
@@ -25,15 +25,24 @@ pub type Error = Arc<anyhow::Error>;
 
 #[derive(Clone, Debug)]
 pub struct Client {
+    uri: Uri,
     grpc: Grpc<Channel>,
 }
 
 impl Client {
     pub async fn new(uri: Uri) -> ConnectResult {
-        let channel = Channel::builder(uri).connect().await.map_err(arc_err)?;
+        let channel = match Channel::builder(uri.clone()).connect().await {
+            Ok(channel) => channel,
+            Err(err) => return Err((uri, arc_err(err))),
+        };
         Ok(Client {
+            uri,
             grpc: Grpc::new(channel),
         })
+    }
+
+    pub fn uri(&self) -> &Uri {
+        &self.uri
     }
 
     pub async fn send(self, request: Request) -> ResponseResult {

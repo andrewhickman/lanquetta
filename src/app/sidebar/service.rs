@@ -228,7 +228,7 @@ impl Widget<State> for Service {
 
         let icon_bc = BoxConstraints::new(
             Size::new(0.0, inner_bc.min().height),
-            Size::new(inner_bc.max().width / 2.0, inner_bc.max().height),
+            Size::new(f64::INFINITY, inner_bc.max().height),
         );
 
         let expanded_icon_size = self.expanded.layout(ctx, &icon_bc, &data.service, env);

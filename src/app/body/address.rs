@@ -79,12 +79,23 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
 
     let send_button = theme::button_scope(
         Button::dynamic(|data: &State, _| match data.address.request_state {
+            RequestState::NotStarted | RequestState::ConnectFailed => "Connect".to_owned(),
+            RequestState::ConnectInProgress => "Connecting...".to_owned(),
+            RequestState::Connected => "Send".to_owned(),
             RequestState::Active => "Sending...".to_owned(),
-            _ => "Send".to_owned(),
         })
         .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
             if data.can_send {
-                ctx.submit_command(command::SEND.to(body_id));
+                match data.address.request_state() {
+                    RequestState::NotStarted | RequestState::ConnectFailed => {
+                        ctx.submit_command(command::CONNECT.to(body_id));
+                    },
+                    RequestState::ConnectInProgress => unreachable!(),
+                    RequestState::Connected => {
+                        ctx.submit_command(command::SEND.to(body_id));
+                    }
+                    RequestState::Active => unreachable!(),
+                }
             }
         }),
     )

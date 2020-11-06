@@ -140,7 +140,7 @@ impl TabState {
     }
 
     fn can_send(&self) -> bool {
-        self.address.request_state() != RequestState::Active
+        self.address.request_state() != RequestState::Active && self.address.request_state() != RequestState::ConnectInProgress
             && self.address.is_valid()
             && self.request.is_valid()
     }
