@@ -45,7 +45,8 @@ fn build_list_entry() -> impl Widget<ListEntryState> {
                 .lens(ListEntryState::unwrap_request_lens())
                 .boxed(),
         },
-    ).expand_width()
+    )
+    .expand_width()
 }
 
 impl State {

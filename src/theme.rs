@@ -11,6 +11,9 @@ pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-f
 pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
 pub(crate) const SELECTED_TAB_BACKGROUND: Key<Color> = Key::new("app.selected-tab-background");
 pub(crate) const HIDDEN_TAB_BACKGROUND: Key<Color> = Key::new("app.hidden-tab-background");
+pub(crate) const EXPANDER_LABEL_FONT: Key<FontDescriptor> = Key::new("app.expander-label-font");
+pub(crate) const EXPANDER_BACKGROUND: Key<Color> = Key::new("app.expander-background");
+pub(crate) const EXPANDER_PADDING: Key<f64> = Key::new("app.expander-padding");
 
 pub(crate) const INVALID: Key<bool> = Key::new("app.invalid");
 pub(crate) const DISABLED: Key<bool> = Key::new("app.disabled");
@@ -48,6 +51,12 @@ pub(crate) fn set(env: &mut Env) {
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
     env.set(SELECTED_TAB_BACKGROUND, color::ACCENT);
     env.set(HIDDEN_TAB_BACKGROUND, color::BACKGROUND);
+    env.set(
+        EXPANDER_LABEL_FONT,
+        FontDescriptor::new(FontFamily::SANS_SERIF).with_size(16.0),
+    );
+    env.set(EXPANDER_BACKGROUND, color::ACCENT);
+    env.set(EXPANDER_PADDING, 3.0);
 
     env.set(DISABLED, false);
     env.set(INVALID, false);
