@@ -21,6 +21,8 @@ impl AppDelegate<app::State> for Delegate {
         if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
             if let Err(err) = data.sidebar.add_from_path(file.path()) {
                 data.error = Some(format!("Error loading file: {:?}", err));
+            } else {
+                data.error = None;
             }
             Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_TAB) {
