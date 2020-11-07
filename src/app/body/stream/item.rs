@@ -11,20 +11,20 @@ pub(in crate::app) struct State {
     body: JsonText,
 }
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build() -> impl Widget<State> {
     theme::text_box_scope(TextBox::multiline().with_font(theme::EDITOR_FONT))
-        .expand()
         .lens(State::body)
-        .boxed()
 }
 
 impl State {
-    pub(in crate::app) fn update(&mut self, result: grpc::ResponseResult) {
-        self.body = match result
+    pub fn new(result: grpc::ResponseResult) -> Self {
+        let body = match result
             .and_then(|response| protobuf::to_json(&*response.body).map_err(Arc::new))
         {
             Ok(body) => JsonText::pretty(body),
             Err(err) => JsonText::plain_text(format!("{:?}", err)),
         };
+
+        State { body }
     }
 }

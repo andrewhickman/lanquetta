@@ -22,12 +22,12 @@ pub(in crate::app) struct State {
 
 struct RequestController;
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build() -> impl Widget<State> {
     let textbox = FormField::new(theme::text_box_scope(
         TextBox::multiline().with_font(theme::EDITOR_FONT),
     ))
     .controller(RequestController)
-    .expand();
+    .expand_width();
     let error_label =
         theme::error_label_scope(Label::dynamic(|data: &RequestValidationState, _| {
             data.result().err().cloned().unwrap_or_default()
@@ -40,10 +40,9 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
     .expand_width();
 
     Flex::column()
-        .with_flex_child(textbox, 1.0)
+        .with_child(textbox)
         .with_child(error)
         .lens(State::body)
-        .boxed()
 }
 
 impl State {

@@ -89,7 +89,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
                 match data.address.request_state() {
                     RequestState::NotStarted | RequestState::ConnectFailed => {
                         ctx.submit_command(command::CONNECT.to(body_id));
-                    },
+                    }
                     RequestState::ConnectInProgress => unreachable!(),
                     RequestState::Connected => {
                         ctx.submit_command(command::SEND.to(body_id));

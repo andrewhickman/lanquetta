@@ -9,7 +9,8 @@ mod sidebar;
 use druid::{
     widget::Painter,
     widget::{Either, Flex, Label, Split},
-    AppLauncher, Data, Lens, PlatformError, UnitPoint, Widget, WidgetExt as _, WindowDesc, RenderContext
+    AppLauncher, Data, Lens, PlatformError, RenderContext, UnitPoint, Widget, WidgetExt as _,
+    WindowDesc,
 };
 
 use self::config::{Config, ConfigController};
@@ -64,7 +65,9 @@ fn build() -> impl Widget<State> {
                     Icon::close()
                         .background(Painter::new(|ctx, _, env| {
                             let color = theme::color::ERROR.with_alpha(0.38);
-                            let bounds = ctx.size().to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
+                            let bounds = ctx
+                                .size()
+                                .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
                             if ctx.is_active() {
                                 let color =
                                     theme::color::active(color, env.get(druid::theme::LABEL_COLOR));

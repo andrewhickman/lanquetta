@@ -1,14 +1,10 @@
 mod address;
 mod controller;
-mod request;
-mod response;
+mod stream;
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use druid::{
-    widget::{Flex, Label},
-    Data, Lens, Widget, WidgetExt as _, WidgetId,
-};
+use druid::{widget::Flex, Data, Lens, Widget, WidgetExt as _, WidgetId};
 use iter_set::Inclusion;
 
 use self::controller::TabController;
@@ -40,9 +36,7 @@ pub struct TabState {
     method: ProtobufMethod,
     #[lens(ignore)]
     address: address::AddressState,
-    #[lens(name = "request_lens")]
-    request: request::State,
-    response: response::State,
+    stream: stream::State,
 }
 
 pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
@@ -55,13 +49,7 @@ fn build_body() -> impl Widget<TabState> {
         .must_fill_main_axis(true)
         .with_child(address::build(id).lens(TabState::address_lens()))
         .with_spacer(theme::GUTTER_SIZE)
-        .with_child(Label::new("Request").align_left())
-        .with_spacer(theme::GUTTER_SIZE)
-        .with_flex_child(request::build().lens(TabState::request_lens), 0.5)
-        .with_spacer(theme::GUTTER_SIZE)
-        .with_child(Label::new("Response").align_left())
-        .with_spacer(theme::GUTTER_SIZE)
-        .with_flex_child(response::build().lens(TabState::response), 0.5)
+        .with_flex_child(stream::build().lens(TabState::stream), 1.0)
         .padding(theme::GUTTER_SIZE)
         .controller(TabController::new())
         .with_id(id)
@@ -111,9 +99,8 @@ impl State {
 impl TabState {
     pub fn empty(method: ProtobufMethod) -> Self {
         TabState {
-            request: request::State::empty(method.clone()),
-            response: response::State::default(),
             address: address::AddressState::default(),
+            stream: stream::State::empty(method.clone()),
             method,
         }
     }
@@ -121,8 +108,7 @@ impl TabState {
     pub fn new(method: ProtobufMethod, address: String, request: impl Into<JsonText>) -> Self {
         TabState {
             address: address::AddressState::new(address),
-            request: request::State::with_text(method.clone(), request),
-            response: response::State::default(),
+            stream: stream::State::with_text(method.clone(), request),
             method,
         }
     }
@@ -135,14 +121,15 @@ impl TabState {
         &self.address
     }
 
-    pub(in crate::app) fn request(&self) -> &request::State {
-        &self.request
+    pub(in crate::app) fn request(&self) -> &stream::request::State {
+        &self.stream.request()
     }
 
     fn can_send(&self) -> bool {
-        self.address.request_state() != RequestState::Active && self.address.request_state() != RequestState::ConnectInProgress
+        self.address.request_state() != RequestState::Active
+            && self.address.request_state() != RequestState::ConnectInProgress
             && self.address.is_valid()
-            && self.request.is_valid()
+            && self.request().is_valid()
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {

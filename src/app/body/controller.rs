@@ -17,9 +17,7 @@ pub struct TabController {
 
 impl TabController {
     pub fn new() -> TabController {
-        TabController {
-            client: None,
-        }
+        TabController { client: None }
     }
 }
 
@@ -57,8 +55,7 @@ where
     }
 }
 
-const FINISH_CONNECT: Selector<grpc::ConnectResult> =
-    Selector::new("app.body.finish-connect");
+const FINISH_CONNECT: Selector<grpc::ConnectResult> = Selector::new("app.body.finish-connect");
 const DISCONNECT: Selector = Selector::new("app.body.disconnect");
 const FINISH_SEND: Selector<SingleUse<grpc::ResponseResult>> =
     Selector::new("app.body.finish-send");
@@ -107,16 +104,22 @@ impl TabController {
         let target = ctx.widget_id();
 
         tokio::spawn(async move {
-            let client_result =  grpc::Client::new(uri).await;
+            let client_result = grpc::Client::new(uri).await;
             let _ = event_sink.submit_command(FINISH_CONNECT, client_result, target);
         });
 
         if data.address.request_state() != RequestState::Active {
-            data.address.set_request_state(RequestState::ConnectInProgress);
+            data.address
+                .set_request_state(RequestState::ConnectInProgress);
         }
     }
 
-    fn finish_connect(&mut self, _: &mut EventCtx, data: &mut TabState, result: grpc::ConnectResult) {
+    fn finish_connect(
+        &mut self,
+        _: &mut EventCtx,
+        data: &mut TabState,
+        result: grpc::ConnectResult,
+    ) {
         match result {
             Ok(client) if Some(client.uri()) == data.address.uri() => {
                 self.client = Some(client);
@@ -124,28 +127,29 @@ impl TabController {
                 if data.address.request_state() != RequestState::Active {
                     data.address.set_request_state(RequestState::Connected);
                 }
-            },
+            }
             Err((uri, _)) if Some(&uri) == data.address.uri() => {
                 data.address.set_request_state(RequestState::ConnectFailed);
-            },
+            }
             _ => (),
         }
     }
 
     fn start_send(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
-        let (uri, request) = if let (Some(uri), Some(request)) = (data.address.uri(), data.request.get()) {
-            (uri.clone(), request.clone())
-        } else {
-            log::error!("Send called with no address/request");
-            return
-        };
+        let (uri, request) =
+            if let (Some(uri), Some(request)) = (data.address.uri(), data.request().get()) {
+                (uri.clone(), request.clone())
+            } else {
+                log::error!("Send called with no address/request");
+                return;
+            };
 
         let client = match &self.client {
             Some(client) if client.uri() == &uri => client.clone(),
             _ => {
                 log::error!("Send called with invalid client");
-                return
-            },
+                return;
+            }
         };
 
         let event_sink = ctx.get_external_handle();
@@ -159,9 +163,14 @@ impl TabController {
         data.address.set_request_state(RequestState::Active);
     }
 
-    fn finish_send(&mut self, _: &mut EventCtx, data: &mut TabState, response: grpc::ResponseResult) {
-        data.response.update(response);
-        
+    fn finish_send(
+        &mut self,
+        _: &mut EventCtx,
+        data: &mut TabState,
+        response: grpc::ResponseResult,
+    ) {
+        data.stream.update(response);
+
         if self.client.is_some() {
             data.address.set_request_state(RequestState::Connected);
         } else {
@@ -169,7 +178,7 @@ impl TabController {
         }
     }
 
-    fn disconnect(&mut self, _: &mut EventCtx , data: &mut TabState) {
+    fn disconnect(&mut self, _: &mut EventCtx, data: &mut TabState) {
         self.client = None;
 
         if data.address.request_state() != RequestState::Active {
