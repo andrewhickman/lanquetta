@@ -4,15 +4,22 @@ pub mod request;
 use druid::{
     lens,
     widget::{prelude::*, List, ListIter, Scroll, ViewSwitcher},
-    Data, Lens, WidgetExt,
+    ArcStr, Data, Lens, WidgetExt,
 };
 
-use crate::{grpc, json::JsonText, protobuf::ProtobufMethod};
+use crate::{widget::{Expander, ExpanderData}, grpc, json::JsonText, protobuf::ProtobufMethod};
 
 #[derive(Debug, Clone, Data)]
 pub struct State {
-    items: im::Vector<item::State>,
-    request: request::State,
+    items: im::Vector<ListEntryExpanderState<item::State>>,
+    request: ListEntryExpanderState<request::State>,
+}
+
+#[derive(Debug, Clone, Data, Lens)]
+struct ListEntryExpanderState<T> {
+    label: ArcStr,
+    expanded: bool,
+    data: T,
 }
 
 #[derive(Debug, Clone, Data)]
@@ -31,8 +38,8 @@ pub fn build() -> Box<dyn Widget<State>> {
     Scroll::new(List::new(build_list_entry)).vertical().boxed()
 }
 
-fn build_list_entry() -> impl Widget<ListEntryState> {
-    ViewSwitcher::new(
+fn build_list_entry() -> impl Widget<ListEntryExpanderState<ListEntryState>> {
+    let entry = ViewSwitcher::new(
         |data: &ListEntryState, _| match data {
             ListEntryState::Item(_) => ListEntryStateKind::Item,
             ListEntryState::Request(_) => ListEntryStateKind::Request,
@@ -47,53 +54,114 @@ fn build_list_entry() -> impl Widget<ListEntryState> {
         },
     )
     .expand_width()
+    .lens(ListEntryExpanderState::<ListEntryState>::data);
+
+    Expander::new(|ctx, data, _| {
+        // TODO
+    }, entry)
 }
 
 impl State {
     pub fn empty(method: ProtobufMethod) -> Self {
         State {
             items: im::Vector::new(),
-            request: request::State::empty(method),
+            request: ListEntryExpanderState {
+                label: ArcStr::from("Unsent request"),
+                expanded: true,
+                data: request::State::empty(method),
+            },
         }
     }
 
-    pub fn with_text(method: ProtobufMethod, request: impl Into<JsonText>) -> Self {
+    pub fn with_text(method: ProtobufMethod, request: impl Into<JsonText>, expanded: bool) -> Self {
         State {
             items: im::Vector::new(),
-            request: request::State::with_text(method, request),
+            request: ListEntryExpanderState {
+                label: ArcStr::from("Unsent request"),
+                expanded,
+                data: request::State::with_text(method, request),
+            },
         }
     }
 
     pub fn update(&mut self, result: grpc::ResponseResult) {
-        self.items.push_back(item::State::new(result))
+        let name = ArcStr::from(format!("Response {}", self.items.len() + 1));
+        self.items.push_back(ListEntryExpanderState {
+            label: name,
+            expanded: true,
+            data: item::State::new(result),
+        });
     }
 
     pub(in crate::app) fn request(&self) -> &request::State {
-        &self.request
+        &self.request.data
     }
 }
 
-impl ListIter<ListEntryState> for State {
-    fn for_each(&self, mut cb: impl FnMut(&ListEntryState, usize)) {
-        self.items
-            .for_each(|item, index| cb(&ListEntryState::Item(item.clone()), index));
-        cb(
-            &ListEntryState::Request(self.request.clone()),
-            self.items.len(),
-        );
+impl<T> ExpanderData for ListEntryExpanderState<T>
+where
+    Self: Data,
+{
+    fn expanded(&self, _: &Env) -> bool {
+        self.expanded
     }
 
-    fn for_each_mut(&mut self, mut cb: impl FnMut(&mut ListEntryState, usize)) {
-        self.items.for_each_mut(|item, index| {
-            let mut entry = ListEntryState::Item(item.clone());
-            cb(&mut entry, index);
-            debug_assert!(entry.unwrap_item().same(&item));
+    fn toggle_expanded(&mut self, _: &Env) {
+        self.expanded = !self.expanded;
+    }
+
+    fn with_label<V>(&self, f: impl FnOnce(&ArcStr) -> V) -> V {
+        f(&self.label)
+    }
+
+    fn with_label_mut<V>(&mut self, f: impl FnOnce(&mut ArcStr) -> V) -> V {
+        f(&mut self.label)
+    }
+}
+
+impl ListIter<ListEntryExpanderState<ListEntryState>> for State {
+    fn for_each(&self, mut cb: impl FnMut(&ListEntryExpanderState<ListEntryState>, usize)) {
+        self.items.for_each(|item, index| {
+            let entry = ListEntryExpanderState {
+                label: item.label.clone(),
+                expanded: item.expanded,
+                data: ListEntryState::Item(item.data.clone()),
+            };
+            cb(&entry, index)
         });
 
-        let mut request = ListEntryState::Request(self.request.clone());
-        cb(&mut request, self.items.len());
-        if !request.unwrap_request().same(&self.request) {
-            self.request = request.unwrap_request().clone();
+        let entry = ListEntryExpanderState {
+            label: self.request.label.clone(),
+            expanded: self.request.expanded,
+            data: ListEntryState::Request(self.request.data.clone()),
+        };
+        cb(&entry, self.items.len());
+    }
+
+    fn for_each_mut(
+        &mut self,
+        mut cb: impl FnMut(&mut ListEntryExpanderState<ListEntryState>, usize),
+    ) {
+        self.items.for_each_mut(|item, index| {
+            let mut entry = ListEntryExpanderState {
+                label: item.label.clone(),
+                expanded: item.expanded,
+                data: ListEntryState::Item(item.data.clone()),
+            };
+            cb(&mut entry, index);
+            item.expanded = entry.expanded;
+            debug_assert!(entry.data.unwrap_item().same(&item.data));
+        });
+
+        let mut entry = ListEntryExpanderState {
+            label: self.request.label.clone(),
+            expanded: self.request.expanded,
+            data: ListEntryState::Request(self.request.data.clone()),
+        };
+        cb(&mut entry, self.items.len());
+        self.request.expanded = entry.expanded;
+        if !entry.data.unwrap_request().same(&self.request.data) {
+            self.request.data = entry.data.unwrap_request().clone();
         }
     }
 

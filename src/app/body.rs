@@ -105,10 +105,15 @@ impl TabState {
         }
     }
 
-    pub fn new(method: ProtobufMethod, address: String, request: impl Into<JsonText>) -> Self {
+    pub fn new(
+        method: ProtobufMethod,
+        address: String,
+        request: impl Into<JsonText>,
+        request_expanded: bool,
+    ) -> Self {
         TabState {
             address: address::AddressState::new(address),
-            stream: stream::State::with_text(method.clone(), request),
+            stream: stream::State::with_text(method.clone(), request, request_expanded),
             method,
         }
     }

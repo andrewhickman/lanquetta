@@ -53,7 +53,7 @@ pub(crate) fn set(env: &mut Env) {
     env.set(HIDDEN_TAB_BACKGROUND, color::BACKGROUND);
     env.set(
         EXPANDER_LABEL_FONT,
-        FontDescriptor::new(FontFamily::SANS_SERIF).with_size(16.0),
+        FontDescriptor::new(FontFamily::SANS_SERIF).with_size(15.0),
     );
     env.set(EXPANDER_BACKGROUND, color::ACCENT);
     env.set(EXPANDER_PADDING, 3.0);

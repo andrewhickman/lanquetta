@@ -198,7 +198,7 @@ where
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        let mut bg_color = env.get(theme::SIDEBAR_BACKGROUND);
+        let mut bg_color = env.get(theme::EXPANDER_BACKGROUND);
         if ctx.is_active() {
             bg_color = theme::color::active(bg_color, env.get(druid::theme::LABEL_COLOR));
         } else if ctx.is_hot() && !self.close.is_hot() {
