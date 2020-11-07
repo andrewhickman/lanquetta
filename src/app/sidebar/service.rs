@@ -117,6 +117,10 @@ impl ExpanderData for State {
     fn with_label_mut<V>(&mut self, f: impl FnOnce(&mut ArcStr) -> V) -> V {
         f(&mut self.service.name)
     }
+
+    fn can_close(&self) -> bool {
+        true
+    }
 }
 
 impl ListIter<method::State> for State {

@@ -17,6 +17,8 @@ pub trait ExpanderData: Data {
 
     fn with_label<V>(&self, f: impl FnOnce(&ArcStr) -> V) -> V;
     fn with_label_mut<V>(&mut self, f: impl FnOnce(&mut ArcStr) -> V) -> V;
+
+    fn can_close(&self) -> bool;
 }
 
 pub struct Expander;
@@ -148,7 +150,11 @@ where
         );
 
         let expanded_icon_size = self.expanded.layout(ctx, &icon_bc, data, env);
-        let close_size = self.close.layout(ctx, &icon_bc, data, env);
+        let close_size = if data.can_close() {
+            self.close.layout(ctx, &icon_bc, data, env)
+        } else {
+            Size::ZERO
+        };
 
         let label_bc = inner_bc.shrink((
             expanded_icon_size.width + padding + padding + close_size.width,

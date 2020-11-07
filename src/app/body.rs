@@ -1,5 +1,6 @@
 mod address;
 mod controller;
+mod request;
 mod stream;
 
 use std::{collections::BTreeMap, sync::Arc};
@@ -36,6 +37,8 @@ pub struct TabState {
     method: ProtobufMethod,
     #[lens(ignore)]
     address: address::AddressState,
+    #[lens(name = "request_lens")]
+    request: request::State,
     stream: stream::State,
 }
 
@@ -48,6 +51,8 @@ fn build_body() -> impl Widget<TabState> {
     Flex::column()
         .must_fill_main_axis(true)
         .with_child(address::build(id).lens(TabState::address_lens()))
+        .with_spacer(theme::GUTTER_SIZE)
+        .with_flex_child(request::build().lens(TabState::request_lens), 0.0)
         .with_spacer(theme::GUTTER_SIZE)
         .with_flex_child(stream::build().lens(TabState::stream), 1.0)
         .padding(theme::GUTTER_SIZE)
@@ -100,20 +105,17 @@ impl TabState {
     pub fn empty(method: ProtobufMethod) -> Self {
         TabState {
             address: address::AddressState::default(),
-            stream: stream::State::empty(method.clone()),
+            stream: stream::State::new(),
+            request: request::State::empty(method.clone()),
             method,
         }
     }
 
-    pub fn new(
-        method: ProtobufMethod,
-        address: String,
-        request: impl Into<JsonText>,
-        request_expanded: bool,
-    ) -> Self {
+    pub fn new(method: ProtobufMethod, address: String, request: impl Into<JsonText>) -> Self {
         TabState {
             address: address::AddressState::new(address),
-            stream: stream::State::with_text(method.clone(), request, request_expanded),
+            stream: stream::State::new(),
+            request: request::State::with_text(method.clone(), request),
             method,
         }
     }
@@ -126,15 +128,15 @@ impl TabState {
         &self.address
     }
 
-    pub(in crate::app) fn request(&self) -> &stream::request::State {
-        &self.stream.request()
+    pub(in crate::app) fn request(&self) -> &request::State {
+        &self.request
     }
 
     fn can_send(&self) -> bool {
         self.address.request_state() != RequestState::Active
             && self.address.request_state() != RequestState::ConnectInProgress
             && self.address.is_valid()
-            && self.request().is_valid()
+            && self.request.is_valid()
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {

@@ -83,7 +83,6 @@ struct AppBodyTabState {
     method: usize,
     address: String,
     request: String,
-    request_expanded: bool,
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -124,8 +123,6 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                         method: tab.method().method_index(),
                         address: tab.address().text().to_owned(),
                         request: tab.request().text().as_str().to_owned(),
-                        // request_expanded: tab.request_expanded(),
-                        request_expanded: true, //TODO
                     })
                 })
                 .collect::<Result<Vec<_>>>()?,
@@ -181,7 +178,7 @@ impl AppBodyState {
                     .clone();
                 Ok((
                     TabId::next(),
-                    app::body::TabState::new(method, tab.address, tab.request, tab.request_expanded),
+                    app::body::TabState::new(method, tab.address, tab.request),
                 ))
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
