@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use druid::{
     widget::{prelude::*, List, ListIter},
-    ArcStr, Data, FontDescriptor, FontFamily, Lens, Widget, WidgetExt,
+    ArcStr, Data, Lens, Widget, WidgetExt,
 };
 
 use crate::{
@@ -44,7 +44,7 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> Box<dyn Widget<State>> {
         env.set(theme::EXPANDER_CORNER_RADIUS, 0.0);
         env.set(
             theme::EXPANDER_LABEL_FONT,
-            FontDescriptor::new(FontFamily::SANS_SERIF).with_size(18.0),
+            theme::font::HEADER_ONE,
         );
 
         let mut bg_color = env.get(theme::SIDEBAR_BACKGROUND);

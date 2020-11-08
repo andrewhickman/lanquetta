@@ -1,7 +1,8 @@
 pub mod color;
+pub mod font;
 mod scope;
 
-use druid::{widget::Container, Color, Data, Env, FontDescriptor, FontFamily, Key, Widget};
+use druid::{widget::Container, Color, Data, Env, FontDescriptor, Key, Widget};
 
 pub(crate) const GUTTER_SIZE: f64 = 16.0;
 
@@ -43,18 +44,18 @@ pub(crate) fn set(env: &mut Env) {
 
     env.set(
         EDITOR_FONT,
-        FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0),
+        font::CODE,
     );
     env.set(
         TAB_LABEL_FONT,
-        FontDescriptor::new(FontFamily::SANS_SERIF).with_size(16.0),
+        font::HEADER_TWO,
     );
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
     env.set(SELECTED_TAB_BACKGROUND, color::ACCENT);
     env.set(HIDDEN_TAB_BACKGROUND, color::BACKGROUND);
     env.set(
         EXPANDER_LABEL_FONT,
-        FontDescriptor::new(FontFamily::SANS_SERIF).with_size(15.0),
+        font::HEADER_TWO,
     );
     env.set(EXPANDER_BACKGROUND, color::ACCENT);
     env.set(EXPANDER_PADDING, 3.0);
