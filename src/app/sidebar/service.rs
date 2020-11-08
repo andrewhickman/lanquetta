@@ -41,6 +41,7 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> Box<dyn Widget<State>> {
     )
     .env_scope(|env, data: &State| {
         env.set(theme::EXPANDER_PADDING, 8.0);
+        env.set(theme::EXPANDER_CORNER_RADIUS, 0.0);
         env.set(
             theme::EXPANDER_LABEL_FONT,
             FontDescriptor::new(FontFamily::SANS_SERIF).with_size(18.0),

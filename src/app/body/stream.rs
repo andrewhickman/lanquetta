@@ -43,9 +43,9 @@ impl State {
         }
     }
 
-    pub fn update(&mut self, result: grpc::ResponseResult) {
+    pub fn add_response(&mut self, result: grpc::ResponseResult) {
         let name = ArcStr::from(format!("Response {}", self.items.len() + 1));
-        self.items.push_front(ItemExpanderState {
+        self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
             data: item::State::new(result),

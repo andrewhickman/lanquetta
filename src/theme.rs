@@ -14,6 +14,7 @@ pub(crate) const HIDDEN_TAB_BACKGROUND: Key<Color> = Key::new("app.hidden-tab-ba
 pub(crate) const EXPANDER_LABEL_FONT: Key<FontDescriptor> = Key::new("app.expander-label-font");
 pub(crate) const EXPANDER_BACKGROUND: Key<Color> = Key::new("app.expander-background");
 pub(crate) const EXPANDER_PADDING: Key<f64> = Key::new("app.expander-padding");
+pub(crate) const EXPANDER_CORNER_RADIUS: Key<f64> = Key::new("app.expander-corner-radius");
 
 pub(crate) const INVALID: Key<bool> = Key::new("app.invalid");
 pub(crate) const DISABLED: Key<bool> = Key::new("app.disabled");
@@ -57,6 +58,7 @@ pub(crate) fn set(env: &mut Env) {
     );
     env.set(EXPANDER_BACKGROUND, color::ACCENT);
     env.set(EXPANDER_PADDING, 3.0);
+    env.set(EXPANDER_CORNER_RADIUS, 2.0);
 
     env.set(DISABLED, false);
     env.set(INVALID, false);

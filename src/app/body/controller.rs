@@ -169,7 +169,7 @@ impl TabController {
         data: &mut TabState,
         response: grpc::ResponseResult,
     ) {
-        data.stream.update(response);
+        data.stream.add_response(response);
 
         if self.client.is_some() {
             data.address.set_request_state(RequestState::Connected);
