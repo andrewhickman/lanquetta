@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Result;
 use http::Uri;
@@ -45,19 +45,12 @@ impl Client {
         &self.uri
     }
 
-    pub async fn send(self, request: Request) -> ResponseResult {
-        #![allow(unused)]
-
-        tokio::time::delay_for(Duration::from_secs(2)).await;
-        return Ok(Response {
-            body: request.method.response().empty(),
-        });
-
+    pub async fn send(mut self, request: Request) -> ResponseResult {
         let body = self
             .grpc
             .unary(
                 request.body.into_request(),
-                request.method.path()?,
+                request.method.path(),
                 request.method.codec(),
             )
             .await

@@ -33,12 +33,7 @@ pub fn build() -> Box<dyn Widget<State>> {
 fn build_list_entry() -> impl Widget<ItemExpanderState> {
     let entry = item::build().expand_width().lens(ItemExpanderState::data);
 
-    Expander::new(
-        |_, _, _| {
-            unreachable!()
-        },
-        entry,
-    )
+    Expander::new(|_, _, _| unreachable!(), entry)
 }
 
 impl State {

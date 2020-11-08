@@ -31,7 +31,7 @@ features = ["im", "svg"]
 
 [dependencies.protobuf]
 git = "https://github.com/andrewhickman/rust-protobuf.git"
-branch = "master"
+rev = "d7015705228891b0288843c6b6d920b1b7f82968"
 features = ["with-serde"]
 
 [dependencies.tonic]

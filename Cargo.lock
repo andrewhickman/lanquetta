@@ -186,9 +186,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed67cbde08356238e75fc4656be4749481eeffb09e19f320a25237d5221c985d"
+checksum = "f1770ced377336a88a67c473594ccc14eca6f4559217c34f64aac8f83d641b40"
 
 [[package]]
 name = "cfg-if"
@@ -409,7 +409,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#d8da4b6b270efa1355ed8a3d22b7ddb35d7e9368"
+source = "git+https://github.com/linebender/druid.git?branch=master#0d304a2f66cb7afc2c6ba06b56d3ab56e17af24d"
 dependencies = [
  "console_log",
  "druid-derive",
@@ -432,7 +432,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.3.1"
-source = "git+https://github.com/linebender/druid.git?branch=master#d8da4b6b270efa1355ed8a3d22b7ddb35d7e9368"
+source = "git+https://github.com/linebender/druid.git?branch=master#0d304a2f66cb7afc2c6ba06b56d3ab56e17af24d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -442,7 +442,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.6.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#d8da4b6b270efa1355ed8a3d22b7ddb35d7e9368"
+source = "git+https://github.com/linebender/druid.git?branch=master#0d304a2f66cb7afc2c6ba06b56d3ab56e17af24d"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -463,7 +463,7 @@ dependencies = [
  "instant",
  "js-sys",
  "keyboard-types",
- "kurbo 0.7.0",
+ "kurbo 0.7.1",
  "lazy_static",
  "log",
  "objc",
@@ -903,7 +903,7 @@ dependencies = [
  "http",
  "im",
  "iter-set",
- "kurbo 0.7.0",
+ "kurbo 0.7.1",
  "log",
  "memchr",
  "once_cell",
@@ -1219,9 +1219,9 @@ dependencies = [
 
 [[package]]
 name = "kurbo"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ebfa590bba04e706e514c3285bb2c662610136fdbd58d7572d8afe0d22de1f0"
+checksum = "16cb54cd28cb3d2e964d9444ca185676a94fd9b7cce5f02b22c717947ed8e9a2"
 dependencies = [
  "arrayvec",
  "serde",
@@ -1462,7 +1462,7 @@ version = "0.2.0-pre6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6516cf192cccc3037c3ba5405018f83e026e3b340110ef7f6ce58cbddd25cf2"
 dependencies = [
- "kurbo 0.7.0",
+ "kurbo 0.7.1",
 ]
 
 [[package]]
@@ -1674,7 +1674,7 @@ dependencies = [
 [[package]]
 name = "protobuf"
 version = "3.0.0-pre"
-source = "git+https://github.com/andrewhickman/rust-protobuf.git?branch=master#4e66c17ad2a5811b7e8419ab38101d92f11bb71e"
+source = "git+https://github.com/andrewhickman/rust-protobuf.git?rev=d7015705228891b0288843c6b6d920b1b7f82968#d7015705228891b0288843c6b6d920b1b7f82968"
 dependencies = [
  "serde",
  "serde_derive",

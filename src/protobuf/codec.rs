@@ -57,7 +57,10 @@ impl Encoder for ProtobufEncoder {
     fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
         debug_assert_eq!(&item.descriptor_dyn(), &self.descriptor);
         item.write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
-            .map_err(|err| tonic::Status::internal(err.to_string()))?;
+            .map_err(|err| {
+                log::error!("{}", err);
+                tonic::Status::internal(err.to_string())
+            })?;
         Ok(())
     }
 }
@@ -69,7 +72,10 @@ impl Decoder for ProtobufDecoder {
     fn decode(&mut self, src: &mut DecodeBuf) -> Result<Option<Self::Item>, Self::Error> {
         let mut item = self.descriptor.new_instance();
         item.merge_from_dyn(&mut CodedInputStream::new(&mut src.reader()))
-            .map_err(|err| tonic::Status::internal(err.to_string()))?;
+            .map_err(|err| {
+                log::error!("{}", err);
+                tonic::Status::internal(err.to_string())
+            })?;
         Ok(Some(item.into()))
     }
 }

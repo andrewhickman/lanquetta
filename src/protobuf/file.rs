@@ -1,6 +1,5 @@
-use std::path::Path;
-use std::str::FromStr;
 use std::sync::Arc;
+use std::{path::Path, str::FromStr};
 
 use anyhow::{Context, Result};
 use druid::{ArcStr, Data};
@@ -27,7 +26,7 @@ pub struct ProtobufMethod {
     service_index: usize,
     method_index: usize,
     name: ArcStr,
-    service_name: ArcStr,
+    path: PathAndQuery,
     kind: ProtobufMethodKind,
     request: MessageDescriptor,
     response: MessageDescriptor,
@@ -39,10 +38,16 @@ impl ProtobufService {
 
         files
             .iter()
-            .flat_map(|file| &file.proto().service)
+            .flat_map(|file| file.proto().service.iter().map(move |service| (file, service)))
             .enumerate()
-            .map(|(index, service)| {
-                ProtobufService::new(descriptor_set.clone(), index, service, &files)
+            .map(|(index, (file, service))| {
+                ProtobufService::new(
+                    descriptor_set.clone(),
+                    index,
+                    file.proto().get_package(),
+                    service,
+                    &files,
+                )
             })
             .collect()
     }
@@ -58,21 +63,30 @@ impl ProtobufService {
     fn new(
         fd_set: Arc<FileDescriptorSet>,
         service_index: usize,
+        package: &str,
         proto: &ServiceDescriptorProto,
         files: &[FileDescriptor],
     ) -> Result<Self> {
         let name: ArcStr = proto.get_name().into();
+
         Ok(ProtobufService {
             methods: proto
                 .method
                 .iter()
                 .enumerate()
                 .map(|(method_index, method)| {
+                    let path = PathAndQuery::from_str(&format!(
+                        "/{}.{}/{}",
+                        package,
+                        name,
+                        method.get_name()
+                    ))?;
+
                     ProtobufMethod::new(
                         fd_set.clone(),
                         service_index,
                         method_index,
-                        name.clone(),
+                        path,
                         method,
                         files,
                     )
@@ -110,7 +124,7 @@ impl ProtobufMethod {
         fd_set: Arc<FileDescriptorSet>,
         service_index: usize,
         method_index: usize,
-        service_name: ArcStr,
+        path: PathAndQuery,
         proto: &MethodDescriptorProto,
         files: &[FileDescriptor],
     ) -> Result<Self> {
@@ -137,7 +151,7 @@ impl ProtobufMethod {
             fd_set,
             service_index,
             method_index,
-            service_name,
+            path,
             name: proto.get_name().into(),
             kind,
             request: find_type(proto.get_input_type(), files)?,
@@ -157,19 +171,12 @@ impl ProtobufMethod {
         ProtobufMessage::new(self.request.clone())
     }
 
-    pub fn response(&self) -> ProtobufMessage {
-        ProtobufMessage::new(self.response.clone())
-    }
-
     pub fn codec(&self) -> ProtobufCodec {
         ProtobufCodec::new(self.request.clone(), self.response.clone())
     }
 
-    pub fn path(&self) -> Result<PathAndQuery> {
-        Ok(PathAndQuery::from_str(&format!(
-            "{}/{}",
-            self.service_name, self.name
-        ))?)
+    pub fn path(&self) -> PathAndQuery {
+        self.path.clone()
     }
 
     pub fn fd_set(&self) -> Arc<FileDescriptorSet> {
