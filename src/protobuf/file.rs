@@ -38,7 +38,12 @@ impl ProtobufService {
 
         files
             .iter()
-            .flat_map(|file| file.proto().service.iter().map(move |service| (file, service)))
+            .flat_map(|file| {
+                file.proto()
+                    .service
+                    .iter()
+                    .map(move |service| (file, service))
+            })
             .enumerate()
             .map(|(index, (file, service))| {
                 ProtobufService::new(

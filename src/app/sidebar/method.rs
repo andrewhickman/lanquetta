@@ -1,8 +1,7 @@
 use druid::{
     widget::LineBreaking,
     widget::{Flex, Label, Painter, ViewSwitcher},
-    ArcStr, Color, Data, Env, Lens, PaintCtx, RenderContext, Widget,
-    WidgetExt as _,
+    ArcStr, Color, Data, Env, Lens, PaintCtx, RenderContext, Widget, WidgetExt as _,
 };
 
 use crate::{
@@ -39,7 +38,7 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .with_font(theme::font::HEADER_TWO)
         .with_text_size(16.0)
         .with_line_break_mode(LineBreaking::Clip)
-        .padding((theme::GUTTER_SIZE, theme::GUTTER_SIZE / 4.0))
+        .padding((8.0, 4.0))
         .expand_width()
         .lens(MethodState::name());
 

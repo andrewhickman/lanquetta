@@ -13,6 +13,8 @@ use crate::{
 #[derive(Debug, Clone, Data, Lens)]
 pub struct State {
     items: im::Vector<ItemExpanderState>,
+    response_count: u32,
+    request_count: u32,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -40,15 +42,28 @@ impl State {
     pub fn new() -> Self {
         State {
             items: im::Vector::new(),
+            response_count: 0,
+            request_count: 0,
         }
     }
 
-    pub fn add_response(&mut self, result: grpc::ResponseResult) {
-        let name = ArcStr::from(format!("Response {}", self.items.len() + 1));
+    pub fn add_request(&mut self, request: &grpc::Request) {
+        self.request_count += 1;
+        let name = ArcStr::from(format!("Request {}", self.request_count));
         self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
-            data: item::State::new(result),
+            data: item::State::from_request(request),
+        });
+    }
+
+    pub fn add_response(&mut self, result: &grpc::ResponseResult) {
+        self.response_count += 1;
+        let name = ArcStr::from(format!("Response {}", self.response_count));
+        self.items.push_back(ItemExpanderState {
+            label: name,
+            expanded: true,
+            data: item::State::from_response(result),
         });
     }
 }

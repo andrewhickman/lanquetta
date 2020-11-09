@@ -152,6 +152,8 @@ impl TabController {
             }
         };
 
+        data.stream.add_request(&request);
+
         let event_sink = ctx.get_external_handle();
         let target = ctx.widget_id();
 
@@ -169,7 +171,7 @@ impl TabController {
         data: &mut TabState,
         response: grpc::ResponseResult,
     ) {
-        data.stream.add_response(response);
+        data.stream.add_response(&response);
 
         if self.client.is_some() {
             data.address.set_request_state(RequestState::Connected);

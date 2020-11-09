@@ -4,7 +4,8 @@ mod scope;
 
 use druid::{widget::Container, Color, Data, Env, FontDescriptor, Key, Widget};
 
-pub(crate) const GUTTER_SIZE: f64 = 16.0;
+pub(crate) const BODY_PADDING: f64 = 16.0;
+pub(crate) const BODY_SPACER: f64 = 12.0;
 
 pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("app.editor-font");
 pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-font");
@@ -42,21 +43,12 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::SCROLLBAR_COLOR, color::TEXT.with_alpha(0.38));
     env.set(druid::theme::SCROLLBAR_BORDER_COLOR, color::TEXT);
 
-    env.set(
-        EDITOR_FONT,
-        font::CODE,
-    );
-    env.set(
-        TAB_LABEL_FONT,
-        font::HEADER_TWO,
-    );
+    env.set(EDITOR_FONT, font::CODE);
+    env.set(TAB_LABEL_FONT, font::HEADER_TWO);
     env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
     env.set(SELECTED_TAB_BACKGROUND, color::ACCENT);
     env.set(HIDDEN_TAB_BACKGROUND, color::BACKGROUND);
-    env.set(
-        EXPANDER_LABEL_FONT,
-        font::HEADER_TWO,
-    );
+    env.set(EXPANDER_LABEL_FONT, font::HEADER_TWO);
     env.set(EXPANDER_BACKGROUND, color::ACCENT);
     env.set(EXPANDER_PADDING, 3.0);
     env.set(EXPANDER_CORNER_RADIUS, 2.0);

@@ -106,7 +106,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_flex_child(address_form_field.lens(State::address), 1.0)
-        .with_spacer(theme::GUTTER_SIZE)
+        .with_spacer(theme::BODY_SPACER)
         .with_child(
             spinner
                 .lens(AddressState::request_state_lens)
@@ -229,6 +229,6 @@ where
         .padding(padding)
         .center()
         .fix_size(24.0, 24.0)
-        .padding((0.0, 0.0, theme::GUTTER_SIZE, 0.0))
+        .padding((0.0, 0.0, theme::BODY_SPACER, 0.0))
         .boxed()
 }

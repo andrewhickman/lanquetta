@@ -5,7 +5,7 @@ mod stream;
 
 use std::{collections::BTreeMap, sync::Arc};
 
-use druid::{widget::Flex, Data, Lens, Widget, WidgetExt as _, WidgetId};
+use druid::{widget::Flex, widget::Label, Data, Lens, Widget, WidgetExt as _, WidgetId};
 use iter_set::Inclusion;
 
 use self::controller::TabController;
@@ -51,11 +51,23 @@ fn build_body() -> impl Widget<TabState> {
     Flex::column()
         .must_fill_main_axis(true)
         .with_child(address::build(id).lens(TabState::address_lens()))
-        .with_spacer(theme::GUTTER_SIZE)
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(
+            Label::new("Request editor")
+                .with_font(theme::font::HEADER_TWO)
+                .align_left(),
+        )
+        .with_spacer(theme::BODY_SPACER)
         .with_flex_child(request::build().lens(TabState::request_lens), 0.0)
-        .with_spacer(theme::GUTTER_SIZE)
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(
+            Label::new("History")
+                .with_font(theme::font::HEADER_TWO)
+                .align_left(),
+        )
+        .with_spacer(theme::BODY_SPACER)
         .with_flex_child(stream::build().lens(TabState::stream), 1.0)
-        .padding(theme::GUTTER_SIZE)
+        .padding(theme::BODY_PADDING)
         .controller(TabController::new())
         .with_id(id)
 }

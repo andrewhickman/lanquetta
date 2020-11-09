@@ -16,8 +16,19 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 }
 
 impl State {
-    pub fn new(result: grpc::ResponseResult) -> Self {
+    pub fn from_request(request: &grpc::Request) -> Self {
+        let body = match protobuf::to_json(&*request.body) {
+            Ok(body) => JsonText::pretty(body),
+            Err(err) => JsonText::plain_text(format!("{:?}", err)),
+        };
+
+        State { body }
+    }
+
+    pub fn from_response(result: &grpc::ResponseResult) -> Self {
         let body = match result
+            .as_ref()
+            .map_err(|err| err.clone())
             .and_then(|response| protobuf::to_json(&*response.body).map_err(Arc::new))
         {
             Ok(body) => JsonText::pretty(body),

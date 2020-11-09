@@ -210,7 +210,9 @@ where
         } else if ctx.is_hot() && !self.close.is_hot() {
             bg_color = theme::color::hot(bg_color, env.get(druid::theme::LABEL_COLOR));
         }
-        let bounds = ctx.size().to_rounded_rect(env.get(theme::EXPANDER_CORNER_RADIUS));
+        let bounds = ctx
+            .size()
+            .to_rounded_rect(env.get(theme::EXPANDER_CORNER_RADIUS));
         ctx.fill(bounds, &bg_color);
 
         self.expanded.paint(ctx, data, env);
