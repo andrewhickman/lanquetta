@@ -1,8 +1,10 @@
 use bytes::buf::ext::{BufExt, BufMutExt};
 use protobuf::reflect::MessageDescriptor;
-use protobuf::{CodedInputStream, CodedOutputStream, MessageDyn};
+use protobuf::{CodedInputStream, CodedOutputStream};
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
 use tonic::Status;
+
+use crate::grpc;
 
 #[derive(Debug, Clone)]
 pub struct ProtobufCodec {
@@ -51,12 +53,12 @@ impl Codec for ProtobufCodec {
 }
 
 impl Encoder for ProtobufEncoder {
-    type Item = Box<dyn MessageDyn>;
+    type Item = grpc::Request;
     type Error = Status;
 
-    fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
-        debug_assert_eq!(&item.descriptor_dyn(), &self.descriptor);
-        item.write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
+    fn encode(&mut self, mut item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
+        debug_assert_eq!(&item.body().descriptor_dyn(), &self.descriptor);
+        item.body_mut().write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
             .map_err(|err| {
                 log::error!("{}", err);
                 tonic::Status::internal(err.to_string())
@@ -66,7 +68,7 @@ impl Encoder for ProtobufEncoder {
 }
 
 impl Decoder for ProtobufDecoder {
-    type Item = Box<dyn MessageDyn>;
+    type Item = grpc::Response;
     type Error = Status;
 
     fn decode(&mut self, src: &mut DecodeBuf) -> Result<Option<Self::Item>, Self::Error> {
@@ -76,6 +78,6 @@ impl Decoder for ProtobufDecoder {
                 log::error!("{}", err);
                 tonic::Status::internal(err.to_string())
             })?;
-        Ok(Some(item.into()))
+        Ok(Some(grpc::Response::new(item.into())))
     }
 }
