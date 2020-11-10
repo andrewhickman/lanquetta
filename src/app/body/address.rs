@@ -11,10 +11,7 @@ use druid::{
 use http::Uri;
 use once_cell::sync::Lazy;
 
-use crate::{
-    app::{body::RequestState, command, theme},
-    widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT},
-};
+use crate::{protobuf::ProtobufMethodKind, app::{body::RequestState, command, theme}, widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT}};
 
 type AddressValidationState = ValidationState<String, Uri, String>;
 
@@ -29,9 +26,8 @@ pub(in crate::app) struct AddressState {
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     address: AddressState,
-    #[lens(name = "can_send_lens")]
-    can_send: bool,
-    client_streaming: bool,
+    body_valid: bool,
+    method_kind: ProtobufMethodKind,
 }
 
 struct AddressController {
@@ -83,29 +79,27 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
             RequestState::NotStarted | RequestState::ConnectFailed => "Connect".to_owned(),
             RequestState::ConnectInProgress => "Connecting...".to_owned(),
             RequestState::Connected => "Send".to_owned(),
-            RequestState::Active if data.client_streaming => "Send".to_owned(),
+            RequestState::Active if data.method_kind.client_streaming() => "Send".to_owned(),
             RequestState::Active => "Sending...".to_owned(),
         })
         .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
-            if data.can_send {
+            if data.can_send() || data.can_connect() {
                 match data.address.request_state() {
                     RequestState::NotStarted | RequestState::ConnectFailed => {
+                        debug_assert!(data.can_connect());
                         ctx.submit_command(command::CONNECT.to(body_id));
                     }
                     RequestState::ConnectInProgress => unreachable!(),
-                    RequestState::Connected => {
+                    RequestState::Connected | RequestState::Active => {
+                        debug_assert!(data.can_send());
                         ctx.submit_command(command::SEND.to(body_id));
                     }
-                    RequestState::Active => {
-                        debug_assert!(data.client_streaming);
-                        ctx.submit_command(command::SEND.to(body_id));
-                    },
                 }
             }
         }),
     )
     .env_scope(|env, data: &State| {
-        env.set(theme::DISABLED, !data.can_send);
+        env.set(theme::DISABLED, !data.can_send() && !data.can_connect());
     });
 
     Flex::row()
@@ -133,8 +127,12 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, can_send: bool, client_streaming: bool) -> Self {
-        State { address, can_send, client_streaming }
+    pub fn new(address: AddressState, method_kind: ProtobufMethodKind, body_valid: bool) -> Self {
+        State {
+            address,
+            method_kind,
+            body_valid,
+        }
     }
 
     pub fn address_state(&self) -> &AddressState {
@@ -146,7 +144,17 @@ impl State {
     }
 
     pub fn can_send(&self) -> bool {
-        self.can_send
+        (self.address.request_state() != RequestState::Active
+            || self.method_kind.client_streaming())
+            && self.address.request_state() != RequestState::ConnectInProgress
+            && self.address.is_valid()
+            && self.body_valid
+    }
+
+    pub fn can_connect(&self) -> bool {
+        self.address.request_state() != RequestState::Active
+            && self.address.request_state() != RequestState::ConnectInProgress
+            && self.address.is_valid()
     }
 }
 

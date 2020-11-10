@@ -146,7 +146,7 @@ impl TabController {
             };
 
         data.stream.add_request(&request);
-        
+
         if let Some(call) = &self.call {
             call.send(request);
         } else {

@@ -144,20 +144,16 @@ impl TabState {
         &self.request
     }
 
-    fn can_send(&self) -> bool {
-        (self.address.request_state() != RequestState::Active
-            || self.method.kind().client_streaming())
-            && self.address.request_state() != RequestState::ConnectInProgress
-            && self.address.is_valid()
-            && self.request.is_valid()
-    }
-
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {
         struct AddressLens;
 
         impl Lens<TabState, address::State> for AddressLens {
             fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
-                f(&address::State::new(data.address.clone(), data.can_send(), data.method.kind().client_streaming()))
+                f(&address::State::new(
+                    data.address.clone(),
+                    data.method.kind(),
+                    data.request.is_valid(),
+                ))
             }
 
             fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
@@ -165,10 +161,13 @@ impl TabState {
                 data: &mut TabState,
                 f: F,
             ) -> V {
-                let mut address_data = address::State::new(data.address.clone(), data.can_send(), data.method.kind().client_streaming());
+                let mut address_data = address::State::new(
+                    data.address.clone(),
+                    data.method.kind(),
+                    data.request.is_valid(),
+                );
                 let result = f(&mut address_data);
 
-                debug_assert_eq!(data.can_send(), address_data.can_send());
                 if !data.address.same(address_data.address_state()) {
                     data.address = address_data.into_address_state();
                 }
