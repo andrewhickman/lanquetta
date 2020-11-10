@@ -18,7 +18,10 @@ pub struct TabController {
 
 impl TabController {
     pub fn new() -> TabController {
-        TabController { client: None, call: None, }
+        TabController {
+            client: None,
+            call: None,
+        }
     }
 }
 
@@ -58,7 +61,7 @@ where
 
 const FINISH_CONNECT: Selector<grpc::ConnectResult> = Selector::new("app.body.finish-connect");
 const DISCONNECT: Selector = Selector::new("app.body.disconnect");
-const FINISH_SEND: Selector<SingleUse<grpc::ResponseResult>> =
+const FINISH_SEND: Selector<SingleUse<Option<grpc::ResponseResult>>> =
     Selector::new("app.body.finish-send");
 
 impl TabController {
@@ -142,33 +145,44 @@ impl TabController {
                 return;
             };
 
-        let client = match &self.client {
-            Some(client) if client.uri() == &uri => client.clone(),
-            _ => {
-                log::error!("Send called with invalid client");
-                return;
-            }
-        };
-
         data.stream.add_request(&request);
+        
+        if let Some(call) = &self.call {
+            call.send(request);
+        } else {
+            let client = match &self.client {
+                Some(client) if client.uri() == &uri => client.clone(),
+                _ => {
+                    log::error!("Send called with invalid client");
+                    return;
+                }
+            };
 
-        let event_sink = ctx.get_external_handle();
-        let target = ctx.widget_id();
+            let event_sink = ctx.get_external_handle();
+            let target = ctx.widget_id();
 
-        self.call = Some(client.call(request, move |response| {
-            let _ = event_sink.submit_command(FINISH_SEND, SingleUse::new(response), target);
-        }));
+            self.call = Some(client.call(&data.method, request, move |response| {
+                let _ = event_sink.submit_command(FINISH_SEND, SingleUse::new(response), target);
+            }));
 
-        data.address.set_request_state(RequestState::Active);
+            data.address.set_request_state(RequestState::Active);
+        }
     }
 
     fn finish_send(
         &mut self,
         _: &mut EventCtx,
         data: &mut TabState,
-        response: grpc::ResponseResult,
+        response: Option<grpc::ResponseResult>,
     ) {
-        data.stream.add_response(&response);
+        match response {
+            Some(result) => {
+                data.stream.add_response(&result);
+            }
+            None => {
+                self.call = None;
+            }
+        }
 
         self.set_request_state(data);
     }

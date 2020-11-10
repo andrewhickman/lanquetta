@@ -31,6 +31,7 @@ pub(in crate::app) struct State {
     address: AddressState,
     #[lens(name = "can_send_lens")]
     can_send: bool,
+    client_streaming: bool,
 }
 
 struct AddressController {
@@ -82,6 +83,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
             RequestState::NotStarted | RequestState::ConnectFailed => "Connect".to_owned(),
             RequestState::ConnectInProgress => "Connecting...".to_owned(),
             RequestState::Connected => "Send".to_owned(),
+            RequestState::Active if data.client_streaming => "Send".to_owned(),
             RequestState::Active => "Sending...".to_owned(),
         })
         .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
@@ -94,7 +96,10 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
                     RequestState::Connected => {
                         ctx.submit_command(command::SEND.to(body_id));
                     }
-                    RequestState::Active => unreachable!(),
+                    RequestState::Active => {
+                        debug_assert!(data.client_streaming);
+                        ctx.submit_command(command::SEND.to(body_id));
+                    },
                 }
             }
         }),
@@ -128,8 +133,8 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, can_send: bool) -> Self {
-        State { address, can_send }
+    pub fn new(address: AddressState, can_send: bool, client_streaming: bool) -> Self {
+        State { address, can_send, client_streaming }
     }
 
     pub fn address_state(&self) -> &AddressState {

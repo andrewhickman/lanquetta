@@ -118,7 +118,7 @@ impl TabState {
         TabState {
             address: address::AddressState::default(),
             stream: stream::State::new(),
-            request: request::State::empty(method.clone()),
+            request: request::State::empty(method.request()),
             method,
         }
     }
@@ -127,7 +127,7 @@ impl TabState {
         TabState {
             address: address::AddressState::new(address),
             stream: stream::State::new(),
-            request: request::State::with_text(method.clone(), request),
+            request: request::State::with_text(method.request(), request),
             method,
         }
     }
@@ -145,7 +145,8 @@ impl TabState {
     }
 
     fn can_send(&self) -> bool {
-        self.address.request_state() != RequestState::Active
+        (self.address.request_state() != RequestState::Active
+            || self.method.kind().client_streaming())
             && self.address.request_state() != RequestState::ConnectInProgress
             && self.address.is_valid()
             && self.request.is_valid()
@@ -156,7 +157,7 @@ impl TabState {
 
         impl Lens<TabState, address::State> for AddressLens {
             fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
-                f(&address::State::new(data.address.clone(), data.can_send()))
+                f(&address::State::new(data.address.clone(), data.can_send(), data.method.kind().client_streaming()))
             }
 
             fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
@@ -164,7 +165,7 @@ impl TabState {
                 data: &mut TabState,
                 f: F,
             ) -> V {
-                let mut address_data = address::State::new(data.address.clone(), data.can_send());
+                let mut address_data = address::State::new(data.address.clone(), data.can_send(), data.method.kind().client_streaming());
                 let result = f(&mut address_data);
 
                 debug_assert_eq!(data.can_send(), address_data.can_send());

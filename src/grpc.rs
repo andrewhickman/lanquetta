@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use futures::{StreamExt, TryStreamExt};
 use http::Uri;
 use protobuf::MessageDyn;
 use tokio::sync::mpsc;
 use tonic::{client::Grpc, transport::Channel, IntoRequest};
-use futures::{StreamExt, TryStreamExt};
 
 use crate::protobuf::{ProtobufMethod, ProtobufMethodKind};
 
@@ -14,7 +14,6 @@ pub type ResponseResult = Result<Response, Error>;
 
 #[derive(Debug, Clone)]
 pub struct Request {
-    pub method: ProtobufMethod,
     pub body: Box<dyn MessageDyn>,
 }
 
@@ -25,7 +24,7 @@ pub struct Response {
 
 #[derive(Debug)]
 pub struct Call {
-    request_sender: Option<mpsc::Sender<Request>>,
+    request_sender: Option<mpsc::UnboundedSender<Request>>,
 }
 
 pub type Error = Arc<anyhow::Error>;
@@ -52,20 +51,22 @@ impl Client {
         &self.uri
     }
 
-    pub fn call<F>(mut self, request: Request, mut on_response: F) -> Call 
-    where F: FnMut(ResponseResult) + Send + 'static
+    pub fn call<F>(mut self, method: &ProtobufMethod, request: Request, mut on_response: F) -> Call
+    where
+        F: FnMut(Option<ResponseResult>) + Send + 'static,
     {
-        let path = request.method.path();
-        let codec = request.method.codec();
+        let path = method.path();
+        let codec = method.codec();
 
-        match request.method.kind() {
+        match method.kind() {
             ProtobufMethodKind::Unary => {
                 tokio::spawn(async move {
                     let result = match self.grpc.unary(request.into_request(), path, codec).await {
                         Ok(response) => Ok(response.into_inner()),
                         Err(err) => Err(arc_err(err)),
                     };
-                    on_response(result);
+                    on_response(Some(result));
+                    on_response(None);
                 });
 
                 Call {
@@ -73,7 +74,7 @@ impl Client {
                 }
             }
             ProtobufMethodKind::ClientStreaming => {
-                let (request_sender, request_receiver) = mpsc::channel(1);
+                let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
                 tokio::spawn(async move {
                     let result = match self
@@ -84,7 +85,8 @@ impl Client {
                         Ok(response) => Ok(response.into_inner()),
                         Err(err) => Err(arc_err(err)),
                     };
-                    on_response(result);
+                    on_response(Some(result));
+                    on_response(None);
                 });
 
                 Call {
@@ -100,14 +102,19 @@ impl Client {
                     {
                         Ok(stream) => stream.into_inner().map_err(arc_err),
                         Err(err) => {
-                            on_response(Err(arc_err(err)));
+                            on_response(Some(Err(arc_err(err))));
                             return;
                         }
                     };
 
                     while let Some(result) = stream.next().await {
-                        on_response(result);
+                        let is_err = result.is_err();
+                        on_response(Some(result));
+                        if is_err {
+                            break;
+                        }
                     }
+                    on_response(None);
                 });
 
                 Call {
@@ -115,7 +122,7 @@ impl Client {
                 }
             }
             ProtobufMethodKind::Streaming => {
-                let (request_sender, request_receiver) = mpsc::channel(1);
+                let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
                 tokio::spawn(async move {
                     let mut stream = match self
@@ -125,14 +132,19 @@ impl Client {
                     {
                         Ok(stream) => stream.into_inner().map_err(arc_err),
                         Err(err) => {
-                            on_response(Err(arc_err(err)));
+                            on_response(Some(Err(arc_err(err))));
                             return;
                         }
                     };
 
                     while let Some(result) = stream.next().await {
-                        on_response(result);
+                        let is_err = result.is_err();
+                        on_response(Some(result));
+                        if is_err {
+                            break;
+                        }
                     }
+                    on_response(None);
                 });
 
                 Call {
@@ -156,6 +168,16 @@ impl Request {
 impl Response {
     pub fn new(body: Box<dyn MessageDyn>) -> Self {
         Response { body }
+    }
+}
+
+impl Call {
+    pub fn send(&self, request: Request) {
+        let _ = self
+            .request_sender
+            .as_ref()
+            .expect("called 'send' on non client streaming call")
+            .send(request);
     }
 }
 

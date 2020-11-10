@@ -197,6 +197,15 @@ impl ProtobufMethod {
     }
 }
 
+impl ProtobufMethodKind {
+    pub fn client_streaming(&self) -> bool {
+        match self {
+            ProtobufMethodKind::Unary | ProtobufMethodKind::ServerStreaming => false,
+            ProtobufMethodKind::ClientStreaming | ProtobufMethodKind::Streaming => true,
+        }
+    }
+}
+
 impl Data for ProtobufMethod {
     fn same(&self, other: &Self) -> bool {
         self.name.same(&other.name)

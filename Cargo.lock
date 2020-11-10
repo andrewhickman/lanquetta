@@ -1674,7 +1674,7 @@ dependencies = [
 [[package]]
 name = "protobuf"
 version = "3.0.0-pre"
-source = "git+https://github.com/andrewhickman/rust-protobuf.git?rev=d7015705228891b0288843c6b6d920b1b7f82968#d7015705228891b0288843c6b6d920b1b7f82968"
+source = "git+https://github.com/andrewhickman/rust-protobuf.git?rev=666318a6febd2a7b894116848fa1ff5c8d08bf3f#666318a6febd2a7b894116848fa1ff5c8d08bf3f"
 dependencies = [
  "serde",
  "serde_derive",

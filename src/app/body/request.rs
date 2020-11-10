@@ -8,7 +8,7 @@ use druid::{
 use crate::{
     grpc,
     json::JsonText,
-    protobuf::ProtobufMethod,
+    protobuf::ProtobufMessage,
     theme,
     widget::{Empty, FormField, ValidationState, FINISH_EDIT},
 };
@@ -47,22 +47,17 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
 }
 
 impl State {
-    pub fn empty(method: ProtobufMethod) -> Self {
-        let json = JsonText::pretty(method.request().empty_json());
-        State::with_text(method, json)
+    pub fn empty(request: ProtobufMessage) -> Self {
+        let json = JsonText::pretty(request.empty_json());
+        State::with_text(request, json)
     }
 
-    pub fn with_text(method: ProtobufMethod, json: impl Into<JsonText>) -> Self {
-        let request = method.request();
-
+    pub fn with_text(request: ProtobufMessage, json: impl Into<JsonText>) -> Self {
         State {
             body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| match request.parse(s) {
-                    Ok(body) => Ok(grpc::Request {
-                        method: method.clone(),
-                        body,
-                    }),
+                    Ok(body) => Ok(grpc::Request { body }),
                     Err(err) => Err(err.to_string()),
                 }),
             ),
