@@ -3,9 +3,11 @@ use std::sync::Arc;
 use anyhow::Result;
 use http::Uri;
 use protobuf::MessageDyn;
+use tokio::sync::mpsc;
 use tonic::{client::Grpc, transport::Channel, IntoRequest};
+use futures::{StreamExt, TryStreamExt};
 
-use crate::protobuf::ProtobufMethod;
+use crate::protobuf::{ProtobufMethod, ProtobufMethodKind};
 
 pub type ConnectResult = Result<Client, (Uri, Error)>;
 pub type ResponseResult = Result<Response, Error>;
@@ -19,6 +21,11 @@ pub struct Request {
 #[derive(Debug, Clone)]
 pub struct Response {
     pub body: Box<dyn MessageDyn>,
+}
+
+#[derive(Debug)]
+pub struct Call {
+    request_sender: Option<mpsc::Sender<Request>>,
 }
 
 pub type Error = Arc<anyhow::Error>;
@@ -45,21 +52,94 @@ impl Client {
         &self.uri
     }
 
-    pub async fn send(mut self, request: Request) -> ResponseResult {
+    pub fn call<F>(mut self, request: Request, mut on_response: F) -> Call 
+    where F: FnMut(ResponseResult) + Send + 'static
+    {
         let path = request.method.path();
         let codec = request.method.codec();
 
-        let response = self
-            .grpc
-            .unary(
-                request.into_request(),
-                path,
-                codec,
-            )
-            .await
-            .map_err(arc_err)?;
+        match request.method.kind() {
+            ProtobufMethodKind::Unary => {
+                tokio::spawn(async move {
+                    let result = match self.grpc.unary(request.into_request(), path, codec).await {
+                        Ok(response) => Ok(response.into_inner()),
+                        Err(err) => Err(arc_err(err)),
+                    };
+                    on_response(result);
+                });
 
-        Ok(response.into_inner())
+                Call {
+                    request_sender: None,
+                }
+            }
+            ProtobufMethodKind::ClientStreaming => {
+                let (request_sender, request_receiver) = mpsc::channel(1);
+
+                tokio::spawn(async move {
+                    let result = match self
+                        .grpc
+                        .client_streaming(request_receiver.into_request(), path, codec)
+                        .await
+                    {
+                        Ok(response) => Ok(response.into_inner()),
+                        Err(err) => Err(arc_err(err)),
+                    };
+                    on_response(result);
+                });
+
+                Call {
+                    request_sender: Some(request_sender),
+                }
+            }
+            ProtobufMethodKind::ServerStreaming => {
+                tokio::spawn(async move {
+                    let mut stream = match self
+                        .grpc
+                        .server_streaming(request.into_request(), path, codec)
+                        .await
+                    {
+                        Ok(stream) => stream.into_inner().map_err(arc_err),
+                        Err(err) => {
+                            on_response(Err(arc_err(err)));
+                            return;
+                        }
+                    };
+
+                    while let Some(result) = stream.next().await {
+                        on_response(result);
+                    }
+                });
+
+                Call {
+                    request_sender: None,
+                }
+            }
+            ProtobufMethodKind::Streaming => {
+                let (request_sender, request_receiver) = mpsc::channel(1);
+
+                tokio::spawn(async move {
+                    let mut stream = match self
+                        .grpc
+                        .streaming(request_receiver.into_request(), path, codec)
+                        .await
+                    {
+                        Ok(stream) => stream.into_inner().map_err(arc_err),
+                        Err(err) => {
+                            on_response(Err(arc_err(err)));
+                            return;
+                        }
+                    };
+
+                    while let Some(result) = stream.next().await {
+                        on_response(result);
+                    }
+                });
+
+                Call {
+                    request_sender: Some(request_sender),
+                }
+            }
+        }
     }
 }
 

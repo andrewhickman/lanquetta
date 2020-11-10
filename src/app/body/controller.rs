@@ -13,11 +13,12 @@ use crate::{
 
 pub struct TabController {
     client: Option<grpc::Client>,
+    call: Option<grpc::Call>,
 }
 
 impl TabController {
     pub fn new() -> TabController {
-        TabController { client: None }
+        TabController { client: None, call: None, }
     }
 }
 
@@ -95,9 +96,8 @@ impl TabController {
             }
         };
 
-        match &self.client {
-            Some(client) if client.uri() == &uri => return,
-            _ => (),
+        if self.is_connected(data) {
+            return;
         }
 
         let event_sink = ctx.get_external_handle();
@@ -108,7 +108,7 @@ impl TabController {
             let _ = event_sink.submit_command(FINISH_CONNECT, client_result, target);
         });
 
-        if data.address.request_state() != RequestState::Active {
+        if !self.is_active() {
             data.address
                 .set_request_state(RequestState::ConnectInProgress);
         }
@@ -124,9 +124,7 @@ impl TabController {
             Ok(client) if Some(client.uri()) == data.address.uri() => {
                 self.client = Some(client);
 
-                if data.address.request_state() != RequestState::Active {
-                    data.address.set_request_state(RequestState::Connected);
-                }
+                self.set_request_state(data);
             }
             Err((uri, _)) if Some(&uri) == data.address.uri() => {
                 data.address.set_request_state(RequestState::ConnectFailed);
@@ -157,10 +155,9 @@ impl TabController {
         let event_sink = ctx.get_external_handle();
         let target = ctx.widget_id();
 
-        tokio::spawn(async move {
-            let response = client.send(request).await;
+        self.call = Some(client.call(request, move |response| {
             let _ = event_sink.submit_command(FINISH_SEND, SingleUse::new(response), target);
-        });
+        }));
 
         data.address.set_request_state(RequestState::Active);
     }
@@ -173,18 +170,32 @@ impl TabController {
     ) {
         data.stream.add_response(&response);
 
-        if self.client.is_some() {
-            data.address.set_request_state(RequestState::Connected);
-        } else {
-            data.address.set_request_state(RequestState::NotStarted);
-        }
+        self.set_request_state(data);
     }
 
     fn disconnect(&mut self, _: &mut EventCtx, data: &mut TabState) {
         self.client = None;
 
-        if data.address.request_state() != RequestState::Active {
-            data.address.set_request_state(RequestState::NotStarted);
+        self.set_request_state(data);
+    }
+
+    fn is_connected(&self, data: &mut TabState) -> bool {
+        match &self.client {
+            Some(client) if data.address.uri() == Some(client.uri()) => true,
+            _ => false,
         }
+    }
+
+    fn is_active(&self) -> bool {
+        self.call.is_some()
+    }
+
+    fn set_request_state(&self, data: &mut TabState) {
+        let request_state = match (self.is_active(), self.is_connected(data)) {
+            (false, false) => RequestState::NotStarted,
+            (false, true) => RequestState::Connected,
+            (true, _) => RequestState::Active,
+        };
+        data.address.set_request_state(request_state);
     }
 }

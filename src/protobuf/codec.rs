@@ -58,7 +58,8 @@ impl Encoder for ProtobufEncoder {
 
     fn encode(&mut self, mut item: Self::Item, dst: &mut EncodeBuf) -> Result<(), Self::Error> {
         debug_assert_eq!(&item.body().descriptor_dyn(), &self.descriptor);
-        item.body_mut().write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
+        item.body_mut()
+            .write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
             .map_err(|err| {
                 log::error!("{}", err);
                 tonic::Status::internal(err.to_string())
