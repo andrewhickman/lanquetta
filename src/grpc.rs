@@ -76,6 +76,8 @@ impl Client {
             ProtobufMethodKind::ClientStreaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
+                request_sender.send(request).unwrap();
+
                 tokio::spawn(async move {
                     let result = match self
                         .grpc
@@ -123,6 +125,8 @@ impl Client {
             }
             ProtobufMethodKind::Streaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
+
+                request_sender.send(request).unwrap();
 
                 tokio::spawn(async move {
                     let mut stream = match self
