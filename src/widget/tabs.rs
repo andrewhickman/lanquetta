@@ -6,9 +6,10 @@ pub use label::State as TabLabelState;
 
 use druid::{
     widget::{CrossAxisAlignment, Flex},
-    Data, Selector, Widget,
+    Data, Selector, Widget, WidgetExt
 };
 
+use crate::theme;
 use self::body::TabsBody;
 use self::header::TabsHeader;
 use self::label::TabLabel;
@@ -60,7 +61,11 @@ impl Tabs {
             .must_fill_main_axis(true)
             .cross_axis_alignment(CrossAxisAlignment::Start)
             .with_child(TabsHeader::new())
-            .with_flex_child(TabsBody::new(build_body), 1.0)
+            .with_flex_child(TabsBody::new(build_body)
+                .env_scope(|env, _| {
+                    let color = env.get(theme::SELECTED_TAB_BACKGROUND);
+                    env.set(druid::theme::BACKGROUND_LIGHT, color);
+                }), 1.0)
     }
 }
 

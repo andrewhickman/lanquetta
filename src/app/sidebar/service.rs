@@ -44,7 +44,7 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
         env.set(theme::EXPANDER_CORNER_RADIUS, 0.0);
         env.set(theme::EXPANDER_LABEL_FONT, theme::font::HEADER_ONE);
 
-        let mut bg_color = env.get(theme::SIDEBAR_BACKGROUND);
+        let mut bg_color = env.get(druid::theme::BACKGROUND_LIGHT);
         if !data.expanded(env) && data.has_selected() {
             bg_color = theme::color::active(bg_color, env.get(druid::theme::LABEL_COLOR));
         }

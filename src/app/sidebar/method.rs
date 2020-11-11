@@ -46,14 +46,13 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_child(kind)
         .with_flex_child(label, 1.0)
         .lens(State::method)
-        .background(theme::hot_or_active_painter(theme::SIDEBAR_BACKGROUND, 0.0))
+        .background(theme::hot_or_active_painter(0.0))
         .on_click(|ctx, data: &mut State, _| {
             ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
         });
 
     let add = Icon::add()
         .background(theme::hot_or_active_painter(
-            theme::SIDEBAR_BACKGROUND,
             druid::theme::BUTTON_BORDER_RADIUS,
         ))
         .on_click(|ctx, data: &mut State, _| {
@@ -64,13 +63,13 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     Flex::row()
         .with_flex_child(icon_and_label, 1.0)
         .with_child(add)
-        .background(theme::SIDEBAR_BACKGROUND)
+        .background(druid::theme::BACKGROUND_LIGHT)
         .env_scope(|env, data| {
             if data.selected {
                 env.set(
-                    theme::SIDEBAR_BACKGROUND,
+                    druid::theme::BACKGROUND_LIGHT,
                     theme::color::active(
-                        env.get(theme::SIDEBAR_BACKGROUND),
+                        env.get(druid::theme::BACKGROUND_LIGHT),
                         env.get(druid::theme::LABEL_COLOR),
                     ),
                 );

@@ -34,8 +34,8 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     Scroll::new(List::new(move || service::build(sidebar_id)))
         .vertical()
         .expand_height()
+        .background(druid::theme::BACKGROUND_LIGHT)
         .env_scope(|env, _| theme::set_contrast(env))
-        .background(theme::SIDEBAR_BACKGROUND)
         .controller(SidebarController)
         .with_id(sidebar_id)
 }

@@ -56,7 +56,6 @@ pub fn build_header() -> impl Widget<State> {
         .with_child(
             Icon::close()
                 .background(theme::hot_or_active_painter(
-                    theme::SELECTED_TAB_BACKGROUND,
                     druid::theme::BUTTON_BORDER_RADIUS,
                 ))
                 .on_click(|_, data: &mut State, _| {

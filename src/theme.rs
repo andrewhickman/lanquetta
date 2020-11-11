@@ -13,7 +13,6 @@ pub(crate) const BODY_SPACER: f64 = 12.0;
 pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("app.editor-font");
 pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-font");
 
-pub(crate) const SIDEBAR_BACKGROUND: Key<Color> = Key::new("app.sidebar-background");
 pub(crate) const SELECTED_TAB_BACKGROUND: Key<Color> = Key::new("app.selected-tab-background");
 pub(crate) const HIDDEN_TAB_BACKGROUND: Key<Color> = Key::new("app.hidden-tab-background");
 pub(crate) const EXPANDER_LABEL_FONT: Key<FontDescriptor> = Key::new("app.expander-label-font");
@@ -48,7 +47,6 @@ pub(crate) fn set(env: &mut Env) {
 
     env.set(EDITOR_FONT, font::CODE);
     env.set(TAB_LABEL_FONT, font::HEADER_TWO);
-    env.set(SIDEBAR_BACKGROUND, color::SUBTLE_ACCENT);
     env.set(SELECTED_TAB_BACKGROUND, color::ACCENT);
     env.set(HIDDEN_TAB_BACKGROUND, color::BACKGROUND);
     env.set(EXPANDER_LABEL_FONT, font::HEADER_TWO);
@@ -88,6 +86,8 @@ pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
 
 pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
+        env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
+
         if !env.get(DISABLED) {
             if env.get(INVALID) {
                 env.set(druid::theme::BORDER_DARK, color::ERROR);
@@ -110,13 +110,11 @@ pub(crate) fn error_label_scope<T: Data>(child: impl Widget<T> + 'static) -> imp
 }
 
 pub(crate) fn hot_or_active_painter<T>(
-    color: impl Into<KeyOrValue<Color>>,
     border_radius: impl Into<KeyOrValue<f64>>,
 ) -> Painter<T> {
-    let color = color.into();
     let border_radius = border_radius.into();
     Painter::new(move |ctx, _: &T, env: &Env| {
-        let mut color = color.resolve(env);
+        let mut color = env.get(druid::theme::BACKGROUND_LIGHT);
         if ctx.is_active() {
             color = color::active(color, env.get(druid::theme::LABEL_COLOR));
         } else if ctx.is_hot() {
