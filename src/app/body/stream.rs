@@ -1,14 +1,14 @@
 mod item;
 
 use druid::{
-    widget::{prelude::*, List, Scroll},
+    widget::{prelude::*, CrossAxisAlignment, Flex, Label, List, Scroll},
     ArcStr, Data, Lens, WidgetExt,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    grpc,
-    widget::{Expander, ExpanderData},
+    grpc, theme,
+    widget::{Expander, ExpanderData, Icon},
 };
 
 #[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
@@ -41,6 +41,28 @@ pub fn build() -> impl Widget<State> {
         .vertical()
         .expand_height()
         .lens(State::items)
+}
+
+pub fn build_header() -> impl Widget<State> {
+    Flex::row()
+        .must_fill_main_axis(true)
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .with_flex_child(
+            Label::new("History")
+                .with_font(theme::font::HEADER_TWO)
+                .expand_width(),
+            1.0,
+        )
+        .with_child(
+            Icon::close()
+                .background(theme::hot_or_active_painter(
+                    theme::SELECTED_TAB_BACKGROUND,
+                    druid::theme::BUTTON_BORDER_RADIUS,
+                ))
+                .on_click(|_, data: &mut State, _| {
+                    data.clear();
+                }),
+        )
 }
 
 fn build_list_entry() -> impl Widget<ItemExpanderState> {
@@ -78,6 +100,12 @@ impl State {
             data: item::State::from_response(result),
             kind: ItemKind::Response,
         });
+    }
+
+    pub fn clear(&mut self) {
+        self.items.clear();
+        self.request_count = 0;
+        self.response_count = 0;
     }
 }
 

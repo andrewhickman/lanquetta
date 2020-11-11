@@ -2,7 +2,10 @@ pub mod color;
 pub mod font;
 mod scope;
 
-use druid::{widget::Container, Color, Data, Env, FontDescriptor, Key, Widget};
+use druid::{
+    widget::{Container, Painter},
+    Color, Data, Env, FontDescriptor, Key, KeyOrValue, RenderContext, Widget,
+};
 
 pub(crate) const BODY_PADDING: f64 = 16.0;
 pub(crate) const BODY_SPACER: f64 = 12.0;
@@ -104,4 +107,22 @@ pub(crate) fn error_label_scope<T: Data>(child: impl Widget<T> + 'static) -> imp
         .border(color::ERROR, 1.0)
         .background(color::ERROR.with_alpha(0.38))
         .rounded(druid::theme::TEXTBOX_BORDER_RADIUS)
+}
+
+pub(crate) fn hot_or_active_painter<T>(
+    color: impl Into<KeyOrValue<Color>>,
+    border_radius: impl Into<KeyOrValue<f64>>,
+) -> Painter<T> {
+    let color = color.into();
+    let border_radius = border_radius.into();
+    Painter::new(move |ctx, _: &T, env: &Env| {
+        let mut color = color.resolve(env);
+        if ctx.is_active() {
+            color = color::active(color, env.get(druid::theme::LABEL_COLOR));
+        } else if ctx.is_hot() {
+            color = color::hot(color, env.get(druid::theme::LABEL_COLOR));
+        }
+        let bounds = ctx.size().to_rounded_rect(border_radius.resolve(env));
+        ctx.fill(bounds, &color);
+    })
 }

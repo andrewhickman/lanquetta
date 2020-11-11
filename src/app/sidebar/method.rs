@@ -1,7 +1,7 @@
 use druid::{
     widget::LineBreaking,
-    widget::{Flex, Label, Painter, ViewSwitcher},
-    ArcStr, Color, Data, Env, Lens, PaintCtx, RenderContext, Widget, WidgetExt as _,
+    widget::{Flex, Label, ViewSwitcher},
+    ArcStr, Data, Lens, Widget, WidgetExt as _,
 };
 
 use crate::{
@@ -46,23 +46,16 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_child(kind)
         .with_flex_child(label, 1.0)
         .lens(State::method)
-        .background(Painter::new(|ctx, _, env| {
-            let color = method_background_color(ctx, env);
-            let bounds = ctx.size().to_rect();
-            ctx.fill(bounds, &color);
-        }))
+        .background(theme::hot_or_active_painter(theme::SIDEBAR_BACKGROUND, 0.0))
         .on_click(|ctx, data: &mut State, _| {
             ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
         });
 
     let add = Icon::add()
-        .background(Painter::new(|ctx, _, env| {
-            let color = method_background_color(ctx, env);
-            let bounds = ctx
-                .size()
-                .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
-            ctx.fill(bounds, &color);
-        }))
+        .background(theme::hot_or_active_painter(
+            theme::SIDEBAR_BACKGROUND,
+            druid::theme::BUTTON_BORDER_RADIUS,
+        ))
         .on_click(|ctx, data: &mut State, _| {
             ctx.submit_command(command::CREATE_TAB.with(data.method.method.clone()));
         })
@@ -117,14 +110,4 @@ impl From<ProtobufMethod> for MethodState {
     fn from(method: ProtobufMethod) -> Self {
         MethodState { method }
     }
-}
-
-fn method_background_color(ctx: &mut PaintCtx, env: &Env) -> Color {
-    let mut color = env.get(theme::SIDEBAR_BACKGROUND);
-    if ctx.is_active() {
-        color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
-    } else if ctx.is_hot() {
-        color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
-    }
-    color
 }

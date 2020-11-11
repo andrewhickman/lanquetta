@@ -61,11 +61,7 @@ fn build_body() -> impl Widget<TabState> {
         .with_spacer(theme::BODY_SPACER)
         .with_flex_child(request::build().lens(TabState::request_lens), 0.0)
         .with_spacer(theme::BODY_SPACER)
-        .with_child(
-            Label::new("History")
-                .with_font(theme::font::HEADER_TWO)
-                .align_left(),
-        )
+        .with_child(stream::build_header().lens(TabState::stream_lens))
         .with_spacer(theme::BODY_SPACER)
         .with_flex_child(stream::build().lens(TabState::stream_lens), 1.0)
         .padding(theme::BODY_PADDING)
