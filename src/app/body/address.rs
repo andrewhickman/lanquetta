@@ -11,7 +11,11 @@ use druid::{
 use http::Uri;
 use once_cell::sync::Lazy;
 
-use crate::{protobuf::ProtobufMethodKind, app::{body::RequestState, command, theme}, widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT}};
+use crate::{
+    app::{body::RequestState, command, theme},
+    protobuf::ProtobufMethodKind,
+    widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT},
+};
 
 type AddressValidationState = ValidationState<String, Uri, String>;
 

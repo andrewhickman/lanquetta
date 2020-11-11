@@ -1,7 +1,7 @@
 mod address;
 mod controller;
 mod request;
-mod stream;
+pub mod stream;
 
 use std::{collections::BTreeMap, sync::Arc};
 
@@ -39,6 +39,7 @@ pub struct TabState {
     address: address::AddressState,
     #[lens(name = "request_lens")]
     request: request::State,
+    #[lens(name = "stream_lens")]
     stream: stream::State,
 }
 
@@ -66,7 +67,7 @@ fn build_body() -> impl Widget<TabState> {
                 .align_left(),
         )
         .with_spacer(theme::BODY_SPACER)
-        .with_flex_child(stream::build().lens(TabState::stream), 1.0)
+        .with_flex_child(stream::build().lens(TabState::stream_lens), 1.0)
         .padding(theme::BODY_PADDING)
         .controller(TabController::new())
         .with_id(id)
@@ -123,12 +124,17 @@ impl TabState {
         }
     }
 
-    pub fn new(method: ProtobufMethod, address: String, request: impl Into<JsonText>) -> Self {
+    pub fn new(
+        method: ProtobufMethod,
+        address: String,
+        request: impl Into<JsonText>,
+        stream: stream::State,
+    ) -> Self {
         TabState {
             address: address::AddressState::new(address),
-            stream: stream::State::new(),
             request: request::State::with_text(method.request(), request),
             method,
+            stream,
         }
     }
 
@@ -142,6 +148,10 @@ impl TabState {
 
     pub(in crate::app) fn request(&self) -> &request::State {
         &self.request
+    }
+
+    pub(in crate::app) fn stream(&self) -> &stream::State {
+        &self.stream
     }
 
     pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {

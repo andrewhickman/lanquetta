@@ -14,6 +14,7 @@ use druid::{
 };
 use memchr::Memchr;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use syntect::highlighting::{
     self, HighlightState, Highlighter, RangedHighlightIterator, Theme, ThemeSet,
 };
@@ -30,7 +31,8 @@ static THEME: Lazy<Theme> = Lazy::new(|| {
 });
 static THEME_HIGHLIGHTER: Lazy<Highlighter<'static>> = Lazy::new(|| Highlighter::new(&THEME));
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
 pub struct JsonText {
     data: Arc<String>,
     styles: Arc<[(highlighting::Style, Range<usize>)]>,
@@ -215,6 +217,15 @@ impl From<String> for JsonText {
         JsonText {
             styles: get_styles(&s).into(),
             data: Arc::new(s),
+        }
+    }
+}
+
+impl Into<String> for JsonText {
+    fn into(self) -> String {
+        match Arc::try_unwrap(self.data) {
+            Ok(s) => s,
+            Err(s) => s.as_ref().to_owned(),
         }
     }
 }

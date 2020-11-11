@@ -83,6 +83,7 @@ struct AppBodyTabState {
     method: usize,
     address: String,
     request: String,
+    stream: app::body::stream::State,
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -123,6 +124,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                         method: tab.method().method_index(),
                         address: tab.address().text().to_owned(),
                         request: tab.request().text().as_str().to_owned(),
+                        stream: tab.stream().clone(),
                     })
                 })
                 .collect::<Result<Vec<_>>>()?,
@@ -178,7 +180,7 @@ impl AppBodyState {
                     .clone();
                 Ok((
                     TabId::next(),
-                    app::body::TabState::new(method, tab.address, tab.request),
+                    app::body::TabState::new(method, tab.address, tab.request, tab.stream),
                 ))
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
