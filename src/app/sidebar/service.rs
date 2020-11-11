@@ -32,7 +32,7 @@ pub(in crate::app) struct ServiceState {
     service: ProtobufService,
 }
 
-pub(in crate::app) fn build(sidebar_id: WidgetId) -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
     Expander::new(
         move |ctx, data: &mut State, _| {
             ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
@@ -50,7 +50,6 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> Box<dyn Widget<State>> {
         }
         env.set(theme::EXPANDER_BACKGROUND, bg_color);
     })
-    .boxed()
 }
 
 impl State {

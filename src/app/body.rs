@@ -43,8 +43,8 @@ pub struct TabState {
     stream: stream::State,
 }
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
-    Tabs::new(build_body).boxed()
+pub(in crate::app) fn build() -> impl Widget<State> {
+    Tabs::new(build_body)
 }
 
 fn build_body() -> impl Widget<TabState> {

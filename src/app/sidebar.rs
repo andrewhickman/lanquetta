@@ -29,7 +29,7 @@ pub(in crate::app) struct ServiceListState {
 
 struct SidebarController;
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build() -> impl Widget<State> {
     let sidebar_id = WidgetId::next();
     Scroll::new(List::new(move || service::build(sidebar_id)))
         .vertical()
@@ -38,7 +38,6 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .background(theme::SIDEBAR_BACKGROUND)
         .controller(SidebarController)
         .with_id(sidebar_id)
-        .boxed()
 }
 
 impl State {

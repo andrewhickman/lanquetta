@@ -38,7 +38,7 @@ struct AddressController {
     body_id: WidgetId,
 }
 
-pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
     let address_textbox = FormField::new(theme::text_box_scope(
         TextBox::new()
             .with_placeholder("http://localhost:80")
@@ -116,7 +116,6 @@ pub(in crate::app) fn build(body_id: WidgetId) -> Box<dyn Widget<State>> {
                 .lens(State::address),
         )
         .with_child(send_button)
-        .boxed()
 }
 
 static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>> =

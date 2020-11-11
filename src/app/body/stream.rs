@@ -36,12 +36,11 @@ enum ItemKind {
     Response,
 }
 
-pub fn build() -> Box<dyn Widget<State>> {
+pub fn build() -> impl Widget<State> {
     Scroll::new(List::new(build_list_entry))
         .vertical()
         .expand_height()
         .lens(State::items)
-        .boxed()
 }
 
 fn build_list_entry() -> impl Widget<ItemExpanderState> {

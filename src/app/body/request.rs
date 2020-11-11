@@ -22,7 +22,7 @@ pub(in crate::app) struct State {
 
 struct RequestController;
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build() -> impl Widget<State> {
     let textbox = FormField::new(theme::text_box_scope(
         TextBox::multiline().with_font(theme::EDITOR_FONT),
     ))
@@ -43,7 +43,6 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
         .with_child(textbox)
         .with_child(error)
         .lens(State::body)
-        .boxed()
 }
 
 impl State {

@@ -22,7 +22,7 @@ pub(in crate::app) struct MethodState {
     method: ProtobufMethod,
 }
 
-pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
+pub(in crate::app) fn build() -> impl Widget<State> {
     let kind = ViewSwitcher::new(
         |data: &MethodState, _| data.method.kind(),
         |&kind: &ProtobufMethodKind, _, _| match kind {
@@ -83,7 +83,6 @@ pub(in crate::app) fn build() -> Box<dyn Widget<State>> {
                 );
             }
         })
-        .boxed()
 }
 
 impl State {
