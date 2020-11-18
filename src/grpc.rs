@@ -61,11 +61,10 @@ impl Client {
         match method.kind() {
             ProtobufMethodKind::Unary => {
                 tokio::spawn(async move {
-                    let result = match self.grpc.unary(request.into_request(), path, codec).await {
-                        Ok(response) => Ok(response.into_inner()),
-                        Err(err) => Err(arc_err(err)),
-                    };
-                    on_response(Some(result));
+                    match self.grpc.unary(request.into_request(), path, codec).await {
+                        Ok(response) => on_response(Some(Ok(response.into_inner()))),
+                        Err(err) => on_response(Some(Err(arc_err(err)))),
+                    }
                     on_response(None);
                 });
 
@@ -79,15 +78,14 @@ impl Client {
                 request_sender.send(request).unwrap();
 
                 tokio::spawn(async move {
-                    let result = match self
+                    match self
                         .grpc
                         .client_streaming(request_receiver.into_request(), path, codec)
                         .await
                     {
-                        Ok(response) => Ok(response.into_inner()),
-                        Err(err) => Err(arc_err(err)),
-                    };
-                    on_response(Some(result));
+                        Ok(response) => on_response(Some(Ok(response.into_inner()))),
+                        Err(err) => on_response(Some(Err(arc_err(err)))),
+                    }
                     on_response(None);
                 });
 
@@ -97,25 +95,26 @@ impl Client {
             }
             ProtobufMethodKind::ServerStreaming => {
                 tokio::spawn(async move {
-                    let mut stream = match self
+                    match self
                         .grpc
                         .server_streaming(request.into_request(), path, codec)
                         .await
                     {
-                        Ok(stream) => stream.into_inner().map_err(arc_err),
+                        Ok(stream) => {
+                            let mut stream = stream.into_inner().map_err(arc_err);
+                            while let Some(result) = stream.next().await {
+                                let is_err = result.is_err();
+                                on_response(Some(result));
+                                if is_err {
+                                    break;
+                                }
+                            }
+                        }
                         Err(err) => {
                             on_response(Some(Err(arc_err(err))));
-                            return;
-                        }
-                    };
-
-                    while let Some(result) = stream.next().await {
-                        let is_err = result.is_err();
-                        on_response(Some(result));
-                        if is_err {
-                            break;
                         }
                     }
+
                     on_response(None);
                 });
 
@@ -129,25 +128,26 @@ impl Client {
                 request_sender.send(request).unwrap();
 
                 tokio::spawn(async move {
-                    let mut stream = match self
+                    match self
                         .grpc
                         .streaming(request_receiver.into_request(), path, codec)
                         .await
                     {
-                        Ok(stream) => stream.into_inner().map_err(arc_err),
+                        Ok(stream) => {
+                            let mut stream = stream.into_inner().map_err(arc_err);
+                            while let Some(result) = stream.next().await {
+                                let is_err = result.is_err();
+                                on_response(Some(result));
+                                if is_err {
+                                    break;
+                                }
+                            }
+                        }
                         Err(err) => {
                             on_response(Some(Err(arc_err(err))));
-                            return;
-                        }
-                    };
-
-                    while let Some(result) = stream.next().await {
-                        let is_err = result.is_err();
-                        on_response(Some(result));
-                        if is_err {
-                            break;
                         }
                     }
+
                     on_response(None);
                 });
 

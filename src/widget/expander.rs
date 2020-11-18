@@ -73,7 +73,7 @@ where
             close: WidgetPod::new(
                 Icon::close()
                     .background(Painter::new(paint_close_background))
-                    .lens(lens::Unit::<T>::default())
+                    .lens::<T, _>(lens::Unit::default())
                     .controller(CloseButtonController {
                         on_close: Box::new(on_close),
                     })

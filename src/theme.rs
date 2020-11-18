@@ -109,9 +109,7 @@ pub(crate) fn error_label_scope<T: Data>(child: impl Widget<T> + 'static) -> imp
         .rounded(druid::theme::TEXTBOX_BORDER_RADIUS)
 }
 
-pub(crate) fn hot_or_active_painter<T>(
-    border_radius: impl Into<KeyOrValue<f64>>,
-) -> Painter<T> {
+pub(crate) fn hot_or_active_painter<T>(border_radius: impl Into<KeyOrValue<f64>>) -> Painter<T> {
     let border_radius = border_radius.into();
     Painter::new(move |ctx, _: &T, env: &Env| {
         let mut color = env.get(druid::theme::BACKGROUND_LIGHT);
