@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use druid::{widget::prelude::*, Widget, WidgetPod};
+use druid::{widget::prelude::*, Point, Widget, WidgetPod};
 
 use super::{TabId, TabsData, TabsDataChange};
 use crate::theme;
@@ -94,7 +94,7 @@ where
         data.with_selected(|id, tab_data| {
             let body = self.children.get_mut(&id).unwrap();
             let size = body.layout(ctx, bc, tab_data, env);
-            body.set_layout_rect(ctx, tab_data, env, size.to_rect());
+            body.set_origin(ctx, tab_data, env, Point::ORIGIN);
             size
         })
         .unwrap_or(bc.min())

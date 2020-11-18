@@ -4,7 +4,7 @@ use std::sync::Arc;
 use druid::{
     piet::TextStorage,
     widget::{prelude::*, Controller},
-    LifeCycle, Selector, WidgetExt, WidgetPod,
+    LifeCycle, Point, Selector, WidgetExt, WidgetPod,
 };
 use druid::{Data, Env, Widget};
 
@@ -136,8 +136,7 @@ where
 
         let env = self.env.as_ref().unwrap_or(env);
         let size = self.child.layout(ctx, bc, &data.raw, &env);
-        self.child
-            .set_layout_rect(ctx, &data.raw, &env, size.to_rect());
+        self.child.set_origin(ctx, &data.raw, &env, Point::ORIGIN);
         size
     }
 

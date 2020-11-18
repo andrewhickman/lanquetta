@@ -3,7 +3,7 @@ use druid::{
     widget::LineBreaking,
     widget::Painter,
     widget::{prelude::*, RawLabel},
-    ArcStr, Data, Lens, MouseButton, Point, Rect, Widget, WidgetExt as _, WidgetId, WidgetPod,
+    ArcStr, Data, Lens, MouseButton, Point, Widget, WidgetExt as _, WidgetId, WidgetPod,
 };
 
 use super::{TabId, CLOSE_TAB};
@@ -148,23 +148,24 @@ impl Widget<State> for TabLabel {
         )
         .clamp(bc.min(), bc.max());
 
-        let label_rect = Rect::from_origin_size(
+        self.label.set_origin(
+            ctx,
+            data,
+            env,
             Point::new(
                 PADDING,
                 PADDING + (total_size.height - label_size.height) / 2.0,
             ),
-            label_size,
         );
-        let close_rect = Rect::from_origin_size(
+        self.close.set_origin(
+            ctx,
+            data,
+            env,
             Point::new(
                 PADDING + total_size.width - close_size.width,
                 PADDING + (total_size.height - close_size.height) / 2.0,
             ),
-            close_size,
         );
-
-        self.label.set_layout_rect(ctx, data, env, label_rect);
-        self.close.set_layout_rect(ctx, data, env, close_rect);
 
         Size::new(
             PADDING * 2.0 + total_size.width,

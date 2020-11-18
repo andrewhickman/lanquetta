@@ -3,7 +3,7 @@ use druid::{
     widget::{
         prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking, Painter,
     },
-    ArcStr, Data, Lens, MouseButton, Rect, Vec2, Widget, WidgetExt, WidgetPod,
+    ArcStr, Data, Lens, MouseButton, Vec2, Widget, WidgetExt, WidgetPod,
 };
 
 use crate::{
@@ -171,34 +171,32 @@ where
         )
         .clamp(inner_bc.min(), inner_bc.max());
 
-        let expanded_icon_rect = Rect::from_origin_size(
+        self.expanded.set_origin(
+            ctx,
+            data,
+            env,
             origin + Vec2::new(0.0, (total_size.height - expanded_icon_size.height) / 2.0),
-            expanded_icon_size,
-        )
-        .expand();
-        let label_rect = Rect::from_origin_size(
+        );
+        self.label.set_origin(
+            ctx,
+            data,
+            env,
             origin
                 + Vec2::new(
                     expanded_icon_size.width + padding,
                     (total_size.height - label_size.height) / 2.0,
                 ),
-            label_size,
-        )
-        .expand();
-        let close_rect = Rect::from_origin_size(
+        );
+        self.close.set_origin(
+            ctx,
+            data,
+            env,
             origin
                 + Vec2::new(
                     total_size.width - close_size.width,
                     (total_size.height - close_size.height) / 2.0,
                 ),
-            close_size,
-        )
-        .expand();
-
-        self.expanded
-            .set_layout_rect(ctx, data, env, expanded_icon_rect);
-        self.label.set_layout_rect(ctx, data, env, label_rect);
-        self.close.set_layout_rect(ctx, data, env, close_rect);
+        );
 
         padding_size + total_size
     }

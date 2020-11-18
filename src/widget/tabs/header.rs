@@ -95,10 +95,9 @@ where
             );
 
             let child_size = label.layout(ctx, &label_bc, label_data, env);
-            let rect = Rect::from_origin_size(Point::new(x, 0.0), child_size);
-            label.set_layout_rect(ctx, label_data, env, rect);
+            label.set_origin(ctx, label_data, env, Point::new(x, 0.0));
 
-            paint_rect = paint_rect.union(rect);
+            paint_rect = paint_rect.union(label.layout_rect());
             height = height.max(child_size.height);
             x += child_size.width;
             remaining_max_width -= child_size.width;
