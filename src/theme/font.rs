@@ -4,3 +4,4 @@ pub const HEADER_ONE: FontDescriptor = FontDescriptor::new(FontFamily::SANS_SERI
 pub const HEADER_TWO: FontDescriptor = FontDescriptor::new(FontFamily::SANS_SERIF).with_size(15.0);
 
 pub const CODE: FontDescriptor = FontDescriptor::new(FontFamily::MONOSPACE).with_size(14.0);
+pub const NORMAL: FontDescriptor = FontDescriptor::new(FontFamily::SANS_SERIF).with_size(14.0);

@@ -147,7 +147,7 @@ impl TabController {
 
         data.stream.add_request(&request);
 
-        if let Some(call) = &self.call {
+        if let Some(call) = &mut self.call {
             call.send(request);
         } else {
             let client = match &self.client {
@@ -177,7 +177,11 @@ impl TabController {
     ) {
         match response {
             Some(result) => {
-                data.stream.add_response(&result);
+                let duration = match (&mut self.call, &result) {
+                    (Some(call), Ok(response)) => call.duration(response),
+                    _ => None,
+                };
+                data.stream.add_response(&result, duration);
             }
             None => {
                 self.call = None;

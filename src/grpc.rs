@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
@@ -20,10 +23,12 @@ pub struct Request {
 #[derive(Debug, Clone)]
 pub struct Response {
     pub body: Box<dyn MessageDyn>,
+    pub timestamp: Instant,
 }
 
 #[derive(Debug)]
 pub struct Call {
+    last_request: Option<Instant>,
     request_sender: Option<mpsc::UnboundedSender<Request>>,
 }
 
@@ -58,7 +63,9 @@ impl Client {
         let path = method.path();
         let codec = method.codec();
 
-        match method.kind() {
+        let last_request = Some(Instant::now());
+
+        let request_sender = match method.kind() {
             ProtobufMethodKind::Unary => {
                 tokio::spawn(async move {
                     match self.grpc.unary(request.into_request(), path, codec).await {
@@ -68,9 +75,7 @@ impl Client {
                     on_response(None);
                 });
 
-                Call {
-                    request_sender: None,
-                }
+                None
             }
             ProtobufMethodKind::ClientStreaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
@@ -89,9 +94,7 @@ impl Client {
                     on_response(None);
                 });
 
-                Call {
-                    request_sender: Some(request_sender),
-                }
+                Some(request_sender)
             }
             ProtobufMethodKind::ServerStreaming => {
                 tokio::spawn(async move {
@@ -118,9 +121,7 @@ impl Client {
                     on_response(None);
                 });
 
-                Call {
-                    request_sender: None,
-                }
+                None
             }
             ProtobufMethodKind::Streaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
@@ -151,10 +152,13 @@ impl Client {
                     on_response(None);
                 });
 
-                Call {
-                    request_sender: Some(request_sender),
-                }
+                Some(request_sender)
             }
+        };
+
+        Call {
+            request_sender,
+            last_request,
         }
     }
 }
@@ -171,17 +175,27 @@ impl Request {
 
 impl Response {
     pub fn new(body: Box<dyn MessageDyn>) -> Self {
-        Response { body }
+        Response {
+            body,
+            timestamp: Instant::now(),
+        }
     }
 }
 
 impl Call {
-    pub fn send(&self, request: Request) {
+    pub fn send(&mut self, request: Request) {
+        self.last_request = Some(Instant::now());
         let _ = self
             .request_sender
             .as_ref()
             .expect("called 'send' on non client streaming call")
             .send(request);
+    }
+
+    pub fn duration(&mut self, response: &Response) -> Option<Duration> {
+        self.last_request.take().and_then(|request_timestamp| {
+            response.timestamp.checked_duration_since(request_timestamp)
+        })
     }
 }
 

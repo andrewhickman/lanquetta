@@ -34,7 +34,7 @@ pub(in crate::app) struct ServiceState {
 
 pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
     let expander_label = Label::raw()
-        .with_font(theme::EXPANDER_LABEL_FONT)
+        .with_font(theme::font::HEADER_ONE)
         .with_line_break_mode(LineBreaking::Clip)
         .lens(ServiceState::name)
         .lens(State::service);
@@ -49,7 +49,6 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
     .env_scope(|env, data: &State| {
         env.set(theme::EXPANDER_PADDING, 8.0);
         env.set(theme::EXPANDER_CORNER_RADIUS, 0.0);
-        env.set(theme::EXPANDER_LABEL_FONT, theme::font::HEADER_ONE);
 
         let mut bg_color = env.get(druid::theme::BACKGROUND_LIGHT);
         if !data.expanded(env) && data.has_selected() {

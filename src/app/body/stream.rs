@@ -1,7 +1,12 @@
 mod item;
 
+use std::string::ToString;
+use std::time::Duration;
+
 use druid::{
-    widget::{prelude::*, CrossAxisAlignment, Flex, Label, LineBreaking, List, Scroll},
+    widget::{
+        prelude::*, CrossAxisAlignment, Flex, Label, LineBreaking, List, MainAxisAlignment, Scroll,
+    },
     ArcStr, Data, Lens, WidgetExt,
 };
 use serde::{Deserialize, Serialize};
@@ -28,6 +33,7 @@ struct ItemExpanderState {
     label: ArcStr,
     expanded: bool,
     data: item::State,
+    duration: ArcStr,
 }
 
 #[derive(Debug, Clone, Data, Serialize, Deserialize, PartialEq, Eq)]
@@ -67,10 +73,22 @@ pub fn build_header() -> impl Widget<State> {
 fn build_list_entry() -> impl Widget<ItemExpanderState> {
     let entry = item::build().expand_width().lens(ItemExpanderState::data);
 
-    let expander_label = Label::raw()
-        .with_font(theme::EXPANDER_LABEL_FONT)
+    let label = Label::raw()
+        .with_font(theme::font::HEADER_TWO)
         .with_line_break_mode(LineBreaking::Clip)
         .lens(ItemExpanderState::label);
+
+    let duration = Label::raw()
+        .with_font(theme::font::NORMAL)
+        .with_line_break_mode(LineBreaking::Clip)
+        .lens(ItemExpanderState::duration);
+
+    let expander_label = Flex::row()
+        .must_fill_main_axis(true)
+        .main_axis_alignment(MainAxisAlignment::SpaceBetween)
+        .cross_axis_alignment(CrossAxisAlignment::Center)
+        .with_child(label)
+        .with_child(duration);
 
     Expander::new(expander_label, |_, _, _| unreachable!(), entry)
 }
@@ -92,10 +110,11 @@ impl State {
             expanded: true,
             data: item::State::from_request(request),
             kind: ItemKind::Request,
+            duration: ArcStr::from(""),
         });
     }
 
-    pub fn add_response(&mut self, result: &grpc::ResponseResult) {
+    pub fn add_response(&mut self, result: &grpc::ResponseResult, duration: Option<Duration>) {
         self.response_count += 1;
         let name = ArcStr::from(format!("Response {}", self.response_count));
         self.items.push_back(ItemExpanderState {
@@ -103,6 +122,10 @@ impl State {
             expanded: true,
             data: item::State::from_response(result),
             kind: ItemKind::Response,
+            duration: duration
+                .map(|d| format_duration(d).to_string())
+                .unwrap_or_default()
+                .into(),
         });
     }
 
@@ -146,5 +169,19 @@ impl From<im::Vector<ItemExpanderState>> for State {
 impl Into<im::Vector<ItemExpanderState>> for State {
     fn into(self) -> im::Vector<ItemExpanderState> {
         self.items
+    }
+}
+
+fn format_duration(duration: Duration) -> String {
+    fn precision(f: f64) -> usize {
+        2 - f.log10().floor().min(2.0) as usize
+    }
+
+    if duration.as_secs() != 0 {
+        let secs = duration.as_secs_f64();
+        format!("{:.*} s", precision(secs), secs)
+    } else {
+        let millis = duration.as_nanos() as f64 / 1000_000.0;
+        format!("{:.*} ms", precision(millis), millis)
     }
 }
