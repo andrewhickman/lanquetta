@@ -1,7 +1,7 @@
 mod item;
 
 use druid::{
-    widget::{prelude::*, CrossAxisAlignment, Flex, Label, List, Scroll},
+    widget::{prelude::*, CrossAxisAlignment, Flex, Label, LineBreaking, List, Scroll},
     ArcStr, Data, Lens, WidgetExt,
 };
 use serde::{Deserialize, Serialize};
@@ -67,7 +67,12 @@ pub fn build_header() -> impl Widget<State> {
 fn build_list_entry() -> impl Widget<ItemExpanderState> {
     let entry = item::build().expand_width().lens(ItemExpanderState::data);
 
-    Expander::new(|_, _, _| unreachable!(), entry)
+    let expander_label = Label::raw()
+        .with_font(theme::EXPANDER_LABEL_FONT)
+        .with_line_break_mode(LineBreaking::Clip)
+        .lens(ItemExpanderState::label);
+
+    Expander::new(expander_label, |_, _, _| unreachable!(), entry)
 }
 
 impl State {
@@ -115,14 +120,6 @@ impl ExpanderData for ItemExpanderState {
 
     fn toggle_expanded(&mut self, _: &Env) {
         self.expanded = !self.expanded;
-    }
-
-    fn with_label<V>(&self, f: impl FnOnce(&ArcStr) -> V) -> V {
-        f(&self.label)
-    }
-
-    fn with_label_mut<V>(&mut self, f: impl FnOnce(&mut ArcStr) -> V) -> V {
-        f(&mut self.label)
     }
 
     fn can_close(&self) -> bool {

@@ -1,9 +1,7 @@
 use druid::{
     lens,
-    widget::{
-        prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking, Painter,
-    },
-    ArcStr, Data, Lens, MouseButton, Vec2, Widget, WidgetExt, WidgetPod,
+    widget::{prelude::*, Controller, CrossAxisAlignment, Either, Flex, Painter},
+    Data, MouseButton, Vec2, Widget, WidgetExt, WidgetPod,
 };
 
 use crate::{
@@ -14,9 +12,6 @@ use crate::{
 pub trait ExpanderData: Data {
     fn expanded(&self, env: &Env) -> bool;
     fn toggle_expanded(&mut self, env: &Env);
-
-    fn with_label<V>(&self, f: impl FnOnce(&ArcStr) -> V) -> V;
-    fn with_label_mut<V>(&mut self, f: impl FnOnce(&mut ArcStr) -> V) -> V;
 
     fn can_close(&self) -> bool;
 }
@@ -31,13 +26,14 @@ struct ExpanderHeader<T> {
 
 impl Expander {
     pub fn new<T>(
+        label: impl Widget<T> + 'static,
         on_close: impl FnMut(&mut EventCtx, &mut T, &Env) + 'static,
         child: impl Widget<T> + 'static,
     ) -> impl Widget<T>
     where
         T: ExpanderData,
     {
-        let header = ExpanderHeader::new(on_close);
+        let header = ExpanderHeader::new(label.boxed(), on_close);
 
         let child = Either::new(ExpanderData::expanded, child, Empty);
 
@@ -53,7 +49,10 @@ impl<T> ExpanderHeader<T>
 where
     T: ExpanderData,
 {
-    fn new(on_close: impl FnMut(&mut EventCtx, &mut T, &Env) + 'static) -> Self {
+    fn new(
+        label: Box<dyn Widget<T>>,
+        on_close: impl FnMut(&mut EventCtx, &mut T, &Env) + 'static,
+    ) -> Self {
         ExpanderHeader {
             expanded: WidgetPod::new(
                 Either::new(
@@ -63,13 +62,7 @@ where
                 )
                 .boxed(),
             ),
-            label: WidgetPod::new(
-                Label::raw()
-                    .with_font(theme::EXPANDER_LABEL_FONT)
-                    .with_line_break_mode(LineBreaking::Clip)
-                    .lens::<T, _>(ExpanderLabelLens)
-                    .boxed(),
-            ),
+            label: WidgetPod::new(label),
             close: WidgetPod::new(
                 Icon::close()
                     .background(Painter::new(paint_close_background))
@@ -216,21 +209,6 @@ where
         self.expanded.paint(ctx, data, env);
         self.label.paint(ctx, data, env);
         self.close.paint(ctx, data, env);
-    }
-}
-
-struct ExpanderLabelLens;
-
-impl<T> Lens<T, ArcStr> for ExpanderLabelLens
-where
-    T: ExpanderData,
-{
-    fn with<V, F: FnOnce(&ArcStr) -> V>(&self, data: &T, f: F) -> V {
-        data.with_label(f)
-    }
-
-    fn with_mut<V, F: FnOnce(&mut ArcStr) -> V>(&self, data: &mut T, f: F) -> V {
-        data.with_label_mut(f)
     }
 }
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use druid::{
-    widget::{prelude::*, List, ListIter},
+    widget::{prelude::*, Label, LineBreaking, List, ListIter},
     ArcStr, Data, Lens, Widget, WidgetExt,
 };
 
@@ -33,7 +33,14 @@ pub(in crate::app) struct ServiceState {
 }
 
 pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
+    let expander_label = Label::raw()
+        .with_font(theme::EXPANDER_LABEL_FONT)
+        .with_line_break_mode(LineBreaking::Clip)
+        .lens(ServiceState::name)
+        .lens(State::service);
+
     Expander::new(
+        expander_label,
         move |ctx, data: &mut State, _| {
             ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
         },
@@ -105,14 +112,6 @@ impl ExpanderData for State {
 
     fn toggle_expanded(&mut self, _: &Env) {
         self.service.expanded = !self.service.expanded;
-    }
-
-    fn with_label<V>(&self, f: impl FnOnce(&ArcStr) -> V) -> V {
-        f(&self.service.name)
-    }
-
-    fn with_label_mut<V>(&mut self, f: impl FnOnce(&mut ArcStr) -> V) -> V {
-        f(&mut self.service.name)
     }
 
     fn can_close(&self) -> bool {
