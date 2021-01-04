@@ -25,7 +25,8 @@ env_logger = "0.8.1"
 dirs-next = "2.0.0"
 
 [dependencies.druid]
-version = "0.7.0"
+git = "https://github.com/linebender/druid.git"
+branch = "master"
 features = ["im", "svg"]
 
 [dependencies.protobuf]
