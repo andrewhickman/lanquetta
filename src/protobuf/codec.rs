@@ -1,4 +1,4 @@
-use bytes::buf::ext::{BufExt, BufMutExt};
+use bytes::{Buf, BufMut};
 use protobuf::reflect::MessageDescriptor;
 use protobuf::{CodedInputStream, CodedOutputStream};
 use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};

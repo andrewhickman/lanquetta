@@ -8,6 +8,7 @@ use futures::{StreamExt, TryStreamExt};
 use http::Uri;
 use protobuf::MessageDyn;
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{client::Grpc, transport::Channel, IntoRequest};
 
 use crate::protobuf::{ProtobufMethod, ProtobufMethodKind};
@@ -85,7 +86,11 @@ impl Client {
                 tokio::spawn(async move {
                     match self
                         .grpc
-                        .client_streaming(request_receiver.into_request(), path, codec)
+                        .client_streaming(
+                            UnboundedReceiverStream::new(request_receiver).into_request(),
+                            path,
+                            codec,
+                        )
                         .await
                     {
                         Ok(response) => on_response(Some(Ok(response.into_inner()))),
@@ -131,7 +136,11 @@ impl Client {
                 tokio::spawn(async move {
                     match self
                         .grpc
-                        .streaming(request_receiver.into_request(), path, codec)
+                        .streaming(
+                            UnboundedReceiverStream::new(request_receiver).into_request(),
+                            path,
+                            codec,
+                        )
                         .await
                     {
                         Ok(stream) => {
