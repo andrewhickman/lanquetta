@@ -1,6 +1,5 @@
 mod item;
 
-use std::string::ToString;
 use std::time::Duration;
 
 use druid::{
@@ -123,7 +122,7 @@ impl State {
             data: item::State::from_response(result),
             kind: ItemKind::Response,
             duration: duration
-                .map(|d| format_duration(d).to_string())
+                .map(format_duration)
                 .unwrap_or_default()
                 .into(),
         });
@@ -181,7 +180,7 @@ fn format_duration(duration: Duration) -> String {
         let secs = duration.as_secs_f64();
         format!("{:.*} s", precision(secs), secs)
     } else {
-        let millis = duration.as_nanos() as f64 / 1000_000.0;
+        let millis = duration.as_nanos() as f64 / 1_000_000.0;
         format!("{:.*} ms", precision(millis), millis)
     }
 }

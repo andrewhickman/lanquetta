@@ -55,7 +55,7 @@ fn get_styles(text: &str) -> Vec<(highlighting::Style, Range<usize>)> {
     result
 }
 
-fn iter_lines<'a>(text: &'a str) -> impl Iterator<Item = (usize, &'a str)> + 'a {
+fn iter_lines(text: &str) -> impl Iterator<Item = (usize, &str)> {
     Memchr::new(b'\n', text.as_bytes())
         .map(|idx| idx + 1)
         .chain(iter::once(text.len()))

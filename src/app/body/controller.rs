@@ -198,10 +198,7 @@ impl TabController {
     }
 
     fn is_connected(&self, data: &mut TabState) -> bool {
-        match &self.client {
-            Some(client) if data.address.uri() == Some(client.uri()) => true,
-            _ => false,
-        }
+        matches!(&self.client, Some(client) if data.address.uri() == Some(client.uri()))
     }
 
     fn is_active(&self) -> bool {

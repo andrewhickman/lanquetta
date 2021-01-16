@@ -162,14 +162,14 @@ impl TryInto<app::State> for AppState {
                     ))
                 })
                 .collect::<Result<app::sidebar::ServiceListState>>()?,
-            body: body.to_state(&file_descriptor_sets)?,
+            body: body.into_state(&file_descriptor_sets)?,
             error: None,
         })
     }
 }
 
 impl AppBodyState {
-    fn to_state(self, fd_sets: &[AppFileDescriptorSetState]) -> Result<app::body::State> {
+    fn into_state(self, fd_sets: &[AppFileDescriptorSetState]) -> Result<app::body::State> {
         let tabs = self
             .tabs
             .into_iter()

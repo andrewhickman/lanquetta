@@ -79,6 +79,6 @@ impl Decoder for ProtobufDecoder {
                 log::error!("{}", err);
                 tonic::Status::internal(err.to_string())
             })?;
-        Ok(Some(grpc::Response::new(item.into())))
+        Ok(Some(grpc::Response::new(item)))
     }
 }

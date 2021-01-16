@@ -209,10 +209,8 @@ where
         env: &Env,
     ) {
         if let Event::Command(command) = event {
-            if command.is(FINISH_EDIT) {
-                if data.is_valid() {
-                    ctx.submit_command(command::CONNECT.to(self.body_id));
-                }
+            if command.is(FINISH_EDIT) && data.is_valid() {
+                ctx.submit_command(command::CONNECT.to(self.body_id));
             }
         }
 

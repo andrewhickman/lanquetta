@@ -111,7 +111,7 @@ impl ProtobufService {
         self.methods.get(index)
     }
 
-    pub fn methods<'a>(&'a self) -> impl Iterator<Item = ProtobufMethod> + 'a {
+    pub fn methods(&self) -> impl Iterator<Item = ProtobufMethod> + '_ {
         self.methods.iter().cloned()
     }
 

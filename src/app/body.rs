@@ -105,7 +105,7 @@ impl State {
         self.with_selected(|_, tab_data| tab_data.method.clone())
     }
 
-    pub fn tabs<'a>(&'a self) -> impl Iterator<Item = (TabId, &'a TabState)> {
+    pub fn tabs(&self) -> impl Iterator<Item = (TabId, &TabState)> {
         self.tabs.iter().map(|(&id, tab)| (id, tab))
     }
 }
