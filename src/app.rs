@@ -14,6 +14,7 @@ use druid::{
 };
 
 use self::config::{Config, ConfigController};
+use self::menu::MenuController;
 use crate::{
     theme,
     widget::{Empty, Icon},
@@ -26,7 +27,7 @@ pub fn launch() -> Result<(), PlatformError> {
         .window
         .apply(WindowDesc::new(build))
         .title(TITLE)
-        .menu(menu::build())
+        .menu(menu::build(&config.data))
         .with_min_size((407.0, 322.0))
         .resizable(true)
         .show_titlebar(true);
@@ -95,6 +96,7 @@ fn build() -> impl Widget<State> {
         .with_child(error.lens(State::error))
         .with_flex_child(split, 1.0)
         .controller(ConfigController)
+        .controller(MenuController)
 }
 
 impl State {

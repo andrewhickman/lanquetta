@@ -15,6 +15,9 @@ pub const REMOVE_SERVICE: Selector<usize> = Selector::new("app.remove-service");
 /// Create a new tab with the given method
 pub const CREATE_TAB: Selector<ProtobufMethod> = Selector::new("app.create-tab");
 
+/// Close the selected tab
+pub const CLOSE_SELECTED_TAB: Selector = Selector::new("app.close-tab");
+
 /// Begin connecting to the server
 pub const CONNECT: Selector = Selector::new("app.connect");
 

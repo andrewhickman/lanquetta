@@ -101,6 +101,16 @@ impl State {
         Arc::make_mut(&mut self.tabs).insert(id, TabState::empty(method));
     }
 
+    pub fn selected_tab(&self) -> Option<TabId> {
+        self.selected
+    }
+
+    pub fn close_selected_tab(&mut self) {
+        if let Some(selected) = self.selected {
+            self.remove(selected);
+        }
+    }
+
     pub fn selected_method(&self) -> Option<ProtobufMethod> {
         self.with_selected(|_, tab_data| tab_data.method.clone())
     }
