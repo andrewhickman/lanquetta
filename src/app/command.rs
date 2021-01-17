@@ -2,6 +2,9 @@ use druid::Selector;
 
 use crate::protobuf::ProtobufMethod;
 
+/// Open the source code in a browser
+pub const OPEN_GITHUB: Selector = Selector::new("app.open-github");
+
 /// Select the tab with the given method, or create new one
 pub const SELECT_OR_CREATE_TAB: Selector<ProtobufMethod> =
     Selector::new("app.select-or-create-tab");

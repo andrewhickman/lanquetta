@@ -25,6 +25,9 @@ impl AppDelegate<app::State> for Delegate {
                 data.error = None;
             }
             Handled::Yes
+        } else if cmd.is(command::OPEN_GITHUB) {
+            let _ = open::that_in_background(concat!("https://github.com/andrewhickman/grpc-client/commit/", env!("VERGEN_SHA")));
+            Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_TAB) {
             data.body.select_or_create_tab(method.clone());
             Handled::Yes

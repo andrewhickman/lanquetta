@@ -121,10 +121,7 @@ impl State {
             expanded: true,
             data: item::State::from_response(result),
             kind: ItemKind::Response,
-            duration: duration
-                .map(format_duration)
-                .unwrap_or_default()
-                .into(),
+            duration: duration.map(format_duration).unwrap_or_default().into(),
         });
     }
 

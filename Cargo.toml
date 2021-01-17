@@ -8,6 +8,7 @@ documentation = "https://docs.rs/grpc-client"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 anyhow = "1.0.38"
@@ -24,6 +25,7 @@ iter-set = "2.0.1"
 env_logger = "0.8.2"
 dirs-next = "2.0.0"
 tokio-stream = "0.1.2"
+open = "1.4.0"
 
 [dependencies.druid]
 version = "0.7.0"
@@ -59,3 +61,6 @@ features = ["serde"]
 [dependencies.im]
 version = "15.0.0"
 features = ["serde"]
+
+[build-dependencies]
+vergen = "3.1.0"
