@@ -3,7 +3,7 @@ mod controller;
 mod request;
 pub mod stream;
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, ops::Bound, sync::Arc};
 
 use druid::{widget::Flex, widget::Label, Data, Lens, Widget, WidgetExt as _, WidgetId};
 use iter_set::Inclusion;
@@ -99,6 +99,38 @@ impl State {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(id, TabState::empty(method));
+    }
+
+    pub fn first_tab(&self) -> Option<TabId> {
+        self.tabs.keys().next().copied()
+    }
+
+    pub fn last_tab(&self) -> Option<TabId> {
+        self.tabs.keys().next_back().copied()
+    }
+
+    pub fn select_next_tab(&mut self) {
+        if let Some(selected) = self.selected {
+            if let Some((&next, _)) = self
+                .tabs
+                .range((Bound::Excluded(selected), Bound::Unbounded))
+                .next()
+            {
+                self.selected = Some(next);
+            }
+        }
+    }
+
+    pub fn select_prev_tab(&mut self) {
+        if let Some(selected) = self.selected {
+            if let Some((&prev, _)) = self
+                .tabs
+                .range((Bound::Unbounded, Bound::Excluded(selected)))
+                .next_back()
+            {
+                self.selected = Some(prev);
+            }
+        }
     }
 
     pub fn selected_tab(&self) -> Option<TabId> {

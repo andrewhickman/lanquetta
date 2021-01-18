@@ -34,6 +34,12 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::CLOSE_SELECTED_TAB) {
             data.body.close_selected_tab();
             Handled::Yes
+        } else if cmd.is(command::SELECT_NEXT_TAB) {
+            data.body.select_next_tab();
+            Handled::Yes
+        } else if cmd.is(command::SELECT_PREV_TAB) {
+            data.body.select_prev_tab();
+            Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_TAB) {
             data.body.select_or_create_tab(method.clone());
             Handled::Yes

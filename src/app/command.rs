@@ -18,6 +18,12 @@ pub const CREATE_TAB: Selector<ProtobufMethod> = Selector::new("app.create-tab")
 /// Close the selected tab
 pub const CLOSE_SELECTED_TAB: Selector = Selector::new("app.close-tab");
 
+/// Close the selected tab
+pub const SELECT_NEXT_TAB: Selector = Selector::new("app.select-next-tab");
+
+/// Close the selected tab
+pub const SELECT_PREV_TAB: Selector = Selector::new("app.select-prev-tab");
+
 /// Begin connecting to the server
 pub const CONNECT: Selector = Selector::new("app.connect");
 
