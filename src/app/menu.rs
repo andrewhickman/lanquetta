@@ -15,6 +15,7 @@ pub(in crate::app) fn build(data: &app::State) -> MenuDesc<app::State> {
     MenuDesc::empty()
         .append(file_menu(data))
         .append(edit_menu())
+        .append(request_menu(data))
         .append(view_menu(data))
         .append(help_menu())
 }
@@ -49,6 +50,27 @@ fn edit_menu() -> MenuDesc<app::State> {
         .append(platform_menus::common::cut())
         .append(platform_menus::common::copy())
         .append(platform_menus::common::paste())
+}
+
+fn request_menu(data: &app::State) -> MenuDesc<app::State> {
+    MenuDesc::new(LocalizedString::new("Request"))
+        .append(
+            MenuItem::new(LocalizedString::new("Connect"), app::command::CONNECT)
+                .disabled_if(|| !can_connect(data)),
+        )
+        .append(
+            MenuItem::new(LocalizedString::new("Send"), app::command::SEND)
+                .hotkey(SysMods::Shift, Key::Enter)
+                .disabled_if(|| !can_send(data)),
+        )
+        .append(
+            MenuItem::new(LocalizedString::new("Finish"), app::command::FINISH)
+                .disabled_if(|| !can_finish(data)),
+        )
+        .append(
+            MenuItem::new(LocalizedString::new("Disconnect"), app::command::DISCONNECT)
+                .disabled_if(|| !can_disconnect(data)),
+        )
 }
 
 fn view_menu(data: &app::State) -> MenuDesc<app::State> {
@@ -90,6 +112,30 @@ fn can_select_prev_tab(data: &app::State) -> bool {
     data.body.selected_tab() != data.body.first_tab()
 }
 
+fn can_connect(data: &app::State) -> bool {
+    data.body
+        .with_selected_address(|address| address.can_connect())
+        .unwrap_or(false)
+}
+
+fn can_send(data: &app::State) -> bool {
+    data.body
+        .with_selected_address(|address| address.can_send())
+        .unwrap_or(false)
+}
+
+fn can_finish(data: &app::State) -> bool {
+    data.body
+        .with_selected_address(|address| address.can_finish())
+        .unwrap_or(false)
+}
+
+fn can_disconnect(data: &app::State) -> bool {
+    data.body
+        .with_selected_address(|address| address.can_disconnect())
+        .unwrap_or(false)
+}
+
 impl<W> Controller<app::State, W> for MenuController
 where
     W: Widget<app::State>,
@@ -105,6 +151,10 @@ where
         if can_close_selected_tab(old_data) != can_close_selected_tab(data)
             || can_select_prev_tab(old_data) != can_select_prev_tab(data)
             || can_select_next_tab(old_data) != can_select_next_tab(data)
+            || can_connect(old_data) != can_connect(data)
+            || can_send(old_data) != can_send(data)
+            || can_finish(old_data) != can_finish(data)
+            || can_disconnect(old_data) != can_disconnect(data)
         {
             ctx.set_menu(build(data));
         }

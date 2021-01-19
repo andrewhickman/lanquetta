@@ -149,6 +149,7 @@ impl State {
     pub fn can_send(&self) -> bool {
         (self.address.request_state() != RequestState::Active
             || self.method_kind.client_streaming())
+            && self.address.request_state() != RequestState::NotStarted
             && self.address.request_state() != RequestState::ConnectInProgress
             && self.address.is_valid()
             && self.body_valid
@@ -158,6 +159,16 @@ impl State {
         self.address.request_state() != RequestState::Active
             && self.address.request_state() != RequestState::ConnectInProgress
             && self.address.is_valid()
+    }
+
+    pub fn can_finish(&self) -> bool {
+        self.address.request_state() == RequestState::Active && self.method_kind.client_streaming()
+    }
+
+    pub fn can_disconnect(&self) -> bool {
+        self.address.request_state() == RequestState::ConnectInProgress
+            || self.address.request_state() == RequestState::Connected
+            || self.address.request_state() == RequestState::Active
     }
 }
 

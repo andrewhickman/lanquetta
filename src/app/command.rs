@@ -29,3 +29,9 @@ pub const CONNECT: Selector = Selector::new("app.connect");
 
 /// Begin sending a request
 pub const SEND: Selector = Selector::new("app.send");
+
+/// Finish sending a request
+pub const FINISH: Selector = Selector::new("app.finish");
+
+/// Disconnecting from the server
+pub const DISCONNECT: Selector = Selector::new("app.disconnect");

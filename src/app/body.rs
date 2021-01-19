@@ -150,6 +150,10 @@ impl State {
     pub fn tabs(&self) -> impl Iterator<Item = (TabId, &TabState)> {
         self.tabs.iter().map(|(&id, tab)| (id, tab))
     }
+
+    pub fn with_selected_address<V>(&self, f: impl FnOnce(&address::State) -> V) -> Option<V> {
+        self.with_selected(|_, tab| TabState::address_lens().with(tab, f))
+    }
 }
 
 impl TabState {

@@ -80,7 +80,10 @@ impl TabController {
         } else if let Some(response) = command.get(FINISH_SEND) {
             self.finish_send(ctx, data, response.take().unwrap());
             Handled::Yes
-        } else if command.is(DISCONNECT) {
+        } else if command.is(command::FINISH) {
+            self.finish_send(ctx, data, None);
+            Handled::Yes
+        } else if command.is(command::DISCONNECT) {
             self.disconnect(ctx, data);
             Handled::Yes
         } else {
@@ -148,7 +151,11 @@ impl TabController {
         data.stream.add_request(&request);
 
         if let Some(call) = &mut self.call {
-            call.send(request);
+            if data.method.kind().client_streaming() {
+                call.send(request);
+            } else {
+                log::warn!("Send called on active call with non-streaming method");
+            }
         } else {
             let client = match &self.client {
                 Some(client) if client.uri() == &uri => client.clone(),
