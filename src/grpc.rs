@@ -4,14 +4,14 @@ use std::{
 };
 
 use anyhow::Result;
-use futures::{StreamExt, TryStreamExt};
-use http::Uri;
+use futures::{Stream, StreamExt, TryStreamExt};
+use http::{uri::PathAndQuery, Uri};
 use protobuf::MessageDyn;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{client::Grpc, transport::Channel, IntoRequest};
 
-use crate::protobuf::{ProtobufMethod, ProtobufMethodKind};
+use crate::protobuf::{ProtobufCodec, ProtobufMethod, ProtobufMethodKind};
 
 pub type ConnectResult = Result<Client, (Uri, Error)>;
 pub type ResponseResult = Result<Response, Error>;
@@ -57,7 +57,7 @@ impl Client {
         &self.uri
     }
 
-    pub fn call<F>(mut self, method: &ProtobufMethod, request: Request, mut on_response: F) -> Call
+    pub fn call<F>(self, method: &ProtobufMethod, request: Request, mut on_response: F) -> Call
     where
         F: FnMut(Option<ResponseResult>) + Send + 'static,
     {
@@ -69,9 +69,9 @@ impl Client {
         let request_sender = match method.kind() {
             ProtobufMethodKind::Unary => {
                 tokio::spawn(async move {
-                    match self.grpc.unary(request.into_request(), path, codec).await {
-                        Ok(response) => on_response(Some(Ok(response.into_inner()))),
-                        Err(err) => on_response(Some(Err(arc_err(err)))),
+                    match self.unary(request, path, codec).await {
+                        Ok(response) => on_response(Some(Ok(response))),
+                        Err(err) => on_response(Some(Err(err.into()))),
                     }
                     on_response(None);
                 });
@@ -85,16 +85,15 @@ impl Client {
 
                 tokio::spawn(async move {
                     match self
-                        .grpc
                         .client_streaming(
-                            UnboundedReceiverStream::new(request_receiver).into_request(),
+                            UnboundedReceiverStream::new(request_receiver),
                             path,
                             codec,
                         )
                         .await
                     {
-                        Ok(response) => on_response(Some(Ok(response.into_inner()))),
-                        Err(err) => on_response(Some(Err(arc_err(err)))),
+                        Ok(response) => on_response(Some(Ok(response))),
+                        Err(err) => on_response(Some(Err(err.into()))),
                     }
                     on_response(None);
                 });
@@ -103,13 +102,9 @@ impl Client {
             }
             ProtobufMethodKind::ServerStreaming => {
                 tokio::spawn(async move {
-                    match self
-                        .grpc
-                        .server_streaming(request.into_request(), path, codec)
-                        .await
-                    {
+                    match self.server_streaming(request, path, codec).await {
                         Ok(stream) => {
-                            let mut stream = stream.into_inner().map_err(arc_err);
+                            let mut stream = stream.map_err(arc_err);
                             while let Some(result) = stream.next().await {
                                 let is_err = result.is_err();
                                 on_response(Some(result));
@@ -119,7 +114,7 @@ impl Client {
                             }
                         }
                         Err(err) => {
-                            on_response(Some(Err(arc_err(err))));
+                            on_response(Some(Err(err.into())));
                         }
                     }
 
@@ -135,16 +130,11 @@ impl Client {
 
                 tokio::spawn(async move {
                     match self
-                        .grpc
-                        .streaming(
-                            UnboundedReceiverStream::new(request_receiver).into_request(),
-                            path,
-                            codec,
-                        )
+                        .streaming(UnboundedReceiverStream::new(request_receiver), path, codec)
                         .await
                     {
                         Ok(stream) => {
-                            let mut stream = stream.into_inner().map_err(arc_err);
+                            let mut stream = stream.map_err(arc_err);
                             while let Some(result) = stream.next().await {
                                 let is_err = result.is_err();
                                 on_response(Some(result));
@@ -154,7 +144,7 @@ impl Client {
                             }
                         }
                         Err(err) => {
-                            on_response(Some(Err(arc_err(err))));
+                            on_response(Some(Err(err.into())));
                         }
                     }
 
@@ -169,6 +159,62 @@ impl Client {
             request_sender,
             last_request,
         }
+    }
+
+    async fn unary(
+        mut self,
+        request: Request,
+        path: PathAndQuery,
+        codec: ProtobufCodec,
+    ) -> anyhow::Result<Response> {
+        self.grpc.ready().await?;
+        Ok(self
+            .grpc
+            .unary(request.into_request(), path, codec)
+            .await?
+            .into_inner())
+    }
+
+    async fn client_streaming(
+        mut self,
+        requests: impl Stream<Item = Request> + Send + Sync + 'static,
+        path: PathAndQuery,
+        codec: ProtobufCodec,
+    ) -> anyhow::Result<Response> {
+        self.grpc.ready().await?;
+        Ok(self
+            .grpc
+            .client_streaming(requests.into_request(), path, codec)
+            .await?
+            .into_inner())
+    }
+
+    async fn server_streaming(
+        mut self,
+        request: Request,
+        path: PathAndQuery,
+        codec: ProtobufCodec,
+    ) -> anyhow::Result<tonic::Streaming<Response>> {
+        self.grpc.ready().await?;
+        Ok(self
+            .grpc
+            .server_streaming(request.into_request(), path, codec)
+            .await?
+            .into_inner())
+    }
+
+    async fn streaming(
+        mut self,
+        requests: impl Stream<Item = Request> + Send + Sync + 'static,
+        path: PathAndQuery,
+        codec: ProtobufCodec,
+    ) -> anyhow::Result<tonic::Streaming<Response>> {
+        self.grpc.ready().await?;
+        Ok(self
+            .grpc
+            .streaming(requests.into_request(), path, codec)
+            .await?
+            .into_inner())
     }
 }
 
