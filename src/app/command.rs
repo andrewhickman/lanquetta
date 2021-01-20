@@ -33,5 +33,8 @@ pub const SEND: Selector = Selector::new("app.send");
 /// Finish sending a request
 pub const FINISH: Selector = Selector::new("app.finish");
 
-/// Disconnecting from the server
+/// Disconnect from the server
 pub const DISCONNECT: Selector = Selector::new("app.disconnect");
+
+/// Clear request history
+pub const CLEAR: Selector = Selector::new("app.clear");

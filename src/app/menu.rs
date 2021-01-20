@@ -37,7 +37,7 @@ fn file_menu(data: &app::State) -> MenuDesc<app::State> {
                 app::command::CLOSE_SELECTED_TAB,
             )
             .hotkey(SysMods::Cmd, "w")
-            .disabled_if(|| !can_close_selected_tab(data)),
+            .disabled_if(|| !has_selected_tab(data)),
         )
         .append(MenuItem::new(
             LocalizedString::new("win-menu-file-exit"),
@@ -91,6 +91,14 @@ fn view_menu(data: &app::State) -> MenuDesc<app::State> {
             .hotkey(SysMods::CmdShift, Key::Tab)
             .disabled_if(|| !can_select_prev_tab(data)),
         )
+        .append(
+            MenuItem::new(
+                LocalizedString::new("Clear request history"),
+                app::command::CLEAR,
+            )
+            .hotkey(SysMods::CmdShift, "X")
+            .disabled_if(|| !has_selected_tab(data)),
+        )
 }
 
 fn help_menu() -> MenuDesc<app::State> {
@@ -100,7 +108,7 @@ fn help_menu() -> MenuDesc<app::State> {
     ))
 }
 
-fn can_close_selected_tab(data: &app::State) -> bool {
+fn has_selected_tab(data: &app::State) -> bool {
     data.body.selected_tab().is_some()
 }
 
@@ -148,7 +156,7 @@ where
         data: &app::State,
         env: &Env,
     ) {
-        if can_close_selected_tab(old_data) != can_close_selected_tab(data)
+        if has_selected_tab(old_data) != has_selected_tab(data)
             || can_select_prev_tab(old_data) != can_select_prev_tab(data)
             || can_select_next_tab(old_data) != can_select_next_tab(data)
             || can_connect(old_data) != can_connect(data)

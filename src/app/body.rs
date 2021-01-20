@@ -143,6 +143,10 @@ impl State {
         }
     }
 
+    pub fn clear_request_history(&mut self) {
+        self.with_selected_mut(|_, tab| tab.stream.clear());
+    }
+
     pub fn selected_method(&self) -> Option<ProtobufMethod> {
         self.with_selected(|_, tab_data| tab_data.method.clone())
     }

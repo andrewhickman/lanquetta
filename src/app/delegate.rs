@@ -40,6 +40,9 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::SELECT_PREV_TAB) {
             data.body.select_prev_tab();
             Handled::Yes
+        } else if cmd.is(command::CLEAR) {
+            data.body.clear_request_history();
+            Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_TAB) {
             data.body.select_or_create_tab(method.clone());
             Handled::Yes
