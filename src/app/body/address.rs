@@ -106,6 +106,29 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
         env.set(theme::DISABLED, !data.can_send() && !data.can_connect());
     });
 
+    let finish_button = theme::button_scope(
+        Button::dynamic(|data: &State, _| match data.address.request_state {
+            RequestState::Active if data.method_kind.client_streaming() => "Finish".to_owned(),
+            _ => "Disconnect".to_owned(),
+        })
+        .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
+            if data.can_finish() || data.can_disconnect() {
+                match data.address.request_state() {
+                    RequestState::NotStarted | RequestState::ConnectFailed => unreachable!(),
+                    RequestState::Active if data.method_kind.client_streaming() => {
+                        ctx.submit_command(command::FINISH.to(body_id));
+                    }
+                    RequestState::ConnectInProgress | RequestState::Connected | RequestState::Active => {
+                        ctx.submit_command(command::DISCONNECT.to(body_id));
+                    }
+                }
+            }
+        }),
+    )
+    .env_scope(|env, data: &State| {
+        env.set(theme::DISABLED, !data.can_finish() && !data.can_disconnect());
+    });
+
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_flex_child(address_form_field.lens(State::address), 1.0)
@@ -115,7 +138,9 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
                 .lens(AddressState::request_state_lens)
                 .lens(State::address),
         )
-        .with_child(send_button)
+        .with_child(send_button.fix_width(100.0))
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(finish_button.fix_width(100.0))
 }
 
 static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>> =
