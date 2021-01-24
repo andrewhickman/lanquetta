@@ -2,7 +2,7 @@ use druid::{
     keyboard_types::Key,
     platform_menus,
     widget::{prelude::*, Controller},
-    FileDialogOptions, FileSpec, LocalizedString, MenuDesc, MenuItem, SysMods,
+    FileDialogOptions, FileSpec, LocalizedString, MenuDesc, MenuItem, SysMods, WindowId,
 };
 
 use crate::app;
@@ -11,16 +11,16 @@ pub const PROTOBUF_FILE_TYPE: FileSpec = FileSpec::new("Protocol buffers file", 
 
 pub struct MenuController;
 
-pub(in crate::app) fn build(data: &app::State) -> MenuDesc<app::State> {
+pub(in crate::app) fn build(data: &app::State, main_window: WindowId) -> MenuDesc<app::State> {
     MenuDesc::empty()
-        .append(file_menu(data))
+        .append(file_menu(data, main_window))
         .append(edit_menu())
         .append(request_menu(data))
         .append(view_menu(data))
         .append(help_menu())
 }
 
-fn file_menu(data: &app::State) -> MenuDesc<app::State> {
+fn file_menu(data: &app::State, main_window: WindowId) -> MenuDesc<app::State> {
     MenuDesc::new(LocalizedString::new("common-menu-file-menu"))
         .append(
             MenuItem::new(
@@ -41,7 +41,7 @@ fn file_menu(data: &app::State) -> MenuDesc<app::State> {
         )
         .append(MenuItem::new(
             LocalizedString::new("win-menu-file-exit"),
-            druid::commands::QUIT_APP,
+            druid::commands::CLOSE_WINDOW.to(main_window),
         ))
 }
 
@@ -164,7 +164,7 @@ where
             || can_finish(old_data) != can_finish(data)
             || can_disconnect(old_data) != can_disconnect(data)
         {
-            ctx.set_menu(build(data));
+            ctx.set_menu(build(data, ctx.window_id()));
         }
 
         child.update(ctx, old_data, data, env)

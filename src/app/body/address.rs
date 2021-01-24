@@ -118,7 +118,9 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
                     RequestState::Active if data.method_kind.client_streaming() => {
                         ctx.submit_command(command::FINISH.to(body_id));
                     }
-                    RequestState::ConnectInProgress | RequestState::Connected | RequestState::Active => {
+                    RequestState::ConnectInProgress
+                    | RequestState::Connected
+                    | RequestState::Active => {
                         ctx.submit_command(command::DISCONNECT.to(body_id));
                     }
                 }
@@ -126,7 +128,10 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
         }),
     )
     .env_scope(|env, data: &State| {
-        env.set(theme::DISABLED, !data.can_finish() && !data.can_disconnect());
+        env.set(
+            theme::DISABLED,
+            !data.can_finish() && !data.can_disconnect(),
+        );
     });
 
     Flex::row()

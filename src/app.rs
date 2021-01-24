@@ -10,7 +10,7 @@ use druid::{
     widget::Painter,
     widget::{Either, Flex, Label, Split},
     AppLauncher, Data, Lens, PlatformError, RenderContext, UnitPoint, Widget, WidgetExt as _,
-    WindowDesc,
+    WindowDesc, WindowId,
 };
 
 use self::config::{Config, ConfigController};
@@ -23,14 +23,16 @@ use crate::{
 pub fn launch() -> Result<(), PlatformError> {
     let config = Config::load();
 
-    let main_window = config
+    let main_window_id = WindowId::next();
+    let mut main_window = config
         .window
         .apply(WindowDesc::new(build))
         .title(TITLE)
-        .menu(menu::build(&config.data))
+        .menu(menu::build(&config.data, main_window_id))
         .with_min_size((407.0, 322.0))
         .resizable(true)
         .show_titlebar(true);
+    main_window.id = main_window_id;
 
     AppLauncher::with_window(main_window)
         .configure_env(|env, _| theme::set(env))
