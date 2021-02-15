@@ -66,7 +66,7 @@ const FINISH_SEND: Selector<SingleUse<Option<grpc::ResponseResult>>> =
 
 impl TabController {
     fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
-        log::debug!("Body received command: {:?}", command);
+        tracing::debug!("Body received command: {:?}", command);
 
         if command.is(command::CONNECT) {
             self.start_connect(ctx, data);
@@ -97,7 +97,7 @@ impl TabController {
         let uri = match data.address.uri() {
             Some(uri) => uri.clone(),
             None => {
-                log::error!("Connect called with no address");
+                tracing::error!("Connect called with no address");
                 return;
             }
         };
@@ -144,7 +144,7 @@ impl TabController {
             if let (Some(uri), Some(request)) = (data.address.uri(), data.request().get()) {
                 (uri.clone(), request.clone())
             } else {
-                log::error!("Send called with no address/request");
+                tracing::error!("Send called with no address/request");
                 return;
             };
 
@@ -154,13 +154,13 @@ impl TabController {
             if data.method.kind().client_streaming() {
                 call.send(request);
             } else {
-                log::warn!("Send called on active call with non-streaming method");
+                tracing::warn!("Send called on active call with non-streaming method");
             }
         } else {
             let client = match &self.client {
                 Some(client) if client.uri() == &uri => client.clone(),
                 _ => {
-                    log::error!("Send called with invalid client");
+                    tracing::error!("Send called with invalid client");
                     return;
                 }
             };

@@ -12,9 +12,8 @@ build = "build.rs"
 
 [dependencies]
 anyhow = "1.0.38"
-log = "0.4.13"
 futures = "0.3.12"
-serde_json = "1.0.61"
+serde_json = "1.0.62"
 bytes = "1.0.1"
 http = "0.2.3"
 fs-err = "2.5.0"
@@ -22,18 +21,20 @@ once_cell = "1.5.2"
 memchr = "2.3.4"
 serde-transcode = "1.1.0"
 iter-set = "2.0.1"
-env_logger = "0.8.2"
 dirs-next = "2.0.0"
-tokio-stream = "0.1.2"
+tokio-stream = "0.1.3"
 open = "1.4.0"
+tracing-subscriber = "0.2.15"
+tracing = "0.1.23"
 
 [dependencies.druid]
-version = "0.7.0"
-features = ["im", "svg"]
+git = "https://github.com/linebender/druid.git"
+rev = "f2aa6f0f254a8db53c18d35ded1a3e010ba94e86"
+features = ["im", "svg", "serde"]
 
 [dependencies.protobuf]
 git = "https://github.com/andrewhickman/rust-protobuf.git"
-rev = "666318a6febd2a7b894116848fa1ff5c8d08bf3f"
+rev = "35651d029cda2c56a6b4b53be97818cf8458ca33"
 features = ["with-serde"]
 
 [dependencies.tonic]
@@ -42,7 +43,7 @@ default-features = false
 features = ["transport", "tls", "tls-roots"]
 
 [dependencies.tokio]
-version = "1.0.2"
+version = "1.2.0"
 features = ["macros", "rt-multi-thread", "sync"]
 
 [dependencies.syntect]
@@ -51,16 +52,17 @@ default-features = false
 features = ["parsing", "regex-onig", "assets", "dump-load"]
 
 [dependencies.serde]
-version = "1.0.119"
+version = "1.0.123"
 features = ["derive", "rc"]
 
 [dependencies.kurbo] 
-version = "0.7.1"
+version = "0.7.0"
 features = ["serde"]
 
 [dependencies.im]
 version = "15.0.0"
 features = ["serde"]
 
-[build-dependencies]
-vergen = "3.1.0"
+[build-dependencies.vergen]
+version = "4.0.2"
+features = ["git"]

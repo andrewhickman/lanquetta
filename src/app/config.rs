@@ -38,14 +38,14 @@ enum WindowState {
 impl Config {
     pub fn load() -> Config {
         Config::try_load().unwrap_or_else(|err| {
-            log::warn!("Failed to load config: {:?}", err);
+            tracing::warn!("Failed to load config: {:?}", err);
             Config::default()
         })
     }
 
     pub fn store(config: &Config) {
         if let Err(err) = Config::try_store(config) {
-            log::warn!("Failed to store config: {:?}", err);
+            tracing::warn!("Failed to store config: {:?}", err);
         }
     }
 
@@ -53,7 +53,7 @@ impl Config {
         let path = Config::path()?;
         let text = read_to_string(&path)?;
         let config = serde_json::from_str(&text)?;
-        log::debug!("Loaded config from {}", path.display());
+        tracing::debug!("Loaded config from {}", path.display());
         Ok(config)
     }
 
@@ -62,7 +62,7 @@ impl Config {
         let text = serde_json::to_string(config)?;
         create_dir_all(path.parent().unwrap())?;
         write(&path, text)?;
-        log::debug!("Stored config to {}", path.display());
+        tracing::debug!("Stored config to {}", path.display());
         Ok(())
     }
 

@@ -17,7 +17,7 @@ impl AppDelegate<app::State> for Delegate {
         data: &mut app::State,
         _env: &Env,
     ) -> Handled {
-        log::debug!("Received command: {:?}", cmd);
+        tracing::debug!("Received command: {:?}", cmd);
         if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
             if let Err(err) = data.sidebar.add_from_path(file.path()) {
                 data.error = Some(format!("Error loading file: {:?}", err));
@@ -28,7 +28,7 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::OPEN_GITHUB) {
             let _ = open::that_in_background(concat!(
                 "https://github.com/andrewhickman/grpc-client/commit/",
-                env!("VERGEN_SHA")
+                env!("VERGEN_GIT_SHA")
             ));
             Handled::Yes
         } else if cmd.is(command::CLOSE_SELECTED_TAB) {

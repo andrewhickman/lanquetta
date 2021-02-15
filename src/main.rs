@@ -7,11 +7,18 @@ mod protobuf;
 mod theme;
 mod widget;
 
-use env_logger::Env;
+use tracing_subscriber::{fmt, EnvFilter, prelude::*};
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
-    env_logger::init_from_env(Env::new().default_filter_or("info"));
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))?;
+
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(filter_layer)
+        .init();
+
     app::launch()?;
     Ok(())
 }

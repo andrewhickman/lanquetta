@@ -61,7 +61,7 @@ impl Encoder for ProtobufEncoder {
         item.body_mut()
             .write_to_dyn(&mut CodedOutputStream::new(&mut dst.writer()))
             .map_err(|err| {
-                log::error!("{}", err);
+                tracing::error!("{}", err);
                 tonic::Status::internal(err.to_string())
             })?;
         Ok(())
@@ -76,7 +76,7 @@ impl Decoder for ProtobufDecoder {
         let mut item = self.descriptor.new_instance();
         item.merge_from_dyn(&mut CodedInputStream::new(&mut src.reader()))
             .map_err(|err| {
-                log::error!("{}", err);
+                tracing::error!("{}", err);
                 tonic::Status::internal(err.to_string())
             })?;
         Ok(Some(grpc::Response::new(item)))

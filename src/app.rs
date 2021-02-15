@@ -26,7 +26,7 @@ pub fn launch() -> Result<(), PlatformError> {
     let main_window_id = WindowId::next();
     let mut main_window = config
         .window
-        .apply(WindowDesc::new(build))
+        .apply(WindowDesc::new(build()))
         .title(TITLE)
         .menu(menu::build(&config.data, main_window_id))
         .with_min_size((407.0, 322.0))

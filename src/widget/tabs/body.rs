@@ -74,7 +74,7 @@ where
                 if let Some(label) = self.children.get_mut(&id) {
                     label.update(ctx, label_data, env);
                 } else {
-                    log::error!("TabBody out of sync with data");
+                    tracing::error!("TabBody out of sync with data");
                 }
             }
             TabsDataChange::Removed => {
@@ -124,7 +124,7 @@ where
         let mut children = self.children.iter_mut();
         data.for_each(|tab_id, tab_data| match children.next() {
             Some((&tab_id2, tab)) if tab_id == tab_id2 => f(tab_id, tab, tab_data),
-            _ => log::error!("TabBody out of sync with data"),
+            _ => tracing::error!("TabBody out of sync with data"),
         })
     }
 
@@ -135,7 +135,7 @@ where
         let mut children = self.children.iter_mut();
         data.for_each_mut(|tab_id, tab_data| match children.next() {
             Some((&tab_id2, tab)) if tab_id == tab_id2 => f(tab_id, tab, tab_data),
-            _ => log::error!("TabBody out of sync with data"),
+            _ => tracing::error!("TabBody out of sync with data"),
         })
     }
 }

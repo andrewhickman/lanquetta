@@ -66,7 +66,7 @@ where
                 if let Some(label) = self.children.get_mut(index) {
                     label.update(ctx, label_data, env);
                 } else {
-                    log::error!("TabHeader out of sync with data");
+                    tracing::error!("TabHeader out of sync with data");
                 }
                 index += 1;
             }
@@ -131,7 +131,7 @@ impl TabsHeader {
             if let Some(label) = children.next() {
                 f(tab_id, label, label_data);
             } else {
-                log::error!("TabHeader out of sync with data");
+                tracing::error!("TabHeader out of sync with data");
             }
         })
     }
@@ -146,7 +146,7 @@ impl TabsHeader {
             if let Some(label) = children.next() {
                 f(tab_id, label, label_data);
             } else {
-                log::error!("TabHeader out of sync with data");
+                tracing::error!("TabHeader out of sync with data");
             }
         })
     }
