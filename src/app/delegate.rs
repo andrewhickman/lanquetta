@@ -27,7 +27,7 @@ impl AppDelegate<app::State> for Delegate {
             Handled::Yes
         } else if cmd.is(command::OPEN_GITHUB) {
             let _ = open::that_in_background(concat!(
-                "https://github.com/andrewhickman/grpc-client/commit/",
+                "https://github.com/andrewhickman/grpc-client/tree/",
                 env!("VERGEN_GIT_SHA")
             ));
             Handled::Yes
