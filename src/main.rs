@@ -7,12 +7,11 @@ mod protobuf;
 mod theme;
 mod widget;
 
-use tracing_subscriber::{fmt, EnvFilter, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
-    let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))?;
+    let filter_layer = EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new("info"))?;
 
     tracing_subscriber::registry()
         .with(fmt::layer())

@@ -29,12 +29,12 @@ tracing = "0.1.23"
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid.git"
-rev = "f2aa6f0f254a8db53c18d35ded1a3e010ba94e86"
+branch = "master"
 features = ["im", "svg", "serde"]
 
 [dependencies.protobuf]
 git = "https://github.com/andrewhickman/rust-protobuf.git"
-rev = "35651d029cda2c56a6b4b53be97818cf8458ca33"
+branch = "master"
 features = ["with-serde"]
 
 [dependencies.tonic]
@@ -56,13 +56,17 @@ version = "1.0.123"
 features = ["derive", "rc"]
 
 [dependencies.kurbo] 
-version = "0.7.0"
+version = "0.8.1"
 features = ["serde"]
 
 [dependencies.im]
 version = "15.0.0"
 features = ["serde"]
 
+[build-dependencies]
+anyhow = "1.0.40"
+
 [build-dependencies.vergen]
-version = "4.0.2"
+version = "5.1.0"
+default-features = false
 features = ["git"]

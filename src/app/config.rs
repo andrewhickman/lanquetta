@@ -84,8 +84,8 @@ impl WindowConfig {
             desc = desc.set_position(position);
         }
         desc = desc.set_window_state(match self.state {
-            WindowState::Maximized => druid::WindowState::MAXIMIZED,
-            WindowState::Restored => druid::WindowState::RESTORED,
+            WindowState::Maximized => druid::WindowState::Maximized,
+            WindowState::Restored => druid::WindowState::Restored,
         });
         desc
     }
@@ -100,8 +100,8 @@ impl WindowConfig {
             },
             position: Some(handle.get_position()),
             state: match handle.get_window_state() {
-                druid::WindowState::MAXIMIZED => WindowState::Maximized,
-                druid::WindowState::MINIMIZED | druid::WindowState::RESTORED => {
+                druid::WindowState::Maximized => WindowState::Maximized,
+                druid::WindowState::Minimized | druid::WindowState::Restored => {
                     WindowState::Restored
                 }
             },

@@ -33,7 +33,7 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_DARK, color::BACKGROUND);
     env.set(
-        druid::theme::SELECTION_COLOR,
+        druid::theme::SELECTED_TEXT_BACKGROUND_COLOR,
         color::active(color::BACKGROUND, color::TEXT),
     );
     env.set(druid::theme::PLACEHOLDER_COLOR, color::DIM_TEXT);

@@ -1,6 +1,3 @@
-fn main() {
-    vergen::gen(
-        vergen::ConstantsFlags::SHA | vergen::ConstantsFlags::REBUILD_ON_HEAD_CHANGE,
-    )
-    .unwrap();
+fn main() -> anyhow::Result<()> {
+    vergen::vergen(vergen::Config::default())
 }

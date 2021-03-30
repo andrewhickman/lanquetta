@@ -1,111 +1,109 @@
-use druid::{
-    keyboard_types::Key,
-    platform_menus,
-    widget::{prelude::*, Controller},
-    FileDialogOptions, FileSpec, LocalizedString, MenuDesc, MenuItem, SysMods, WindowId,
-};
+use druid::{Env, FileDialogOptions, FileSpec, LocalizedString, Menu, MenuItem, SysMods, WindowId, keyboard_types::Key, platform_menus};
 
 use crate::app;
 
 pub const PROTOBUF_FILE_TYPE: FileSpec = FileSpec::new("Protocol buffers file", &["proto"]);
 
-pub struct MenuController;
+pub(in crate::app) fn build(
+    main_window: Option<WindowId>,
+    _data: &app::State,
+    _env: &Env,
+) -> Menu<app::State> {
+    let window_id = match main_window {
+        Some(id) => id,
+        None => return Menu::empty(),
+    };
 
-pub(in crate::app) fn build(data: &app::State, main_window: WindowId) -> MenuDesc<app::State> {
-    MenuDesc::empty()
-        .append(file_menu(data, main_window))
-        .append(edit_menu())
-        .append(request_menu(data))
-        .append(view_menu(data))
-        .append(help_menu())
-}
-
-fn file_menu(data: &app::State, main_window: WindowId) -> MenuDesc<app::State> {
-    MenuDesc::new(LocalizedString::new("common-menu-file-menu"))
-        .append(
-            MenuItem::new(
-                LocalizedString::new("common-menu-file-open"),
-                druid::commands::SHOW_OPEN_PANEL
-                    .with(FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE])),
-            )
-            .hotkey(SysMods::Cmd, "o"),
-        )
-        .append_separator()
-        .append(
-            MenuItem::new(
-                LocalizedString::new("Close Tab"),
-                app::command::CLOSE_SELECTED_TAB,
-            )
-            .hotkey(SysMods::Cmd, "w")
-            .disabled_if(|| !has_selected_tab(data)),
-        )
-        .append(MenuItem::new(
-            LocalizedString::new("win-menu-file-exit"),
-            druid::commands::CLOSE_WINDOW.to(main_window),
+    Menu::empty()
+        .entry(file_menu(
+            window_id,
         ))
+        .entry(edit_menu())
+        .entry(request_menu())
+        .entry(view_menu())
+        .entry(help_menu())
 }
 
-fn edit_menu() -> MenuDesc<app::State> {
-    MenuDesc::new(LocalizedString::new("common-menu-edit-menu"))
-        .append(platform_menus::common::cut())
-        .append(platform_menus::common::copy())
-        .append(platform_menus::common::paste())
-}
-
-fn request_menu(data: &app::State) -> MenuDesc<app::State> {
-    MenuDesc::new(LocalizedString::new("Request"))
-        .append(
-            MenuItem::new(LocalizedString::new("Connect"), app::command::CONNECT)
-                .disabled_if(|| !can_connect(data)),
+fn file_menu(main_window: WindowId) -> Menu<app::State> {
+    Menu::new(LocalizedString::new("common-menu-file-menu"))
+        .entry(
+            MenuItem::new(LocalizedString::new("common-menu-file-open"))
+                .command(
+                    druid::commands::SHOW_OPEN_PANEL
+                        .with(FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE])),
+                )
+                .hotkey(SysMods::Cmd, "o"),
         )
-        .append(
-            MenuItem::new(LocalizedString::new("Send"), app::command::SEND)
+        .separator()
+        .entry(
+            MenuItem::new(LocalizedString::new("Close Tab"))
+                .command(app::command::CLOSE_SELECTED_TAB)
+                .hotkey(SysMods::Cmd, "w")
+                .enabled_if(|data, _| has_selected_tab(data)),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("win-menu-file-exit"))
+                .command(druid::commands::CLOSE_WINDOW.to(main_window)),
+        )
+}
+
+fn edit_menu() -> Menu<app::State> {
+    Menu::new(LocalizedString::new("common-menu-edit-menu"))
+        .entry(platform_menus::common::cut())
+        .entry(platform_menus::common::copy())
+        .entry(platform_menus::common::paste())
+}
+
+fn request_menu() -> Menu<app::State> {
+    Menu::new(LocalizedString::new("Request"))
+        .entry(
+            MenuItem::new(LocalizedString::new("Connect"))
+                .command(app::command::CONNECT)
+                .enabled_if(|data, _| can_connect(data)),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Send"))
+                .command(app::command::SEND)
                 .hotkey(SysMods::Shift, Key::Enter)
-                .disabled_if(|| !can_send(data)),
+                .enabled_if(|data, _| can_send(data)),
         )
-        .append(
-            MenuItem::new(LocalizedString::new("Finish"), app::command::FINISH)
-                .disabled_if(|| !can_finish(data)),
+        .entry(
+            MenuItem::new(LocalizedString::new("Finish"))
+                .command(app::command::FINISH)
+                .enabled_if(|data, _| can_finish(data)),
         )
-        .append(
-            MenuItem::new(LocalizedString::new("Disconnect"), app::command::DISCONNECT)
-                .disabled_if(|| !can_disconnect(data)),
-        )
-}
-
-fn view_menu(data: &app::State) -> MenuDesc<app::State> {
-    MenuDesc::new(LocalizedString::new("View"))
-        .append(
-            MenuItem::new(
-                LocalizedString::new("Next Tab"),
-                app::command::SELECT_NEXT_TAB,
-            )
-            .hotkey(SysMods::Cmd, Key::Tab)
-            .disabled_if(|| !can_select_next_tab(data)),
-        )
-        .append(
-            MenuItem::new(
-                LocalizedString::new("Previous Tab"),
-                app::command::SELECT_PREV_TAB,
-            )
-            .hotkey(SysMods::CmdShift, Key::Tab)
-            .disabled_if(|| !can_select_prev_tab(data)),
-        )
-        .append(
-            MenuItem::new(
-                LocalizedString::new("Clear request history"),
-                app::command::CLEAR,
-            )
-            .hotkey(SysMods::CmdShift, "X")
-            .disabled_if(|| !has_selected_tab(data)),
+        .entry(
+            MenuItem::new(LocalizedString::new("Disconnect"))
+                .command(app::command::DISCONNECT)
+                .enabled_if(|data, _| can_disconnect(data)),
         )
 }
 
-fn help_menu() -> MenuDesc<app::State> {
-    MenuDesc::new(LocalizedString::new("Help")).append(MenuItem::new(
-        LocalizedString::new("GitHub"),
-        app::command::OPEN_GITHUB,
-    ))
+fn view_menu() -> Menu<app::State> {
+    Menu::new(LocalizedString::new("View"))
+        .entry(
+            MenuItem::new(LocalizedString::new("Next Tab"))
+                .command(app::command::SELECT_NEXT_TAB)
+                .hotkey(SysMods::Cmd, Key::Tab)
+                .enabled_if(|data, _| can_select_next_tab(data)),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Previous Tab"))
+                .command(app::command::SELECT_PREV_TAB)
+                .hotkey(SysMods::CmdShift, Key::Tab)
+                .enabled_if(|data, _| can_select_prev_tab(data)),
+        )
+        .entry(
+            MenuItem::new(LocalizedString::new("Clear request history"))
+                .command(app::command::CLEAR)
+                .hotkey(SysMods::CmdShift, "X")
+                .enabled_if(|data, _| has_selected_tab(data)),
+        )
+}
+
+fn help_menu() -> Menu<app::State> {
+    Menu::new(LocalizedString::new("Help"))
+        .entry(MenuItem::new(LocalizedString::new("GitHub")).command(app::command::OPEN_GITHUB))
 }
 
 fn has_selected_tab(data: &app::State) -> bool {
@@ -142,31 +140,4 @@ fn can_disconnect(data: &app::State) -> bool {
     data.body
         .with_selected_address(|address| address.can_disconnect())
         .unwrap_or(false)
-}
-
-impl<W> Controller<app::State, W> for MenuController
-where
-    W: Widget<app::State>,
-{
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut UpdateCtx,
-        old_data: &app::State,
-        data: &app::State,
-        env: &Env,
-    ) {
-        if has_selected_tab(old_data) != has_selected_tab(data)
-            || can_select_prev_tab(old_data) != can_select_prev_tab(data)
-            || can_select_next_tab(old_data) != can_select_next_tab(data)
-            || can_connect(old_data) != can_connect(data)
-            || can_send(old_data) != can_send(data)
-            || can_finish(old_data) != can_finish(data)
-            || can_disconnect(old_data) != can_disconnect(data)
-        {
-            ctx.set_menu(build(data, ctx.window_id()));
-        }
-
-        child.update(ctx, old_data, data, env)
-    }
 }
