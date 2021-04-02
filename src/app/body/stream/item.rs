@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use druid::widget::TextBox;
+use druid::{widget::TextBox, Application};
 use druid::{Data, Lens, Widget, WidgetExt as _};
 use serde::{Deserialize, Serialize};
 
@@ -38,5 +38,11 @@ impl State {
         };
 
         State { body }
+    }
+
+    pub fn set_clipboard(&self) {
+        Application::global()
+            .clipboard()
+            .put_string(self.body.original_data());
     }
 }

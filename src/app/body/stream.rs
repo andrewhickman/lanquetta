@@ -82,6 +82,11 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_line_break_mode(LineBreaking::Clip)
         .lens(ItemExpanderState::duration);
 
+    let copy_item: Box<dyn FnMut(&mut EventCtx, &mut ItemExpanderState, &Env)> =
+        Box::new(move |_, data, _| {
+            data.data.set_clipboard();
+        });
+
     let expander_label = Flex::row()
         .must_fill_main_axis(true)
         .main_axis_alignment(MainAxisAlignment::SpaceBetween)
@@ -89,7 +94,11 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_child(label)
         .with_child(duration);
 
-    Expander::new(expander_label, entry, iter::empty())
+    Expander::new(
+        expander_label,
+        entry,
+        iter::once((Icon::copy().with_size((18.0, 18.0)), copy_item)),
+    )
 }
 
 impl State {
