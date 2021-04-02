@@ -11,6 +11,7 @@ pub struct Icon {
     path: &'static BezPath,
     fill: FillStrat,
     color: KeyOrValue<Color>,
+    size: Size,
 }
 
 macro_rules! icon {
@@ -38,7 +39,13 @@ impl Icon {
             path,
             fill: FillStrat::Cover,
             color: druid::theme::LABEL_COLOR.into(),
+            size: DEFAULT_SIZE,
         }
+    }
+
+    pub fn with_size(mut self, size: impl Into<Size>) -> Self {
+        self.size = size.into();
+        self
     }
 
     pub fn with_color(mut self, color: impl Into<KeyOrValue<Color>>) -> Self {
@@ -58,9 +65,9 @@ impl<T: Data> Widget<T> for Icon {
         bc.debug_check("Icon");
 
         if bc.is_width_bounded() && bc.is_height_bounded() {
-            bc.constrain_aspect_ratio(1.0, f64::INFINITY)
+            bc.constrain_aspect_ratio(1.0, self.size.width)
         } else {
-            bc.constrain(DEFAULT_SIZE)
+            bc.constrain(self.size)
         }
     }
 
