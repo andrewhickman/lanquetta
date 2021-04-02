@@ -16,5 +16,5 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    Ok(JsonText::pretty(s))
+    Ok(JsonText::short(s))
 }

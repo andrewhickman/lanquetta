@@ -1,5 +1,7 @@
 pub mod serde;
 
+mod count;
+mod exclude;
 mod highlight;
 
 use std::borrow::Cow;
@@ -7,6 +9,7 @@ use std::io;
 use std::ops::Range;
 use std::sync::Arc;
 
+use anyhow::Result;
 use druid::{
     piet::{
         self, FontStyle, FontWeight, PietTextLayoutBuilder, TextAttribute, TextLayoutBuilder,
@@ -19,6 +22,8 @@ use syntect::highlighting;
 
 #[derive(Debug, Clone)]
 pub struct JsonText {
+    // Original data, present if this JSON has been shortened.
+    original_data: Option<Arc<String>>,
     data: Arc<String>,
     styles: Arc<[(highlighting::Style, Range<usize>)]>,
 }
@@ -39,10 +44,35 @@ fn prettify(s: &str) -> Option<String> {
     Some(String::from_utf8(result.into_inner()).unwrap())
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct ShortenOptions {
+    /// The maximum number of lines a JSON value can take up when printed.
+    max_length: Option<u32>,
+    /// The maximum depth to which a JSON value should be printed.
+    max_depth: Option<u32>,
+}
+
+fn shorten(s: &str, opts: ShortenOptions) -> Option<String> {
+    let excludes = count::count(opts, |ser| serialize(s, ser)).ok()?;
+    let mut result = Vec::new();
+    exclude::write(excludes, &mut result, |ser| serialize(s, ser)).ok()?;
+    Some(String::from_utf8(result).unwrap())
+}
+
+fn serialize<S>(s: &str, ser: S) -> Result<()>
+where
+    S: ::serde::Serializer<Ok = (), Error = serde_json::Error>,
+{
+    let mut de = serde_json::Deserializer::from_str(s);
+    serde_transcode::transcode(&mut de, ser)?;
+    Ok(())
+}
+
 impl JsonText {
     pub fn pretty(data: impl AsRef<str> + Into<String>) -> Self {
         let data = prettify(data.as_ref()).unwrap_or_else(|| data.into());
         JsonText {
+            original_data: None,
             styles: highlight::get_styles(&data).into(),
             data: Arc::new(data),
         }
@@ -50,20 +80,44 @@ impl JsonText {
 
     pub fn prettify(&mut self) {
         if let Some(pretty) = prettify(self.as_str()) {
-            self.styles = highlight::get_styles(&pretty).into();
-            self.data = Arc::new(pretty);
+            *self = JsonText::pretty(pretty);
+        }
+    }
+
+    pub fn short(data: impl Into<Arc<String>>) -> Self {
+        let original_data = data.into();
+
+        let options = ShortenOptions {
+            max_length: Some(512),
+            max_depth: Some(12),
+        };
+
+        let data = match shorten(&original_data, options) {
+            Some(data) => data.into(),
+            None => original_data.clone(),
+        };
+
+        JsonText {
+            original_data: Some(original_data),
+            styles: highlight::get_styles(&data).into(),
+            data,
         }
     }
 
     pub fn plain_text(data: impl Into<Arc<String>>) -> Self {
+        let data = data.into();
         JsonText {
+            original_data: None,
             data: data.into(),
             styles: Arc::new([]),
         }
     }
 
-    fn original_data(&self) -> &str {
-        &self.data
+    pub fn original_data(&self) -> &str {
+        match &self.original_data {
+            Some(data) => &data,
+            None => &self.data,
+        }
     }
 }
 

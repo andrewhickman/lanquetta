@@ -20,7 +20,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 impl State {
     pub fn from_request(request: &grpc::Request) -> Self {
         let body = match protobuf::to_json(&*request.body) {
-            Ok(body) => JsonText::pretty(body),
+            Ok(body) => JsonText::short(body),
             Err(err) => JsonText::plain_text(format!("{:?}", err)),
         };
 
@@ -33,7 +33,7 @@ impl State {
             .map_err(|err| err.clone())
             .and_then(|response| protobuf::to_json(&*response.body).map_err(Arc::new))
         {
-            Ok(body) => JsonText::pretty(body),
+            Ok(body) => JsonText::short(body),
             Err(err) => JsonText::plain_text(format!("{:?}", err)),
         };
 
