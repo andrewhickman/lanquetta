@@ -89,7 +89,7 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_child(label)
         .with_child(duration);
 
-    Expander::new(expander_label, |_, _, _| unreachable!(), entry)
+    Expander::new(expander_label, false, |_, _, _| unreachable!(), entry)
 }
 
 impl State {

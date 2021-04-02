@@ -41,6 +41,7 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
 
     Expander::new(
         expander_label,
+        true,
         move |ctx, data: &mut State, _| {
             ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
         },
