@@ -4,11 +4,12 @@ use druid::widget::TextBox;
 use druid::{Data, Lens, Widget, WidgetExt as _};
 use serde::{Deserialize, Serialize};
 
-use crate::json::JsonText;
+use crate::json::{self, JsonText};
 use crate::{grpc, protobuf, theme};
 
 #[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
 pub(in crate::app) struct State {
+    #[serde(deserialize_with = "json::serde::deserialize_short")]
     body: JsonText,
 }
 

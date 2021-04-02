@@ -1,3 +1,5 @@
+pub mod serde;
+
 mod highlight;
 
 use std::borrow::Cow;
@@ -13,11 +15,9 @@ use druid::{
     text::{EditableText, StringCursor, TextStorage},
     Data,
 };
-use serde::{Deserialize, Serialize};
 use syntect::highlighting;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(from = "String", into = "String")]
+#[derive(Debug, Clone)]
 pub struct JsonText {
     data: Arc<String>,
     styles: Arc<[(highlighting::Style, Range<usize>)]>,
@@ -42,12 +42,16 @@ fn prettify(s: &str) -> Option<String> {
 impl JsonText {
     pub fn pretty(data: impl AsRef<str> + Into<String>) -> Self {
         let data = prettify(data.as_ref()).unwrap_or_else(|| data.into());
-        data.into()
+        JsonText {
+            styles: highlight::get_styles(&data).into(),
+            data: Arc::new(data),
+        }
     }
 
     pub fn prettify(&mut self) {
         if let Some(pretty) = prettify(self.as_str()) {
-            *self = JsonText::from(pretty);
+            self.styles = highlight::get_styles(&pretty).into();
+            self.data = Arc::new(pretty);
         }
     }
 
@@ -56,6 +60,10 @@ impl JsonText {
             data: data.into(),
             styles: Arc::new([]),
         }
+    }
+
+    fn original_data(&self) -> &str {
+        &self.data
     }
 }
 
@@ -159,30 +167,12 @@ impl EditableText for JsonText {
     }
 
     fn from_str(s: &str) -> Self {
-        JsonText::from(s.to_owned())
+        JsonText::pretty(s.to_owned())
     }
 }
 
 impl piet::TextStorage for JsonText {
     fn as_str(&self) -> &str {
         self.data.as_str()
-    }
-}
-
-impl From<String> for JsonText {
-    fn from(s: String) -> Self {
-        JsonText {
-            styles: highlight::get_styles(&s).into(),
-            data: Arc::new(s),
-        }
-    }
-}
-
-impl Into<String> for JsonText {
-    fn into(self) -> String {
-        match Arc::try_unwrap(self.data) {
-            Ok(s) => s,
-            Err(s) => s.as_ref().to_owned(),
-        }
     }
 }

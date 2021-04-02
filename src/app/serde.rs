@@ -15,6 +15,7 @@ use serde::{
 
 use crate::{
     app,
+    json::JsonText,
     protobuf::ProtobufService,
     widget::{TabId, TabsData},
 };
@@ -180,7 +181,12 @@ impl AppBodyState {
                     .clone();
                 Ok((
                     TabId::next(),
-                    app::body::TabState::new(method, tab.address, tab.request, tab.stream),
+                    app::body::TabState::new(
+                        method,
+                        tab.address,
+                        JsonText::pretty(tab.request),
+                        tab.stream,
+                    ),
                 ))
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
