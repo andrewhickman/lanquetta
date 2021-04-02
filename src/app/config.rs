@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use dirs_next::config_dir;
 use druid::{
-    commands::CLOSE_WINDOW,
     widget::{prelude::*, Controller},
     Data, Point, Size, Widget, WindowDesc, WindowHandle,
 };
@@ -131,13 +130,11 @@ where
         data: &mut State,
         env: &Env,
     ) {
-        if let Event::Command(command) = event {
-            if command.is(CLOSE_WINDOW) {
-                Config::store(&Config {
-                    window: WindowConfig::from_handle(ctx.window()),
-                    data: data.clone(),
-                });
-            }
+        if let Event::WindowDisconnected = event {
+            Config::store(&Config {
+                window: WindowConfig::from_handle(ctx.window()),
+                data: data.clone(),
+            });
         }
 
         child.event(ctx, event, data, env)

@@ -1,30 +1,26 @@
-use druid::{Env, FileDialogOptions, FileSpec, LocalizedString, Menu, MenuItem, SysMods, WindowId, keyboard_types::Key, platform_menus};
+use druid::{
+    keyboard_types::Key, menu, Env, FileDialogOptions, FileSpec, LocalizedString, Menu, MenuItem,
+    SysMods, WindowId,
+};
 
 use crate::app;
 
 pub const PROTOBUF_FILE_TYPE: FileSpec = FileSpec::new("Protocol buffers file", &["proto"]);
 
 pub(in crate::app) fn build(
-    main_window: Option<WindowId>,
+    _window: Option<WindowId>,
     _data: &app::State,
     _env: &Env,
 ) -> Menu<app::State> {
-    let window_id = match main_window {
-        Some(id) => id,
-        None => return Menu::empty(),
-    };
-
     Menu::empty()
-        .entry(file_menu(
-            window_id,
-        ))
+        .entry(file_menu())
         .entry(edit_menu())
         .entry(request_menu())
         .entry(view_menu())
         .entry(help_menu())
 }
 
-fn file_menu(main_window: WindowId) -> Menu<app::State> {
+fn file_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-file-menu"))
         .entry(
             MenuItem::new(LocalizedString::new("common-menu-file-open"))
@@ -36,65 +32,62 @@ fn file_menu(main_window: WindowId) -> Menu<app::State> {
         )
         .separator()
         .entry(
-            MenuItem::new(LocalizedString::new("Close Tab"))
+            MenuItem::new("Close Tab")
                 .command(app::command::CLOSE_SELECTED_TAB)
                 .hotkey(SysMods::Cmd, "w")
                 .enabled_if(|data, _| has_selected_tab(data)),
         )
-        .entry(
-            MenuItem::new(LocalizedString::new("win-menu-file-exit"))
-                .command(druid::commands::CLOSE_WINDOW.to(main_window)),
-        )
+        .entry(menu::sys::win::file::close())
 }
 
 fn edit_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-edit-menu"))
-        .entry(platform_menus::common::cut())
-        .entry(platform_menus::common::copy())
-        .entry(platform_menus::common::paste())
+        .entry(menu::sys::common::cut())
+        .entry(menu::sys::common::copy())
+        .entry(menu::sys::common::paste())
 }
 
 fn request_menu() -> Menu<app::State> {
-    Menu::new(LocalizedString::new("Request"))
+    Menu::new("Request")
         .entry(
-            MenuItem::new(LocalizedString::new("Connect"))
+            MenuItem::new("Connect")
                 .command(app::command::CONNECT)
                 .enabled_if(|data, _| can_connect(data)),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Send"))
+            MenuItem::new("Send")
                 .command(app::command::SEND)
                 .hotkey(SysMods::Shift, Key::Enter)
                 .enabled_if(|data, _| can_send(data)),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Finish"))
+            MenuItem::new("Finish")
                 .command(app::command::FINISH)
                 .enabled_if(|data, _| can_finish(data)),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Disconnect"))
+            MenuItem::new("Disconnect")
                 .command(app::command::DISCONNECT)
                 .enabled_if(|data, _| can_disconnect(data)),
         )
 }
 
 fn view_menu() -> Menu<app::State> {
-    Menu::new(LocalizedString::new("View"))
+    Menu::new("View")
         .entry(
-            MenuItem::new(LocalizedString::new("Next Tab"))
+            MenuItem::new("Next Tab")
                 .command(app::command::SELECT_NEXT_TAB)
                 .hotkey(SysMods::Cmd, Key::Tab)
                 .enabled_if(|data, _| can_select_next_tab(data)),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Previous Tab"))
+            MenuItem::new("Previous Tab")
                 .command(app::command::SELECT_PREV_TAB)
                 .hotkey(SysMods::CmdShift, Key::Tab)
                 .enabled_if(|data, _| can_select_prev_tab(data)),
         )
         .entry(
-            MenuItem::new(LocalizedString::new("Clear request history"))
+            MenuItem::new("Clear request history")
                 .command(app::command::CLEAR)
                 .hotkey(SysMods::CmdShift, "X")
                 .enabled_if(|data, _| has_selected_tab(data)),
@@ -102,8 +95,7 @@ fn view_menu() -> Menu<app::State> {
 }
 
 fn help_menu() -> Menu<app::State> {
-    Menu::new(LocalizedString::new("Help"))
-        .entry(MenuItem::new(LocalizedString::new("GitHub")).command(app::command::OPEN_GITHUB))
+    Menu::new("Help").entry(MenuItem::new("GitHub").command(app::command::OPEN_GITHUB))
 }
 
 fn has_selected_tab(data: &app::State) -> bool {
