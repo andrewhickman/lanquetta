@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{iter, sync::Arc};
 
 use druid::{
     widget::{prelude::*, Label, LineBreaking, List, ListIter},
@@ -10,7 +10,7 @@ use crate::{
     protobuf::{ProtobufMethod, ProtobufService},
     theme,
     widget::Expander,
-    widget::ExpanderData,
+    widget::{ExpanderData, Icon},
 };
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -39,13 +39,15 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
         .lens(ServiceState::name)
         .lens(State::service);
 
+    let close_expander: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
+        Box::new(move |ctx, data, _| {
+            ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
+        });
+
     Expander::new(
         expander_label,
-        true,
-        move |ctx, data: &mut State, _| {
-            ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
-        },
         List::new(method::build),
+        iter::once((Icon::close(), close_expander)),
     )
     .env_scope(|env, data: &State| {
         env.set(theme::EXPANDER_PADDING, 8.0);
@@ -112,10 +114,6 @@ impl ExpanderData for State {
 
     fn toggle_expanded(&mut self, _: &Env) {
         self.service.expanded = !self.service.expanded;
-    }
-
-    fn can_close(&self) -> bool {
-        true
     }
 }
 

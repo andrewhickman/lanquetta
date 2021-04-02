@@ -12,8 +12,6 @@ use crate::{
 pub trait ExpanderData: Data {
     fn expanded(&self, env: &Env) -> bool;
     fn toggle_expanded(&mut self, env: &Env);
-
-    fn can_close(&self) -> bool;
 }
 
 pub struct Expander;
@@ -27,14 +25,13 @@ struct ExpanderHeader<T> {
 impl Expander {
     pub fn new<T>(
         label: impl Widget<T> + 'static,
-        can_close: bool,
-        on_close: impl FnMut(&mut EventCtx, &mut T, &Env) + 'static,
         child: impl Widget<T> + 'static,
+        buttons: impl Iterator<Item = (Icon, Box<dyn FnMut(&mut EventCtx, &mut T, &Env)>)>,
     ) -> impl Widget<T>
     where
         T: ExpanderData,
     {
-        let header = ExpanderHeader::new(label.boxed(), can_close, on_close);
+        let header = ExpanderHeader::new(label.boxed(), buttons);
 
         let child = Either::new(ExpanderData::expanded, child, Empty);
 
@@ -52,22 +49,18 @@ where
 {
     fn new(
         label: Box<dyn Widget<T>>,
-        can_close: bool,
-        on_close: impl FnMut(&mut EventCtx, &mut T, &Env) + 'static,
+        buttons: impl Iterator<Item = (Icon, Box<dyn FnMut(&mut EventCtx, &mut T, &Env)>)>,
     ) -> Self {
-        let buttons = if can_close {
-            vec![WidgetPod::new(
-                Icon::close()
-                    .background(Painter::new(paint_button_background))
-                    .lens::<T, _>(lens::Unit::default())
-                    .controller(CloseButtonController {
-                        on_close: Box::new(on_close),
-                    })
-                    .boxed(),
-            )]
-        } else {
-            vec![]
-        };
+        let buttons = buttons
+            .map(|(icon, on_close)| {
+                WidgetPod::new(
+                    icon.background(Painter::new(paint_button_background))
+                        .lens::<T, _>(lens::Unit::default())
+                        .controller(CloseButtonController { on_close })
+                        .boxed(),
+                )
+            })
+            .collect();
 
         ExpanderHeader {
             expanded: WidgetPod::new(

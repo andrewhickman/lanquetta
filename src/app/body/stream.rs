@@ -1,6 +1,6 @@
 mod item;
 
-use std::time::Duration;
+use std::{iter, time::Duration};
 
 use druid::{
     widget::{
@@ -89,7 +89,7 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_child(label)
         .with_child(duration);
 
-    Expander::new(expander_label, false, |_, _, _| unreachable!(), entry)
+    Expander::new(expander_label, entry, iter::empty())
 }
 
 impl State {
@@ -139,10 +139,6 @@ impl ExpanderData for ItemExpanderState {
 
     fn toggle_expanded(&mut self, _: &Env) {
         self.expanded = !self.expanded;
-    }
-
-    fn can_close(&self) -> bool {
-        false
     }
 }
 
