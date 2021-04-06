@@ -1,3 +1,5 @@
+mod channel;
+
 use std::{
     sync::Arc,
     time::{Duration, Instant},
@@ -43,9 +45,9 @@ pub struct Client {
 
 impl Client {
     pub async fn new(uri: Uri) -> ConnectResult {
-        let channel = match Channel::builder(uri.clone()).connect().await {
+        let channel = match channel::get(uri.clone()).await {
             Ok(channel) => channel,
-            Err(err) => return Err((uri, arc_err(err))),
+            Err(err) => return Err((uri, err)),
         };
         Ok(Client {
             uri,
