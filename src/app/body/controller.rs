@@ -1,6 +1,9 @@
+use std::sync::{Arc, Weak};
+
+use crossbeam_queue::SegQueue;
 use druid::{
     widget::{prelude::*, Controller},
-    Command, Handled, Selector, SingleUse,
+    Command, ExtEventSink, Handled, Selector,
 };
 
 use crate::{
@@ -12,13 +15,21 @@ use crate::{
 };
 
 pub struct TabController {
+    updates: Arc<SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>>,
     client: Option<grpc::Client>,
     call: Option<grpc::Call>,
+}
+
+struct UpdateWriter {
+    target: WidgetId,
+    event_sink: ExtEventSink,
+    updates: Weak<SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>>,
 }
 
 impl TabController {
     pub fn new() -> TabController {
         TabController {
+            updates: Arc::default(),
             client: None,
             call: None,
         }
@@ -52,17 +63,14 @@ where
         env: &Env,
     ) {
         if old_data.address.uri() != data.address.uri() {
-            ctx.submit_command(DISCONNECT.to(ctx.widget_id()));
+            ctx.submit_command(command::DISCONNECT.to(ctx.widget_id()));
         }
 
         child.update(ctx, old_data, data, env)
     }
 }
 
-const FINISH_CONNECT: Selector<grpc::ConnectResult> = Selector::new("app.body.finish-connect");
-const DISCONNECT: Selector = Selector::new("app.body.disconnect");
-const FINISH_SEND: Selector<SingleUse<Option<grpc::ResponseResult>>> =
-    Selector::new("app.body.finish-send");
+const UPDATE_STATE: Selector = Selector::new("app.body.update-state");
 
 impl TabController {
     fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
@@ -71,20 +79,19 @@ impl TabController {
         if command.is(command::CONNECT) {
             self.start_connect(ctx, data);
             Handled::Yes
-        } else if let Some(result) = command.get(FINISH_CONNECT) {
-            self.finish_connect(ctx, data, result.clone());
-            Handled::Yes
         } else if command.is(command::SEND) {
             self.start_send(ctx, data);
             Handled::Yes
-        } else if let Some(response) = command.get(FINISH_SEND) {
-            self.finish_send(ctx, data, response.take().unwrap());
-            Handled::Yes
         } else if command.is(command::FINISH) {
-            self.finish_send(ctx, data, None);
+            self.finish_send(data, None);
             Handled::Yes
         } else if command.is(command::DISCONNECT) {
             self.disconnect(ctx, data);
+            Handled::Yes
+        } else if command.is(UPDATE_STATE) {
+            while let Some(update) = self.updates.pop() {
+                (update)(self, data);
+            }
             Handled::Yes
         } else {
             Handled::No
@@ -93,6 +100,14 @@ impl TabController {
 }
 
 impl TabController {
+    fn get_update_writer(&self, ctx: &mut EventCtx) -> UpdateWriter {
+        UpdateWriter {
+            target: ctx.widget_id(),
+            event_sink: ctx.get_external_handle(),
+            updates: Arc::downgrade(&self.updates),
+        }
+    }
+
     fn start_connect(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
         let uri = match data.address.uri() {
             Some(uri) => uri.clone(),
@@ -102,16 +117,15 @@ impl TabController {
             }
         };
 
-        if self.is_connected(data) {
+        if self.is_connected() {
+            tracing::error!("Connect called when already connected");
             return;
         }
 
-        let event_sink = ctx.get_external_handle();
-        let target = ctx.widget_id();
-
+        let update_writer = self.get_update_writer(ctx);
         tokio::spawn(async move {
-            let client_result = grpc::Client::new(uri).await;
-            let _ = event_sink.submit_command(FINISH_CONNECT, client_result, target);
+            let result = grpc::Client::new(uri).await;
+            update_writer.update(|controller, data| controller.finish_connect(data, result));
         });
 
         if !self.is_active() {
@@ -120,33 +134,26 @@ impl TabController {
         }
     }
 
-    fn finish_connect(
-        &mut self,
-        _: &mut EventCtx,
-        data: &mut TabState,
-        result: grpc::ConnectResult,
-    ) {
+    fn finish_connect(&mut self, data: &mut TabState, result: grpc::ConnectResult) {
         match result {
-            Ok(client) if Some(client.uri()) == data.address.uri() => {
+            Ok(client) => {
                 self.client = Some(client);
-
                 self.set_request_state(data);
             }
-            Err((uri, _)) if Some(&uri) == data.address.uri() => {
+            Err(_) => {
                 data.address.set_request_state(RequestState::ConnectFailed);
             }
-            _ => (),
         }
     }
 
     fn start_send(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
-        let (uri, request) =
-            if let (Some(uri), Some(request)) = (data.address.uri(), data.request().get()) {
-                (uri.clone(), request.clone())
-            } else {
-                tracing::error!("Send called with no address/request");
+        let request = match data.request().get() {
+            Some(request) => request.clone(),
+            None => {
+                tracing::error!("Send called with no request");
                 return;
-            };
+            }
+        };
 
         data.stream.add_request(&request);
 
@@ -158,30 +165,23 @@ impl TabController {
             }
         } else {
             let client = match &self.client {
-                Some(client) if client.uri() == &uri => client.clone(),
+                Some(client) => client.clone(),
                 _ => {
                     tracing::error!("Send called with invalid client");
                     return;
                 }
             };
 
-            let event_sink = ctx.get_external_handle();
-            let target = ctx.widget_id();
-
+            let update_writer = self.get_update_writer(ctx);
             self.call = Some(client.call(&data.method, request, move |response| {
-                let _ = event_sink.submit_command(FINISH_SEND, SingleUse::new(response), target);
+                update_writer.update(|controller, data| controller.finish_send(data, response));
             }));
 
             data.address.set_request_state(RequestState::Active);
         }
     }
 
-    fn finish_send(
-        &mut self,
-        _: &mut EventCtx,
-        data: &mut TabState,
-        response: Option<grpc::ResponseResult>,
-    ) {
+    fn finish_send(&mut self, data: &mut TabState, response: Option<grpc::ResponseResult>) {
         match response {
             Some(result) => {
                 let duration = match (&mut self.call, &result) {
@@ -200,12 +200,15 @@ impl TabController {
 
     fn disconnect(&mut self, _: &mut EventCtx, data: &mut TabState) {
         self.client = None;
+        self.call = None;
 
         self.set_request_state(data);
+
+        self.updates = Arc::new(SegQueue::new());
     }
 
-    fn is_connected(&self, data: &mut TabState) -> bool {
-        matches!(&self.client, Some(client) if data.address.uri() == Some(client.uri()))
+    fn is_connected(&self) -> bool {
+        self.client.is_some()
     }
 
     fn is_active(&self) -> bool {
@@ -213,11 +216,24 @@ impl TabController {
     }
 
     fn set_request_state(&self, data: &mut TabState) {
-        let request_state = match (self.is_active(), self.is_connected(data)) {
+        let request_state = match (self.is_active(), self.is_connected()) {
             (false, false) => RequestState::NotStarted,
             (false, true) => RequestState::Connected,
             (true, _) => RequestState::Active,
         };
         data.address.set_request_state(request_state);
+    }
+}
+
+impl UpdateWriter {
+    fn update(&self, f: impl FnOnce(&mut TabController, &mut TabState) + Send + 'static) -> bool {
+        if let Some(updates) = self.updates.upgrade() {
+            updates.push(Box::new(f));
+            self.event_sink
+                .submit_command(UPDATE_STATE, (), self.target)
+                .is_ok()
+        } else {
+            false
+        }
     }
 }
