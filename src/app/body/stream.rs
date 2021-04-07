@@ -111,6 +111,10 @@ impl State {
     }
 
     pub fn add_request(&mut self, request: &grpc::Request) {
+        for item in self.items.iter_mut() {
+            item.expanded = false;
+        }
+
         self.request_count += 1;
         let name = ArcStr::from(format!("Request {}", self.request_count));
         self.items.push_back(ItemExpanderState {
@@ -123,6 +127,10 @@ impl State {
     }
 
     pub fn add_response(&mut self, result: &grpc::ResponseResult, duration: Option<Duration>) {
+        for item in self.items.iter_mut() {
+            item.expanded = false;
+        }
+
         self.response_count += 1;
         let name = ArcStr::from(format!("Response {}", self.response_count));
         self.items.push_back(ItemExpanderState {
