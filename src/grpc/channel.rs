@@ -14,37 +14,44 @@ static CHANNELS: Lazy<DashMap<Uri, Arc<Mutex<ChannelState>>>> = Lazy::new(Defaul
 enum ChannelState {
     Pending(BoxFuture<'static, Result<Channel, grpc::Error>>),
     Ready(Channel),
-    Error(grpc::Error),
+    Error,
 }
 
-pub async fn get(uri: Uri) -> Result<Channel, grpc::Error> {
-    let state = match CHANNELS.entry(uri) {
+pub async fn get(uri: &Uri) -> Result<Channel, grpc::Error> {
+    let state = match CHANNELS.entry(uri.clone()) {
         Entry::Occupied(entry) => entry.get().clone(),
         Entry::Vacant(entry) => {
-            let state = ChannelState::new(entry.key().clone());
+            let state = Arc::new(Mutex::new(ChannelState::new(uri.clone())));
             entry.insert(Arc::clone(&state));
             state
         }
     };
 
-    let mut lock = state.lock().await;
-    match &mut *lock {
-        ChannelState::Pending(fut) => {
-            let result = fut.await;
-            *lock = match &result {
-                Ok(channel) => ChannelState::Ready(channel.clone()),
-                Err(error) => ChannelState::Error(error.clone()),
-            };
-            result
+    loop {
+        let mut lock = state.lock().await;
+        match &mut *lock {
+            ChannelState::Pending(fut) => {
+                let result = fut.await;
+                *lock = match &result {
+                    Ok(channel) => ChannelState::Ready(channel.clone()),
+                    Err(err) => {
+                        tracing::error!("failed to connect to {}: {:?}", uri, err);
+                        ChannelState::Error
+                    },
+                };
+                return result;
+            }
+            ChannelState::Ready(channel) => return Ok(channel.clone()),
+            ChannelState::Error => {
+                *lock = ChannelState::new(uri.clone());
+            },
         }
-        ChannelState::Ready(channel) => Ok(channel.clone()),
-        ChannelState::Error(error) => Err(error.clone()),
     }
 }
 
 impl ChannelState {
-    fn new(uri: Uri) -> Arc<Mutex<Self>> {
-        Arc::new(Mutex::new(ChannelState::Pending(Box::pin(connect(uri)))))
+    fn new(uri: Uri) -> Self {
+        ChannelState::Pending(Box::pin(connect(uri)))
     }
 }
 

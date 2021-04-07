@@ -124,14 +124,12 @@ impl TabController {
 
         let update_writer = self.get_update_writer(ctx);
         tokio::spawn(async move {
-            let result = grpc::Client::new(uri).await;
+            let result = grpc::Client::new(&uri).await;
             update_writer.update(|controller, data| controller.finish_connect(data, result));
         });
 
-        if !self.is_active() {
-            data.address
-                .set_request_state(RequestState::ConnectInProgress);
-        }
+        data.address
+            .set_request_state(RequestState::ConnectInProgress);
     }
 
     fn finish_connect(&mut self, data: &mut TabState, result: grpc::ConnectResult) {

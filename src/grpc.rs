@@ -43,7 +43,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new(uri: Uri) -> ConnectResult {
+    pub async fn new(uri: &Uri) -> ConnectResult {
         let channel = channel::get(uri).await?;
         Ok(Client {
             grpc: Grpc::new(channel),
