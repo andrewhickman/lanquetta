@@ -37,14 +37,14 @@ pub async fn get(uri: &Uri) -> Result<Channel, grpc::Error> {
                     Err(err) => {
                         tracing::error!("failed to connect to {}: {:?}", uri, err);
                         ChannelState::Error
-                    },
+                    }
                 };
                 return result;
             }
             ChannelState::Ready(channel) => return Ok(channel.clone()),
             ChannelState::Error => {
                 *lock = ChannelState::new(uri.clone());
-            },
+            }
         }
     }
 }

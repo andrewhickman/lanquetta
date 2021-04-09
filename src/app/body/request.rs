@@ -27,7 +27,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         TextBox::multiline().with_font(theme::EDITOR_FONT),
     ))
     .controller(RequestController)
-    .expand_width();
+    .expand();
     let error_label =
         theme::error_label_scope(Label::dynamic(|data: &RequestValidationState, _| {
             data.result().err().cloned().unwrap_or_default()
@@ -40,9 +40,15 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     .expand_width();
 
     Flex::column()
-        .with_child(textbox)
+        .with_flex_child(textbox, 1.0)
         .with_child(error)
         .lens(State::body)
+}
+
+pub(in crate::app) fn build_header() -> impl Widget<State> {
+    Label::new("Request editor")
+        .with_font(theme::font::HEADER_TWO)
+        .align_left()
 }
 
 impl State {

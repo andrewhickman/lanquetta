@@ -5,7 +5,10 @@ pub mod stream;
 
 use std::{collections::BTreeMap, ops::Bound, sync::Arc};
 
-use druid::{widget::Flex, widget::Label, Data, Lens, Widget, WidgetExt as _, WidgetId};
+use druid::{
+    widget::{Flex, Split},
+    Data, Lens, Widget, WidgetExt as _, WidgetId,
+};
 use iter_set::Inclusion;
 
 use self::controller::TabController;
@@ -49,24 +52,27 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 
 fn build_body() -> impl Widget<TabState> {
     let id = WidgetId::next();
-    Flex::column()
-        .must_fill_main_axis(true)
-        .with_child(address::build(id).lens(TabState::address_lens()))
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(
-            Label::new("Request editor")
-                .with_font(theme::font::HEADER_TWO)
-                .align_left(),
-        )
-        .with_spacer(theme::BODY_SPACER)
-        .with_flex_child(request::build().lens(TabState::request_lens), 1.0)
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(stream::build_header().lens(TabState::stream_lens))
-        .with_spacer(theme::BODY_SPACER)
-        .with_flex_child(stream::build().lens(TabState::stream_lens), 1.0)
-        .padding(theme::BODY_PADDING)
-        .controller(TabController::new())
-        .with_id(id)
+
+    Split::rows(
+        Flex::column()
+            .with_child(address::build(id).lens(TabState::address_lens()))
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(request::build_header().lens(TabState::request_lens))
+            .with_spacer(theme::BODY_SPACER)
+            .with_flex_child(request::build().lens(TabState::request_lens), 1.0)
+            .padding(theme::BODY_PADDING),
+        Flex::column()
+            .with_child(stream::build_header().lens(TabState::stream_lens))
+            .with_spacer(theme::BODY_SPACER)
+            .with_flex_child(stream::build().lens(TabState::stream_lens), 1.0)
+            .padding(theme::BODY_PADDING),
+    )
+    .min_size(150.0, 100.0)
+    .bar_size(2.0)
+    .solid_bar(true)
+    .draggable(true)
+    .controller(TabController::new())
+    .with_id(id)
 }
 
 impl State {
