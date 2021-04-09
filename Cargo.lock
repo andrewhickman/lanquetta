@@ -441,7 +441,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#2c5d73c8426f90d2a1ede9fdd3b5cb7bee57f108"
+source = "git+https://github.com/linebender/druid.git#2c5d73c8426f90d2a1ede9fdd3b5cb7bee57f108"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -465,7 +465,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#2c5d73c8426f90d2a1ede9fdd3b5cb7bee57f108"
+source = "git+https://github.com/linebender/druid.git#2c5d73c8426f90d2a1ede9fdd3b5cb7bee57f108"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -475,7 +475,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#2c5d73c8426f90d2a1ede9fdd3b5cb7bee57f108"
+source = "git+https://github.com/linebender/druid.git#2c5d73c8426f90d2a1ede9fdd3b5cb7bee57f108"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -1770,7 +1770,7 @@ dependencies = [
 [[package]]
 name = "protobuf"
 version = "3.0.0-pre"
-source = "git+https://github.com/andrewhickman/rust-protobuf.git?branch=master#12e7e83d6d41990fbc21013637390fb6fd442e61"
+source = "git+https://github.com/andrewhickman/rust-protobuf.git#12e7e83d6d41990fbc21013637390fb6fd442e61"
 dependencies = [
  "serde",
  "serde_derive",

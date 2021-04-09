@@ -59,7 +59,7 @@ fn build_body() -> impl Widget<TabState> {
                 .align_left(),
         )
         .with_spacer(theme::BODY_SPACER)
-        .with_flex_child(request::build().lens(TabState::request_lens), 0.0)
+        .with_flex_child(request::build().lens(TabState::request_lens), 1.0)
         .with_spacer(theme::BODY_SPACER)
         .with_child(stream::build_header().lens(TabState::stream_lens))
         .with_spacer(theme::BODY_SPACER)
