@@ -30,7 +30,7 @@ dashmap = "4.0.2"
 crossbeam-queue = "0.3.1"
 
 [dependencies.druid]
-git = "https://github.com/linebender/druid.git"
+git = "https://github.com/andrewhickman/druid.git"
 branch = "master"
 features = ["im", "svg", "serde"]
 
