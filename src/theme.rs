@@ -23,7 +23,7 @@ pub(crate) const INVALID: Key<bool> = Key::new("app.invalid");
 
 pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::PRIMARY_LIGHT, color::SUBTLE_ACCENT);
-    env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
+    env.set(druid::theme::PRIMARY_DARK, color::SUBTLE_ACCENT);
     env.set(druid::theme::BORDER_DARK, color::BACKGROUND);
     env.set(druid::theme::BORDER_LIGHT, color::BACKGROUND);
 
@@ -31,6 +31,10 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::WINDOW_BACKGROUND_COLOR, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_DARK, color::BACKGROUND);
+    env.set(druid::theme::FOREGROUND_LIGHT, color::SUBTLE_ACCENT);
+    env.set(druid::theme::FOREGROUND_DARK, color::SUBTLE_ACCENT);
+    env.set(druid::theme::DISABLED_FOREGROUND_LIGHT, color::disabled(color::SUBTLE_ACCENT));
+    env.set(druid::theme::DISABLED_FOREGROUND_DARK, color::disabled(color::SUBTLE_ACCENT));
     env.set(
         druid::theme::SELECTED_TEXT_BACKGROUND_COLOR,
         color::active(color::BACKGROUND, color::TEXT),
@@ -57,6 +61,11 @@ pub(crate) fn set(env: &mut Env) {
 pub(crate) fn set_contrast(env: &mut Env) {
     env.set(druid::theme::BACKGROUND_LIGHT, color::SUBTLE_ACCENT);
     env.set(druid::theme::BACKGROUND_DARK, color::SUBTLE_ACCENT);
+    env.set(druid::theme::FOREGROUND_LIGHT, color::ACCENT);
+    env.set(druid::theme::FOREGROUND_DARK, color::ACCENT);
+    env.set(druid::theme::DISABLED_FOREGROUND_LIGHT, color::disabled(color::ACCENT));
+    env.set(druid::theme::DISABLED_FOREGROUND_DARK, color::disabled(color::ACCENT));
+    env.set(druid::theme::FOREGROUND_DARK, color::ACCENT);
     env.set(druid::theme::PRIMARY_LIGHT, color::ACCENT);
     env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
     env.set(druid::theme::LABEL_COLOR, color::ACCENT);
@@ -70,13 +79,8 @@ pub(crate) fn set_contrast(env: &mut Env) {
 
 pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
-        if state.is_disabled() {
-            scope::set_disabled(env, druid::theme::BUTTON_LIGHT);
-            scope::set_disabled(env, druid::theme::BUTTON_DARK);
-        } else {
-            scope::set_hot_active(env, state, druid::theme::BUTTON_LIGHT);
-            scope::set_hot_active(env, state, druid::theme::BUTTON_DARK);
-        }
+        scope::set_hot_active(env, state, druid::theme::BUTTON_LIGHT);
+        scope::set_hot_active(env, state, druid::theme::BUTTON_DARK);
     })
 }
 

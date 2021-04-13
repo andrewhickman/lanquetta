@@ -87,17 +87,16 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
             RequestState::Active => "Sending...".to_owned(),
         })
         .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
-            if data.can_send() || data.can_connect() {
-                match data.address.request_state() {
-                    RequestState::NotStarted | RequestState::ConnectFailed => {
-                        debug_assert!(data.can_connect());
-                        ctx.submit_command(command::CONNECT.to(body_id));
-                    }
-                    RequestState::ConnectInProgress => unreachable!(),
-                    RequestState::Connected | RequestState::Active => {
-                        debug_assert!(data.can_send());
-                        ctx.submit_command(command::SEND.to(body_id));
-                    }
+            debug_assert!(data.can_send() || data.can_connect());
+            match data.address.request_state() {
+                RequestState::NotStarted | RequestState::ConnectFailed => {
+                    debug_assert!(data.can_connect());
+                    ctx.submit_command(command::CONNECT.to(body_id));
+                }
+                RequestState::ConnectInProgress => unreachable!(),
+                RequestState::Connected | RequestState::Active => {
+                    debug_assert!(data.can_send());
+                    ctx.submit_command(command::SEND.to(body_id));
                 }
             }
         }),
@@ -110,17 +109,16 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
             _ => "Disconnect".to_owned(),
         })
         .on_click(move |ctx: &mut EventCtx, data: &mut State, _: &Env| {
-            if data.can_finish() || data.can_disconnect() {
-                match data.address.request_state() {
-                    RequestState::NotStarted | RequestState::ConnectFailed => unreachable!(),
-                    RequestState::Active if data.method_kind.client_streaming() => {
-                        ctx.submit_command(command::FINISH.to(body_id));
-                    }
-                    RequestState::ConnectInProgress
-                    | RequestState::Connected
-                    | RequestState::Active => {
-                        ctx.submit_command(command::DISCONNECT.to(body_id));
-                    }
+            debug_assert!(data.can_finish() || data.can_disconnect());
+            match data.address.request_state() {
+                RequestState::NotStarted | RequestState::ConnectFailed => unreachable!(),
+                RequestState::Active if data.method_kind.client_streaming() => {
+                    ctx.submit_command(command::FINISH.to(body_id));
+                }
+                RequestState::ConnectInProgress
+                | RequestState::Connected
+                | RequestState::Active => {
+                    ctx.submit_command(command::DISCONNECT.to(body_id));
                 }
             }
         }),

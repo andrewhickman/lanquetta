@@ -109,10 +109,6 @@ where
     }
 }
 
-pub fn set_disabled(env: &mut Env, key: Key<Color>) {
-    env.set(key.clone(), color::disabled(env.get(key)));
-}
-
 pub fn set_hot(env: &mut Env, state: &WidgetState, key: Key<Color>) {
     if state.is_hot() {
         env.set(
