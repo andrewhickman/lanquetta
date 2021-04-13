@@ -102,9 +102,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
             }
         }),
     )
-    .env_scope(|env, data: &State| {
-        env.set(theme::DISABLED, !data.can_send() && !data.can_connect());
-    });
+    .disabled_if(|data: &State, _| !data.can_send() && !data.can_connect());
 
     let finish_button = theme::button_scope(
         Button::dynamic(|data: &State, _| match data.address.request_state {
@@ -127,12 +125,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
             }
         }),
     )
-    .env_scope(|env, data: &State| {
-        env.set(
-            theme::DISABLED,
-            !data.can_finish() && !data.can_disconnect(),
-        );
-    });
+    .disabled_if(|data: &State, _| !data.can_finish() && !data.can_disconnect());
 
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)

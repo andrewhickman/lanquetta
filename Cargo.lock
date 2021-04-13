@@ -391,7 +391,7 @@ checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=master#2ab60adc23e5a5f57aa7f86b63d53c34fb5ee4a1"
+source = "git+https://github.com/andrewhickman/druid.git?branch=master#a6eed9962e4553c7d96f6f2436be8d2bddde7532"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -414,7 +414,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=master#2ab60adc23e5a5f57aa7f86b63d53c34fb5ee4a1"
+source = "git+https://github.com/andrewhickman/druid.git?branch=master#a6eed9962e4553c7d96f6f2436be8d2bddde7532"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -424,7 +424,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/andrewhickman/druid.git?branch=master#2ab60adc23e5a5f57aa7f86b63d53c34fb5ee4a1"
+source = "git+https://github.com/andrewhickman/druid.git?branch=master#a6eed9962e4553c7d96f6f2436be8d2bddde7532"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -2343,9 +2343,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134af885d758d645f0f0505c9a8b3f9bf8a348fd822e112ab5248138348f1722"
+checksum = "83f0c8e7c0addab50b663055baf787d0af7f413a46e6e7fb9559a4e4db7137a5"
 dependencies = [
  "autocfg",
  "bytes",
@@ -2392,9 +2392,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5143d049e85af7fbc36f5454d990e62c2df705b3589f123b71f441b6b59f443f"
+checksum = "940a12c99365c31ea8dd9ba04ec1be183ffe4920102bb7122c2f515437601e8e"
 dependencies = [
  "bytes",
  "futures-core",

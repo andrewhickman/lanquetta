@@ -20,7 +20,6 @@ pub(crate) const EXPANDER_PADDING: Key<f64> = Key::new("app.expander-padding");
 pub(crate) const EXPANDER_CORNER_RADIUS: Key<f64> = Key::new("app.expander-corner-radius");
 
 pub(crate) const INVALID: Key<bool> = Key::new("app.invalid");
-pub(crate) const DISABLED: Key<bool> = Key::new("app.disabled");
 
 pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::PRIMARY_LIGHT, color::SUBTLE_ACCENT);
@@ -52,7 +51,6 @@ pub(crate) fn set(env: &mut Env) {
     env.set(EXPANDER_PADDING, 3.0);
     env.set(EXPANDER_CORNER_RADIUS, 2.0);
 
-    env.set(DISABLED, false);
     env.set(INVALID, false);
 }
 
@@ -72,7 +70,7 @@ pub(crate) fn set_contrast(env: &mut Env) {
 
 pub(crate) fn button_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
-        if env.get(DISABLED) {
+        if state.is_disabled() {
             scope::set_disabled(env, druid::theme::BUTTON_LIGHT);
             scope::set_disabled(env, druid::theme::BUTTON_DARK);
         } else {
@@ -86,7 +84,7 @@ pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
     scope::new(child, |env, state| {
         env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
 
-        if !env.get(DISABLED) {
+        if !state.is_disabled() {
             if env.get(INVALID) {
                 env.set(druid::theme::BORDER_DARK, color::ERROR);
                 env.set(druid::theme::BORDER_LIGHT, color::ERROR);

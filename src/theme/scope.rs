@@ -8,6 +8,7 @@ use crate::theme::color;
 pub struct WidgetState {
     is_hot: bool,
     is_active: bool,
+    is_disabled: bool,
 }
 
 pub fn new<T>(
@@ -35,6 +36,10 @@ impl WidgetState {
     pub fn is_active(&self) -> bool {
         self.is_active
     }
+
+    pub fn is_disabled(&self) -> bool {
+        self.is_disabled
+    }
 }
 
 impl<T, W, F> Widget<T> for Scope<W, F>
@@ -46,16 +51,19 @@ where
         let was_active = ctx.is_active();
         self.widget.event(ctx, event, data, &self.env);
         if ctx.is_active() != was_active {
-            self.update_env(env, ctx.is_hot(), ctx.is_active());
+            self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
             ctx.request_paint();
         }
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.update_env(env, ctx.is_hot(), ctx.is_active());
+            self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
         } else if let LifeCycle::HotChanged(_) = event {
-            self.update_env(env, ctx.is_hot(), ctx.is_active());
+            self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
+            ctx.request_paint();
+        } else if let LifeCycle::DisabledChanged(_) = event {
+            self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
             ctx.request_paint();
         }
 
@@ -64,7 +72,7 @@ where
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
         if ctx.env_changed() {
-            self.update_env(env, ctx.is_hot(), ctx.is_active());
+            self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
             ctx.request_paint();
         }
 
@@ -88,9 +96,16 @@ impl<W, F> Scope<W, F>
 where
     F: FnMut(&mut Env, &WidgetState),
 {
-    fn update_env(&mut self, env: &Env, is_hot: bool, is_active: bool) {
+    fn update_env(&mut self, env: &Env, is_hot: bool, is_active: bool, is_disabled: bool) {
         self.env = env.clone();
-        (self.update_env)(&mut self.env, &WidgetState { is_hot, is_active });
+        (self.update_env)(
+            &mut self.env,
+            &WidgetState {
+                is_hot,
+                is_active,
+                is_disabled,
+            },
+        );
     }
 }
 
