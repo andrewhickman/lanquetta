@@ -9,7 +9,7 @@ use crate::{
     app::{command::REMOVE_SERVICE, sidebar::method},
     protobuf::{ProtobufMethod, ProtobufService},
     theme,
-    widget::Expander,
+    widget::expander,
     widget::{ExpanderData, Icon},
 };
 
@@ -44,7 +44,7 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
             ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
         });
 
-    Expander::new(
+    expander::new(
         expander_label,
         List::new(method::build),
         iter::once((Icon::close(), close_expander)),

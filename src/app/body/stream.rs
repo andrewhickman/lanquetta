@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     grpc, theme,
-    widget::{Expander, ExpanderData, Icon},
+    widget::{expander, ExpanderData, Icon},
 };
 
 #[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
@@ -94,7 +94,7 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_child(label)
         .with_child(duration);
 
-    Expander::new(
+    expander::new(
         expander_label,
         entry,
         iter::once((Icon::copy().with_size((18.0, 18.0)), copy_item)),

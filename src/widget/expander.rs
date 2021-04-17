@@ -14,33 +14,29 @@ pub trait ExpanderData: Data {
     fn toggle_expanded(&mut self, env: &Env);
 }
 
-pub struct Expander;
-
 struct ExpanderHeader<T> {
     expanded: WidgetPod<T, Box<dyn Widget<T>>>,
     label: WidgetPod<T, Box<dyn Widget<T>>>,
     buttons: Vec<WidgetPod<T, Box<dyn Widget<T>>>>,
 }
 
-impl Expander {
-    pub fn new<T>(
-        label: impl Widget<T> + 'static,
-        child: impl Widget<T> + 'static,
-        buttons: impl Iterator<Item = (Icon, Box<dyn FnMut(&mut EventCtx, &mut T, &Env)>)>,
-    ) -> impl Widget<T>
-    where
-        T: ExpanderData,
-    {
-        let header = ExpanderHeader::new(label.boxed(), buttons);
+pub fn new<T>(
+    label: impl Widget<T> + 'static,
+    child: impl Widget<T> + 'static,
+    buttons: impl Iterator<Item = (Icon, Box<dyn FnMut(&mut EventCtx, &mut T, &Env)>)>,
+) -> impl Widget<T>
+where
+    T: ExpanderData,
+{
+    let header = ExpanderHeader::new(label.boxed(), buttons);
 
-        let child = Either::new(ExpanderData::expanded, child, Empty);
+    let child = Either::new(ExpanderData::expanded, child, Empty);
 
-        Flex::column()
-            .cross_axis_alignment(CrossAxisAlignment::Start)
-            .with_child(header)
-            .with_child(child)
-            .boxed()
-    }
+    Flex::column()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(header)
+        .with_child(child)
+        .boxed()
 }
 
 impl<T> ExpanderHeader<T>
