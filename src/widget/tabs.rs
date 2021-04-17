@@ -14,8 +14,6 @@ use self::header::TabsHeader;
 use self::label::TabLabel;
 use crate::theme;
 
-pub struct Tabs;
-
 #[derive(Copy, Clone, Data, Debug, PartialOrd, Ord, Eq, PartialEq)]
 pub struct TabId(u32);
 
@@ -50,25 +48,23 @@ pub trait TabsData: Data {
 
 const CLOSE_TAB: Selector<TabId> = Selector::new("app.tabs.close-tab");
 
-impl Tabs {
-    pub fn new<T, F, W>(build_body: F) -> impl Widget<T>
-    where
-        T: TabsData,
-        F: FnMut() -> W + 'static,
-        W: Widget<T::Item> + 'static,
-    {
-        Flex::column()
-            .must_fill_main_axis(true)
-            .cross_axis_alignment(CrossAxisAlignment::Start)
-            .with_child(TabsHeader::new())
-            .with_flex_child(
-                TabsBody::new(build_body).env_scope(|env, _| {
-                    let color = env.get(theme::SELECTED_TAB_BACKGROUND);
-                    env.set(druid::theme::BACKGROUND_LIGHT, color);
-                }),
-                1.0,
-            )
-    }
+pub fn new<T, F, W>(build_body: F) -> impl Widget<T>
+where
+    T: TabsData,
+    F: FnMut() -> W + 'static,
+    W: Widget<T::Item> + 'static,
+{
+    Flex::column()
+        .must_fill_main_axis(true)
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(TabsHeader::new())
+        .with_flex_child(
+            TabsBody::new(build_body).env_scope(|env, _| {
+                let color = env.get(theme::SELECTED_TAB_BACKGROUND);
+                env.set(druid::theme::BACKGROUND_LIGHT, color);
+            }),
+            1.0,
+        )
 }
 
 impl TabId {

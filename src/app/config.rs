@@ -169,7 +169,9 @@ impl ConfigController {
             }
 
             match prev {
-                Some(prev) if prev.same(&config) => tracing::debug!("Skipping config save because it is unchanged"),
+                Some(prev) if prev.same(&config) => {
+                    tracing::debug!("Skipping config save because it is unchanged")
+                }
                 _ => Config::store(&config).await,
             }
             prev = Some(config);
@@ -221,7 +223,8 @@ impl Drop for ConfigController {
     fn drop(&mut self) {
         self.sender.close_channel();
         tracing::debug!("Waiting for config save task to exit");
-        tokio::runtime::Handle::current().block_on(&mut self.save_task)
+        tokio::runtime::Handle::current()
+            .block_on(&mut self.save_task)
             .expect("save task exited unexpectedly");
         tracing::debug!("Config save task exited");
     }

@@ -14,7 +14,7 @@ use once_cell::sync::Lazy;
 use crate::{
     app::{body::RequestState, command, theme},
     protobuf::ProtobufMethodKind,
-    widget::{Empty, FormField, Icon, ValidationState, ValidationFn, FINISH_EDIT},
+    widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
 };
 
 type AddressValidationState = ValidationState<String, Uri, String>;

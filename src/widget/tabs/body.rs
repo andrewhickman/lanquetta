@@ -97,7 +97,7 @@ where
             body.set_origin(ctx, tab_data, env, Point::ORIGIN);
             size
         })
-        .unwrap_or(bc.min())
+        .unwrap_or_else(|| bc.min())
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {

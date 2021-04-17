@@ -16,7 +16,7 @@ use crate::{
     json::JsonText,
     protobuf::ProtobufMethod,
     theme,
-    widget::{TabId, TabLabelState, Tabs, TabsData, TabsDataChange},
+    widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
 
 #[derive(Debug, Default, Clone, Data)]
@@ -47,7 +47,7 @@ pub struct TabState {
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    Tabs::new(build_body)
+    tabs::new(build_body)
 }
 
 fn build_body() -> impl Widget<TabState> {
