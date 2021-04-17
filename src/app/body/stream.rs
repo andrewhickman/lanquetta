@@ -149,6 +149,12 @@ impl State {
     }
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExpanderData for ItemExpanderState {
     fn expanded(&self, _: &Env) -> bool {
         self.expanded

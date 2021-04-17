@@ -14,8 +14,10 @@ use crate::{
     grpc,
 };
 
+type UpdateQueue = SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>;
+
 pub struct TabController {
-    updates: Arc<SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>>,
+    updates: Arc<UpdateQueue>,
     client: Option<grpc::Client>,
     call: Option<grpc::Call>,
 }
@@ -23,7 +25,7 @@ pub struct TabController {
 struct UpdateWriter {
     target: WidgetId,
     event_sink: ExtEventSink,
-    updates: Weak<SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>>,
+    updates: Weak<UpdateQueue>,
 }
 
 impl TabController {
