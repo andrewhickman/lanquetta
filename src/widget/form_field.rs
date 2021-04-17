@@ -21,7 +21,7 @@ pub struct FormField<T> {
 #[derive(Clone)]
 pub struct ValidationState<T, O, E> {
     raw: T,
-    validate: Arc<dyn Fn(&str) -> Result<O, E>>,
+    validate: Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>,
     result: Result<O, E>,
     pristine: bool,
 }
@@ -154,7 +154,7 @@ impl<T, O, E> ValidationState<T, O, E>
 where
     T: TextStorage,
 {
-    pub fn new(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E>>) -> Self {
+    pub fn new(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>) -> Self {
         let result = validate(raw.as_str());
         ValidationState {
             raw,
@@ -164,7 +164,7 @@ where
         }
     }
 
-    pub fn dirty(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E>>) -> Self {
+    pub fn dirty(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>) -> Self {
         let result = validate(raw.as_str());
         ValidationState {
             raw,

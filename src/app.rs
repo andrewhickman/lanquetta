@@ -94,7 +94,7 @@ fn build() -> impl Widget<State> {
     Flex::column()
         .with_child(error.lens(State::error))
         .with_flex_child(split, 1.0)
-        .controller(ConfigController)
+        .controller(ConfigController::new())
 }
 
 impl State {

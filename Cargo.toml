@@ -46,7 +46,7 @@ features = ["transport", "tls", "tls-roots"]
 
 [dependencies.tokio]
 version = "1.2.0"
-features = ["rt-multi-thread", "sync"]
+features = ["rt-multi-thread", "sync", "fs"]
 
 [dependencies.syntect]
 version = "4.5.0"

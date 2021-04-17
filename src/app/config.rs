@@ -1,23 +1,27 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use anyhow::{Context, Result};
 use dirs_next::config_dir;
 use druid::{
     widget::{prelude::*, Controller},
-    Data, Point, Size, Widget, WindowDesc, WindowHandle,
+    Data, Point, Size, TimerToken, Widget, WindowDesc, WindowHandle,
 };
-use fs_err::{create_dir_all, read_to_string, write};
+use futures::{
+    channel::mpsc::{self, UnboundedReceiver},
+    StreamExt,
+};
 use serde::{Deserialize, Serialize};
+use tokio::task;
 
 use crate::app::State;
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Data)]
 pub(in crate::app) struct Config {
     pub window: WindowConfig,
     pub data: State,
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, Data)]
 pub struct WindowConfig {
     state: WindowState,
     size: Size,
@@ -25,9 +29,13 @@ pub struct WindowConfig {
 }
 
 #[derive(Debug)]
-pub struct ConfigController;
+pub struct ConfigController {
+    sender: mpsc::UnboundedSender<Config>,
+    save_timer_token: TimerToken,
+    save_task: task::JoinHandle<()>,
+}
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Data, PartialEq)]
 #[serde(rename_all = "lowercase")]
 enum WindowState {
     Maximized,
@@ -42,32 +50,43 @@ impl Config {
         })
     }
 
-    pub fn store(config: &Config) {
-        if let Err(err) = Config::try_store(config) {
+    pub async fn store(config: &Config) {
+        if let Err(err) = Config::try_store(config).await {
             tracing::warn!("Failed to store config: {:?}", err);
         }
     }
 
     fn try_load() -> Result<Config> {
         let path = Config::path()?;
-        let text = read_to_string(&path)?;
+        let text = fs_err::read_to_string(&path)?;
         let config = serde_json::from_str(&text)?;
         tracing::debug!("Loaded config from {}", path.display());
         Ok(config)
     }
 
-    fn try_store(config: &Config) -> Result<()> {
+    async fn try_store(config: &Config) -> Result<()> {
+        let dir = Config::directory()?;
         let path = Config::path()?;
         let text = serde_json::to_string(config)?;
-        create_dir_all(path.parent().unwrap())?;
-        write(&path, text)?;
-        tracing::debug!("Stored config to {}", path.display());
+
+        tokio::fs::create_dir_all(&dir)
+            .await
+            .with_context(|| format!("failed to create directory `{}`", dir.display()))?;
+        tokio::fs::write(&path, text)
+            .await
+            .with_context(|| format!("failed to write to file `{}`", dir.display()))?;
+        tracing::debug!("Stored config to `{}`", path.display());
         Ok(())
     }
 
-    fn path() -> Result<PathBuf> {
+    fn directory() -> Result<PathBuf> {
         let mut path = config_dir().context("no config directory found")?;
         path.push(env!("CARGO_BIN_NAME"));
+        Ok(path)
+    }
+
+    fn path() -> Result<PathBuf> {
+        let mut path = Config::directory()?;
         path.push("config.json");
         Ok(path)
     }
@@ -118,10 +137,65 @@ impl Default for WindowConfig {
     }
 }
 
+impl ConfigController {
+    const SAVE_INTERVAL: Duration = Duration::from_secs(5);
+
+    pub fn new() -> Self {
+        let (sender, receiver) = mpsc::unbounded();
+
+        ConfigController {
+            sender,
+            save_timer_token: TimerToken::INVALID,
+            save_task: task::spawn(Self::run_save(receiver)),
+        }
+    }
+
+    fn save(&mut self, ctx: &mut EventCtx, data: &State) {
+        self.sender
+            .unbounded_send(Config {
+                window: WindowConfig::from_handle(ctx.window()),
+                data: data.clone(),
+            })
+            .expect("save task exited unexpectedly");
+    }
+
+    async fn run_save(mut receiver: UnboundedReceiver<Config>) {
+        let mut prev: Option<Config> = None;
+
+        while let Some(mut config) = receiver.next().await {
+            while let Ok(Some(buffered_config)) = receiver.try_next() {
+                tracing::warn!("Skipping config save because a new version is available");
+                config = buffered_config;
+            }
+
+            match prev {
+                Some(prev) if prev.same(&config) => tracing::debug!("Skipping config save because it is unchanged"),
+                _ => Config::store(&config).await,
+            }
+            prev = Some(config);
+        }
+    }
+}
+
 impl<W> Controller<State, W> for ConfigController
 where
     W: Widget<State>,
 {
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &State,
+        env: &Env,
+    ) {
+        if let LifeCycle::WidgetAdded = event {
+            self.save_timer_token = ctx.request_timer(Self::SAVE_INTERVAL);
+        }
+
+        child.lifecycle(ctx, event, data, env);
+    }
+
     fn event(
         &mut self,
         child: &mut W,
@@ -130,13 +204,25 @@ where
         data: &mut State,
         env: &Env,
     ) {
-        if let Event::WindowDisconnected = event {
-            Config::store(&Config {
-                window: WindowConfig::from_handle(ctx.window()),
-                data: data.clone(),
-            });
+        match event {
+            Event::WindowDisconnected => self.save(ctx, data),
+            Event::Timer(token) if token == &self.save_timer_token => {
+                self.save(ctx, data);
+                self.save_timer_token = ctx.request_timer(Self::SAVE_INTERVAL);
+            }
+            _ => (),
         }
 
         child.event(ctx, event, data, env)
+    }
+}
+
+impl Drop for ConfigController {
+    fn drop(&mut self) {
+        self.sender.close_channel();
+        tracing::debug!("Waiting for config save task to exit");
+        tokio::runtime::Handle::current().block_on(&mut self.save_task)
+            .expect("save task exited unexpectedly");
+        tracing::debug!("Config save task exited");
     }
 }
