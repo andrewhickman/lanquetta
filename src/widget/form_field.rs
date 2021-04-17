@@ -12,6 +12,8 @@ use crate::theme;
 
 pub const FINISH_EDIT: Selector = Selector::new("app.finish-edit");
 
+pub type ValidationFn<O, E> = Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>;
+
 pub struct FormField<T> {
     child: WidgetPod<T, Box<dyn Widget<T>>>,
     env: Option<Env>,
@@ -21,7 +23,7 @@ pub struct FormField<T> {
 #[derive(Clone)]
 pub struct ValidationState<T, O, E> {
     raw: T,
-    validate: Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>,
+    validate: ValidationFn<O, E>,
     result: Result<O, E>,
     pristine: bool,
 }
@@ -154,7 +156,7 @@ impl<T, O, E> ValidationState<T, O, E>
 where
     T: TextStorage,
 {
-    pub fn new(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>) -> Self {
+    pub fn new(raw: T, validate: ValidationFn<O, E>) -> Self {
         let result = validate(raw.as_str());
         ValidationState {
             raw,
@@ -164,7 +166,7 @@ where
         }
     }
 
-    pub fn dirty(raw: T, validate: Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>) -> Self {
+    pub fn dirty(raw: T, validate: ValidationFn<O, E>) -> Self {
         let result = validate(raw.as_str());
         ValidationState {
             raw,

@@ -108,7 +108,7 @@ impl JsonText {
         let data = data.into();
         JsonText {
             original_data: None,
-            data: data.into(),
+            data,
             styles: Arc::new([]),
         }
     }

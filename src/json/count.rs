@@ -9,7 +9,7 @@ use serde_json::ser::Formatter;
 use super::exclude::ExcludeSet;
 use super::ShortenOptions;
 
-pub fn count<'de, F>(opts: ShortenOptions, f: F) -> Result<ExcludeSet>
+pub fn count<F>(opts: ShortenOptions, f: F) -> Result<ExcludeSet>
 where
     F: FnOnce(&mut serde_json::Serializer<Sink, &mut Counter>) -> Result<()>,
 {

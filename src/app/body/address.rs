@@ -14,7 +14,7 @@ use once_cell::sync::Lazy;
 use crate::{
     app::{body::RequestState, command, theme},
     protobuf::ProtobufMethodKind,
-    widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT},
+    widget::{Empty, FormField, Icon, ValidationState, ValidationFn, FINISH_EDIT},
 };
 
 type AddressValidationState = ValidationState<String, Uri, String>;
@@ -139,8 +139,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
         .with_child(finish_button.fix_width(100.0))
 }
 
-static VALIDATE_URI: Lazy<Arc<dyn Fn(&str) -> Result<Uri, String> + Sync + Send>> =
-    Lazy::new(|| Arc::new(|s| validate_uri(s)));
+static VALIDATE_URI: Lazy<ValidationFn<Uri, String>> = Lazy::new(|| Arc::new(|s| validate_uri(s)));
 
 fn validate_uri(s: &str) -> Result<Uri, String> {
     let uri = Uri::from_str(s).map_err(|err| err.to_string())?;

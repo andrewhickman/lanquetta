@@ -5,7 +5,7 @@ use std::ops::Range;
 use anyhow::Result;
 use serde_json::ser::{CharEscape, Formatter, PrettyFormatter};
 
-pub fn write<'de, F, W>(excludes: ExcludeSet, writer: W, f: F) -> Result<()>
+pub fn write<F, W>(excludes: ExcludeSet, writer: W, f: F) -> Result<()>
 where
     F: FnOnce(&mut serde_json::Serializer<W, Excluder>) -> Result<()>,
     W: Write,
@@ -47,7 +47,7 @@ impl Excluder {
     }
 
     fn end(&mut self) {
-        if let Some(_) = self.excludes.get(self.position) {
+        if self.excludes.get(self.position).is_some() {
             self.depth -= 1;
         }
         self.position += 1;

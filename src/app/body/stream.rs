@@ -175,9 +175,9 @@ impl From<im::Vector<ItemExpanderState>> for State {
     }
 }
 
-impl Into<im::Vector<ItemExpanderState>> for State {
-    fn into(self) -> im::Vector<ItemExpanderState> {
-        self.items
+impl From<State> for im::Vector<ItemExpanderState> {
+    fn from(state: State) -> im::Vector<ItemExpanderState> {
+        state.items
     }
 }
 
