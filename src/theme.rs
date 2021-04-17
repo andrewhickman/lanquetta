@@ -33,8 +33,14 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::BACKGROUND_DARK, color::BACKGROUND);
     env.set(druid::theme::FOREGROUND_LIGHT, color::SUBTLE_ACCENT);
     env.set(druid::theme::FOREGROUND_DARK, color::SUBTLE_ACCENT);
-    env.set(druid::theme::DISABLED_FOREGROUND_LIGHT, color::disabled(color::SUBTLE_ACCENT));
-    env.set(druid::theme::DISABLED_FOREGROUND_DARK, color::disabled(color::SUBTLE_ACCENT));
+    env.set(
+        druid::theme::DISABLED_FOREGROUND_LIGHT,
+        color::disabled(color::SUBTLE_ACCENT),
+    );
+    env.set(
+        druid::theme::DISABLED_FOREGROUND_DARK,
+        color::disabled(color::SUBTLE_ACCENT),
+    );
     env.set(
         druid::theme::SELECTED_TEXT_BACKGROUND_COLOR,
         color::active(color::BACKGROUND, color::TEXT),
@@ -63,8 +69,14 @@ pub(crate) fn set_contrast(env: &mut Env) {
     env.set(druid::theme::BACKGROUND_DARK, color::SUBTLE_ACCENT);
     env.set(druid::theme::FOREGROUND_LIGHT, color::ACCENT);
     env.set(druid::theme::FOREGROUND_DARK, color::ACCENT);
-    env.set(druid::theme::DISABLED_FOREGROUND_LIGHT, color::disabled(color::ACCENT));
-    env.set(druid::theme::DISABLED_FOREGROUND_DARK, color::disabled(color::ACCENT));
+    env.set(
+        druid::theme::DISABLED_FOREGROUND_LIGHT,
+        color::disabled(color::ACCENT),
+    );
+    env.set(
+        druid::theme::DISABLED_FOREGROUND_DARK,
+        color::disabled(color::ACCENT),
+    );
     env.set(druid::theme::FOREGROUND_DARK, color::ACCENT);
     env.set(druid::theme::PRIMARY_LIGHT, color::ACCENT);
     env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
