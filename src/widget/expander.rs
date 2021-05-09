@@ -207,9 +207,9 @@ where
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         let mut bg_color = env.get(theme::EXPANDER_BACKGROUND);
         if ctx.is_active() {
-            bg_color = theme::color::active(bg_color, env.get(druid::theme::LABEL_COLOR));
+            bg_color = theme::color::active(bg_color, env.get(druid::theme::TEXT_COLOR));
         } else if ctx.is_hot() && self.buttons.iter().all(|b| !b.is_hot()) {
-            bg_color = theme::color::hot(bg_color, env.get(druid::theme::LABEL_COLOR));
+            bg_color = theme::color::hot(bg_color, env.get(druid::theme::TEXT_COLOR));
         }
         let bounds = ctx
             .size()
@@ -282,9 +282,9 @@ fn paint_button_background<T>(ctx: &mut PaintCtx, _: &T, env: &Env) {
 
     let mut color = env.get(theme::EXPANDER_BACKGROUND);
     if ctx.is_active() {
-        color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+        color = theme::color::active(color, env.get(druid::theme::TEXT_COLOR));
     } else if ctx.is_hot() {
-        color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+        color = theme::color::hot(color, env.get(druid::theme::TEXT_COLOR));
     };
 
     let bounds = ctx

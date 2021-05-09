@@ -70,11 +70,11 @@ fn build() -> impl Widget<State> {
                                 .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
                             if ctx.is_active() {
                                 let color =
-                                    theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+                                    theme::color::active(color, env.get(druid::theme::TEXT_COLOR));
                                 ctx.fill(bounds, &color);
                             } else if ctx.is_hot() {
                                 let color =
-                                    theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+                                    theme::color::hot(color, env.get(druid::theme::TEXT_COLOR));
                                 ctx.fill(bounds, &color);
                             }
                         }))

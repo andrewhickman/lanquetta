@@ -70,7 +70,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                     druid::theme::BACKGROUND_LIGHT,
                     theme::color::active(
                         env.get(druid::theme::BACKGROUND_LIGHT),
-                        env.get(druid::theme::LABEL_COLOR),
+                        env.get(druid::theme::TEXT_COLOR),
                     ),
                 );
             }

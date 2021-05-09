@@ -113,7 +113,7 @@ pub fn set_hot(env: &mut Env, state: &WidgetState, key: Key<Color>) {
     if state.is_hot() {
         env.set(
             key.clone(),
-            color::hot(env.get(key), env.get(druid::theme::LABEL_COLOR)),
+            color::hot(env.get(key), env.get(druid::theme::TEXT_COLOR)),
         );
     }
 }
@@ -122,12 +122,12 @@ pub fn set_hot_active(env: &mut Env, state: &WidgetState, key: Key<Color>) {
     if state.is_active() {
         env.set(
             key.clone(),
-            color::active(env.get(key), env.get(druid::theme::LABEL_COLOR)),
+            color::active(env.get(key), env.get(druid::theme::TEXT_COLOR)),
         );
     } else if state.is_hot() {
         env.set(
             key.clone(),
-            color::hot(env.get(key), env.get(druid::theme::LABEL_COLOR)),
+            color::hot(env.get(key), env.get(druid::theme::TEXT_COLOR)),
         );
     }
 }

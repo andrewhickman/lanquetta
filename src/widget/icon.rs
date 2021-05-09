@@ -39,7 +39,7 @@ impl Icon {
         Icon {
             path,
             fill: FillStrat::Cover,
-            color: druid::theme::LABEL_COLOR.into(),
+            color: druid::theme::TEXT_COLOR.into(),
             size: DEFAULT_SIZE,
         }
     }

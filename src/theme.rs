@@ -27,7 +27,7 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::BORDER_DARK, color::BACKGROUND);
     env.set(druid::theme::BORDER_LIGHT, color::BACKGROUND);
 
-    env.set(druid::theme::LABEL_COLOR, color::TEXT);
+    env.set(druid::theme::TEXT_COLOR, color::TEXT);
     env.set(druid::theme::WINDOW_BACKGROUND_COLOR, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
     env.set(druid::theme::BACKGROUND_DARK, color::BACKGROUND);
@@ -49,6 +49,18 @@ pub(crate) fn set(env: &mut Env) {
     env.set(druid::theme::CURSOR_COLOR, color::TEXT);
     env.set(druid::theme::BUTTON_DARK, color::BOLD_ACCENT);
     env.set(druid::theme::BUTTON_LIGHT, color::BOLD_ACCENT);
+    env.set(
+        druid::theme::DISABLED_BUTTON_DARK,
+        color::disabled(color::BOLD_ACCENT),
+    );
+    env.set(
+        druid::theme::DISABLED_BUTTON_LIGHT,
+        color::disabled(color::BOLD_ACCENT),
+    );
+    env.set(
+        druid::theme::DISABLED_TEXT_COLOR,
+        color::disabled(color::TEXT),
+    );
 
     env.set(druid::theme::SCROLLBAR_COLOR, color::TEXT.with_alpha(0.38));
     env.set(druid::theme::SCROLLBAR_BORDER_COLOR, color::TEXT);
@@ -80,7 +92,7 @@ pub(crate) fn set_contrast(env: &mut Env) {
     env.set(druid::theme::FOREGROUND_DARK, color::ACCENT);
     env.set(druid::theme::PRIMARY_LIGHT, color::ACCENT);
     env.set(druid::theme::PRIMARY_DARK, color::ACCENT);
-    env.set(druid::theme::LABEL_COLOR, color::ACCENT);
+    env.set(druid::theme::TEXT_COLOR, color::ACCENT);
     env.set(druid::theme::CURSOR_COLOR, color::ACCENT);
     env.set(
         druid::theme::SCROLLBAR_COLOR,
@@ -126,9 +138,9 @@ pub(crate) fn hot_or_active_painter<T>(border_radius: impl Into<KeyOrValue<f64>>
     Painter::new(move |ctx, _: &T, env: &Env| {
         let mut color = env.get(druid::theme::BACKGROUND_LIGHT);
         if ctx.is_active() {
-            color = color::active(color, env.get(druid::theme::LABEL_COLOR));
+            color = color::active(color, env.get(druid::theme::TEXT_COLOR));
         } else if ctx.is_hot() {
-            color = color::hot(color, env.get(druid::theme::LABEL_COLOR));
+            color = color::hot(color, env.get(druid::theme::TEXT_COLOR));
         }
         let bounds = ctx.size().to_rounded_rect(border_radius.resolve(env));
         ctx.fill(bounds, &color);

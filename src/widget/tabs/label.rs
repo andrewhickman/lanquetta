@@ -179,9 +179,9 @@ impl Widget<State> for TabLabel {
         } else {
             let mut color = env.get(druid::theme::WINDOW_BACKGROUND_COLOR);
             if ctx.is_active() {
-                color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+                color = theme::color::active(color, env.get(druid::theme::TEXT_COLOR));
             } else if ctx.is_hot() && !self.close.is_hot() {
-                color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+                color = theme::color::hot(color, env.get(druid::theme::TEXT_COLOR));
             }
             color
         };
@@ -260,9 +260,9 @@ fn paint_close_background(ctx: &mut PaintCtx, data: &State, env: &Env) {
     };
 
     if ctx.is_active() {
-        color = theme::color::active(color, env.get(druid::theme::LABEL_COLOR));
+        color = theme::color::active(color, env.get(druid::theme::TEXT_COLOR));
     } else if ctx.is_hot() {
-        color = theme::color::hot(color, env.get(druid::theme::LABEL_COLOR));
+        color = theme::color::hot(color, env.get(druid::theme::TEXT_COLOR));
     };
 
     let bounds = ctx
