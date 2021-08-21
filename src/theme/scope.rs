@@ -18,7 +18,7 @@ pub fn new<T>(
     Scope {
         widget,
         update_env,
-        env: Env::default(),
+        env: Env::empty(),
     }
 }
 
