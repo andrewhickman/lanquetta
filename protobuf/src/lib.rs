@@ -1,21 +1,47 @@
-#![allow(dead_code, unused_variables, unreachable_code)]
-
 mod serde;
 
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use anyhow::Result;
 use druid::{ArcStr, Data};
 use http::uri::PathAndQuery;
+use prost::bytes::Buf;
+use prost_types::{FileDescriptorSet, MethodDescriptorProto, ServiceDescriptorProto};
 
 #[derive(Debug, Clone, Data)]
-pub struct FileSet {}
+pub struct FileSet {
+    inner: Arc<FileSetInner>,
+}
+
+#[derive(Debug)]
+struct FileSetInner {
+    raw: FileDescriptorSet,
+    services: Vec<ServiceInner>,
+    messages: Vec<MessageInner>,
+}
 
 #[derive(Debug, Clone, Data)]
-pub struct Service {}
+pub struct Service {
+    file_set: FileSet,
+    index: usize,
+}
+
+#[derive(Debug)]
+struct ServiceInner {
+    name: ArcStr,
+    methods: Vec<MethodInner>,
+}
 
 #[derive(Debug, Clone, Data)]
-pub struct Method {}
+pub struct Method {
+    service: Service,
+    index: usize,
+}
+
+#[derive(Debug)]
+struct MethodInner {
+    name: ArcStr,
+}
 
 #[derive(Debug, Copy, Clone, Data, Eq, PartialEq)]
 pub enum MethodKind {
@@ -28,69 +54,132 @@ pub enum MethodKind {
 #[derive(Debug, Clone, Data)]
 pub struct Message {}
 
+#[derive(Debug)]
+struct MessageInner {
+    file_set: FileSet,
+    index: usize,
+}
+
 impl FileSet {
     pub fn from_file<P>(path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {
-        FileSet::from_bytes(fs_err::read(path)?)
+        FileSet::from_bytes(fs_err::read(path)?.as_ref())
     }
 
     pub fn from_bytes<B>(bytes: B) -> Result<Self>
     where
-        B: AsRef<[u8]>,
+        B: Buf,
     {
-        todo!()
+        Ok(FileSet {
+            inner: Arc::new(FileSet::from_raw(prost::Message::decode(bytes)?)?),
+        })
+    }
+
+    fn from_raw(raw: FileDescriptorSet) -> Result<FileSetInner> {
+        let services = raw
+            .file
+            .iter()
+            .flat_map(|file| &file.service)
+            .map(|raw_service| Service::from_raw(raw_service))
+            .collect::<Result<_>>()?;
+
+        Ok(FileSetInner {
+            raw,
+            services,
+            messages: vec![],
+        })
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        todo!()
+        prost::Message::encode_to_vec(&self.inner.raw)
     }
 
-    pub fn services(&self) -> impl ExactSizeIterator<Item = Service> {
-        todo!();
-        std::iter::empty()
+    pub fn services(&self) -> impl ExactSizeIterator<Item = Service> + '_ {
+        (0..self.inner.services.len()).map(move |index| Service {
+            file_set: self.clone(),
+            index,
+        })
     }
 
     pub fn get_service(&self, index: usize) -> Option<Service> {
-        todo!()
+        if index < self.inner.services.len() {
+            Some(Service {
+                file_set: self.clone(),
+                index,
+            })
+        } else {
+            None
+        }
     }
 }
 
 impl Service {
+    fn from_raw(raw_service: &ServiceDescriptorProto) -> Result<ServiceInner> {
+        let methods = raw_service
+            .method
+            .iter()
+            .map(|raw_method| Method::from_raw(raw_method))
+            .collect();
+        Ok(ServiceInner {
+            name: raw_service.name().into(),
+            methods,
+        })
+    }
+
     pub fn file_set(&self) -> &FileSet {
-        todo!()
+        &self.file_set
     }
 
     pub fn index(&self) -> usize {
-        todo!()
+        self.index
     }
 
     pub fn name(&self) -> ArcStr {
-        todo!()
+        self.inner().name.clone()
     }
 
-    pub fn methods(&self) -> impl ExactSizeIterator<Item = Method> {
-        todo!();
-        std::iter::empty()
+    pub fn methods(&self) -> impl ExactSizeIterator<Item = Method> + '_ {
+        (0..self.inner().methods.len()).map(move |index| Method {
+            service: self.clone(),
+            index,
+        })
     }
 
     pub fn get_method(&self, index: usize) -> Option<Method> {
-        todo!()
+        if index < self.inner().methods.len() {
+            Some(Method {
+                service: self.clone(),
+                index,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn inner(&self) -> &ServiceInner {
+        &self.file_set().inner.services[self.index]
     }
 }
 
 impl Method {
+    fn from_raw(raw_method: &MethodDescriptorProto) -> MethodInner {
+        MethodInner {
+            name: raw_method.name().into(),
+        }
+    }
+
     pub fn file_set(&self) -> &FileSet {
-        todo!()
+        self.service.file_set()
     }
 
     pub fn index(&self) -> usize {
-        todo!()
+        self.index
     }
 
     pub fn name(&self) -> ArcStr {
-        todo!()
+        self.inner().name.clone()
     }
 
     pub fn kind(&self) -> MethodKind {
@@ -107,6 +196,10 @@ impl Method {
 
     pub fn response(&self) -> Message {
         todo!()
+    }
+
+    fn inner(&self) -> &MethodInner {
+        &self.service.inner().methods[self.index]
     }
 }
 

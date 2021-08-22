@@ -20,6 +20,6 @@ impl<'de> Deserialize<'de> for FileSet {
     {
         let encoded = String::deserialize(deserializer)?;
         let bytes = base64::decode(encoded).map_err(Error::custom)?;
-        FileSet::from_bytes(bytes).map_err(Error::custom)
+        FileSet::from_bytes(bytes.as_ref()).map_err(Error::custom)
     }
 }

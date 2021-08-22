@@ -13,6 +13,7 @@ base64 = "0.13.0"
 fs-err = "2.6.0"
 http = "0.2.4"
 prost = "0.8.0"
+prost-types = "0.8.0"
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid.git"

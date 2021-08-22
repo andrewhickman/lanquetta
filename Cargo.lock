@@ -923,6 +923,7 @@ dependencies = [
  "fs-err",
  "http",
  "prost",
+ "prost-types",
  "serde",
  "tonic",
 ]
@@ -1776,6 +1777,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "prost-types"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "603bbd6394701d13f3f25aada59c7de9d35a6a5887cfc156181234a44002771b"
+dependencies = [
+ "bytes",
+ "prost",
 ]
 
 [[package]]
