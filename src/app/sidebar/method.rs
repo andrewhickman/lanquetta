@@ -4,11 +4,7 @@ use druid::{
     ArcStr, Data, Lens, Widget, WidgetExt as _,
 };
 
-use crate::{
-    app::command,
-    theme,
-    widget::Icon,
-};
+use crate::{app::command, theme, widget::Icon};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {

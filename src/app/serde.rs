@@ -1,11 +1,10 @@
 use std::{
     collections::BTreeMap,
     convert::{TryFrom, TryInto},
-    sync::Arc,
 };
 
 use anyhow::{Context, Error, Result};
-use druid::{Data, piet::TextStorage};
+use druid::{piet::TextStorage, Data};
 use serde::{
     de::{self, Deserializer},
     ser::{self, Serializer},
@@ -87,8 +86,10 @@ impl<'a> TryFrom<&'a app::State> for AppState {
             .services()
             .iter()
             .map(|service| {
-                let file_set =
-                    get_or_insert_file_set(&mut file_descriptor_sets, service.service().file_set())?;
+                let file_set = get_or_insert_file_set(
+                    &mut file_descriptor_sets,
+                    service.service().file_set(),
+                )?;
                 Ok(AppServiceState {
                     idx: AppServiceRef {
                         file_set,

@@ -1,7 +1,8 @@
 mod item;
 
-use std::{iter, time::Duration};
+use std::{iter, sync::Arc, time::Duration};
 
+use anyhow::Error;
 use druid::{
     widget::{
         prelude::*, CrossAxisAlignment, Flex, Label, LineBreaking, List, MainAxisAlignment, Scroll,
@@ -11,7 +12,8 @@ use druid::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    grpc, theme,
+    json::JsonText,
+    theme,
     widget::{expander, ExpanderData, Icon},
 };
 
@@ -110,7 +112,7 @@ impl State {
         }
     }
 
-    pub fn add_request(&mut self, request: &grpc::Request) {
+    pub fn add_request(&mut self, request: JsonText) {
         for item in self.items.iter_mut() {
             item.expanded = false;
         }
@@ -126,7 +128,11 @@ impl State {
         });
     }
 
-    pub fn add_response(&mut self, result: &grpc::ResponseResult, duration: Option<Duration>) {
+    pub fn add_response(
+        &mut self,
+        result: Result<JsonText, Arc<Error>>,
+        duration: Option<Duration>,
+    ) {
         for item in self.items.iter_mut() {
             item.expanded = false;
         }

@@ -76,10 +76,7 @@ impl Client {
 
                 tokio::spawn(async move {
                     match self
-                        .client_streaming(
-                            UnboundedReceiverStream::new(request_receiver),
-                            path,
-                        )
+                        .client_streaming(UnboundedReceiverStream::new(request_receiver), path)
                         .await
                     {
                         Ok(response) => on_response(Some(Ok(response))),
@@ -151,11 +148,7 @@ impl Client {
         }
     }
 
-    async fn unary(
-        mut self,
-        request: Request,
-        path: PathAndQuery,
-    ) -> anyhow::Result<Response> {
+    async fn unary(mut self, request: Request, path: PathAndQuery) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc

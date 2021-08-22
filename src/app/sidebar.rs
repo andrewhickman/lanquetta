@@ -10,10 +10,7 @@ use druid::{
     Data, Lens, Widget, WidgetExt as _, WidgetId,
 };
 
-use crate::{
-    app::command::REMOVE_SERVICE,
-    theme,
-};
+use crate::{app::command::REMOVE_SERVICE, theme};
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -61,10 +58,8 @@ impl ServiceListState {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
         let file_set = protobuf::FileSet::from_file(path)?;
 
-        self.services.extend(
-            file_set.services()
-                .map(service::ServiceState::from),
-        );
+        self.services
+            .extend(file_set.services().map(service::ServiceState::from));
         Ok(())
     }
 

@@ -1,5 +1,8 @@
-use bytes::Bytes;
-use tonic::{Status, codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder}};
+use bytes::{Buf, BufMut};
+use tonic::{
+    codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder},
+    Status,
+};
 
 use super::{Request, Response};
 
@@ -27,7 +30,8 @@ impl Encoder for BytesCodec {
     type Error = Status;
 
     fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf<'_>) -> Result<(), Self::Error> {
-        todo!()
+        dst.put(item.bytes);
+        Ok(())
     }
 }
 
@@ -36,6 +40,8 @@ impl Decoder for BytesCodec {
     type Error = Status;
 
     fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error> {
-        todo!()
+        let len = src.remaining();
+        let bytes = src.copy_to_bytes(len);
+        Ok(Some(Response::new(bytes)))
     }
 }

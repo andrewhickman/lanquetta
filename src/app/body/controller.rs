@@ -12,6 +12,7 @@ use crate::{
         command,
     },
     grpc,
+    json::JsonText,
 };
 
 type UpdateQueue = SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>;
@@ -155,7 +156,8 @@ impl TabController {
             }
         };
 
-        data.stream.add_request(&request);
+        let json = data.request().get_json().clone();
+        data.stream.add_request(json);
 
         if let Some(call) = &mut self.call {
             if data.method.kind().client_streaming() {
@@ -188,7 +190,17 @@ impl TabController {
                     (Some(call), Ok(response)) => call.duration(response),
                     _ => None,
                 };
-                data.stream.add_response(&result, duration);
+
+                let json_result = result
+                    .and_then(|response| {
+                        data.method
+                            .request()
+                            .decode(&response.bytes)
+                            .map_err(Arc::new)
+                    })
+                    .map(JsonText::short);
+
+                data.stream.add_response(json_result, duration);
             }
             None => {
                 self.call = None;

@@ -61,7 +61,9 @@ impl State {
             body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| match request.encode(s) {
-                    Ok(bytes) => Ok(grpc::Request { bytes: bytes.into() }),
+                    Ok(bytes) => Ok(grpc::Request {
+                        bytes: bytes.into(),
+                    }),
                     Err(err) => Err(err.to_string()),
                 }),
             ),
@@ -74,6 +76,10 @@ impl State {
 
     pub(in crate::app) fn get(&self) -> Option<&grpc::Request> {
         self.body.result().ok()
+    }
+
+    pub(in crate::app) fn get_json(&self) -> &JsonText {
+        self.body.text()
     }
 
     pub fn text(&self) -> &JsonText {
