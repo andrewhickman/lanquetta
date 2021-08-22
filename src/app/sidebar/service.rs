@@ -7,7 +7,6 @@ use druid::{
 
 use crate::{
     app::{command::REMOVE_SERVICE, sidebar::method},
-    protobuf::{ProtobufMethod, ProtobufService},
     theme,
     widget::expander,
     widget::{ExpanderData, Icon},
@@ -16,7 +15,7 @@ use crate::{
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     pub index: usize,
-    pub selected: Option<ProtobufMethod>,
+    pub selected: Option<protobuf::Method>,
     pub service: ServiceState,
 }
 
@@ -29,7 +28,7 @@ pub(in crate::app) struct ServiceState {
     expanded: bool,
     #[data(ignore)]
     #[lens(ignore)]
-    service: ProtobufService,
+    service: protobuf::Service,
 }
 
 pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
@@ -62,7 +61,7 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
 }
 
 impl State {
-    pub fn new(selected: Option<ProtobufMethod>, service: ServiceState, index: usize) -> Self {
+    pub fn new(selected: Option<protobuf::Method>, service: ServiceState, index: usize) -> Self {
         State {
             selected,
             service,
@@ -83,7 +82,7 @@ impl State {
 }
 
 impl ServiceState {
-    pub fn new(service: ProtobufService, expanded: bool) -> Self {
+    pub fn new(service: protobuf::Service, expanded: bool) -> Self {
         ServiceState {
             name: service.name().into(),
             methods: service.methods().map(method::MethodState::from).collect(),
@@ -92,7 +91,7 @@ impl ServiceState {
         }
     }
 
-    pub fn service(&self) -> &ProtobufService {
+    pub fn service(&self) -> &protobuf::Service {
         &self.service
     }
 
@@ -101,8 +100,8 @@ impl ServiceState {
     }
 }
 
-impl From<ProtobufService> for ServiceState {
-    fn from(service: ProtobufService) -> Self {
+impl From<protobuf::Service> for ServiceState {
+    fn from(service: protobuf::Service) -> Self {
         ServiceState::new(service, true)
     }
 }

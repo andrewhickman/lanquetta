@@ -13,7 +13,6 @@ use once_cell::sync::Lazy;
 
 use crate::{
     app::{body::RequestState, command, theme},
-    protobuf::ProtobufMethodKind,
     widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
 };
 
@@ -31,7 +30,7 @@ pub(in crate::app) struct AddressState {
 pub(in crate::app) struct State {
     address: AddressState,
     body_valid: bool,
-    method_kind: ProtobufMethodKind,
+    method_kind: protobuf::MethodKind,
 }
 
 struct AddressController {
@@ -150,7 +149,7 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, method_kind: ProtobufMethodKind, body_valid: bool) -> Self {
+    pub fn new(address: AddressState, method_kind: protobuf::MethodKind, body_valid: bool) -> Self {
         State {
             address,
             method_kind,

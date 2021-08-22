@@ -1,0 +1,29 @@
+[package]
+name = "grpc-client-protobuf"
+description = "grpc-client"
+version = "0.0.0"
+authors = ["Andrew Hickman <andrew.hickman1@sky.com>"]
+repository = "https://github.com/andrewhickman/grpc-client"
+license = "MIT OR Apache-2.0"
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.43"
+base64 = "0.13.0"
+fs-err = "2.6.0"
+http = "0.2.4"
+prost = "0.8.0"
+
+[dependencies.druid]
+git = "https://github.com/linebender/druid.git"
+branch = "master"
+features = []
+
+[dependencies.serde]
+version = "1.0.128"
+features = []
+
+[dependencies.tonic]
+version = "0.5.2"
+default-features = false
+features = []

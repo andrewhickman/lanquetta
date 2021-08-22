@@ -893,6 +893,7 @@ dependencies = [
  "druid",
  "fs-err",
  "futures",
+ "grpc-client-protobuf",
  "http",
  "im",
  "iter-set",
@@ -900,7 +901,6 @@ dependencies = [
  "memchr",
  "once_cell",
  "open",
- "protobuf",
  "serde",
  "serde-transcode",
  "serde_json",
@@ -911,6 +911,20 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "vergen",
+]
+
+[[package]]
+name = "grpc-client-protobuf"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "druid",
+ "fs-err",
+ "http",
+ "prost",
+ "serde",
+ "tonic",
 ]
 
 [[package]]
@@ -1742,12 +1756,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "protobuf"
-version = "3.0.0-pre"
-source = "git+https://github.com/andrewhickman/rust-protobuf.git?branch=master#645d801d7fad9008f98645b5e5491e0a928f7634"
+name = "prost"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de5e2533f59d08fcf364fd374ebda0692a70bd6d7e66ef97f306f45c6c5d8020"
 dependencies = [
- "serde",
- "serde_derive",
+ "bytes",
+ "prost-derive",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "600d2f334aa05acb02a755e217ef1ab6dea4d51b58b7846588b747edec04efba"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

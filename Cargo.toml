@@ -10,6 +10,9 @@ readme = "README.md"
 edition = "2018"
 build = "build.rs"
 
+[workspace]
+members = ["protobuf"]
+
 [profile.release]
 lto = true
 
@@ -38,9 +41,8 @@ branch = "master"
 features = ["im", "svg", "serde"]
 
 [dependencies.protobuf]
-git = "https://github.com/andrewhickman/rust-protobuf.git"
-branch = "master"
-features = ["with-serde"]
+package = "grpc-client-protobuf"
+path = "protobuf"
 
 [dependencies.tonic]
 version = "0.5.2"

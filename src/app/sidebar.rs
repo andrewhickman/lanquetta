@@ -12,14 +12,13 @@ use druid::{
 
 use crate::{
     app::command::REMOVE_SERVICE,
-    protobuf::{ProtobufMethod, ProtobufService},
     theme,
 };
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     services: ServiceListState,
-    selected: Option<ProtobufMethod>,
+    selected: Option<protobuf::Method>,
 }
 
 #[derive(Debug, Default, Clone, Data)]
@@ -41,7 +40,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 }
 
 impl State {
-    pub fn new(services: ServiceListState, selected: Option<ProtobufMethod>) -> Self {
+    pub fn new(services: ServiceListState, selected: Option<protobuf::Method>) -> Self {
         State { services, selected }
     }
 
@@ -49,7 +48,7 @@ impl State {
         &self.services
     }
 
-    pub fn selected_method(&self) -> &Option<ProtobufMethod> {
+    pub fn selected_method(&self) -> &Option<protobuf::Method> {
         &self.selected
     }
 
@@ -60,9 +59,10 @@ impl State {
 
 impl ServiceListState {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
+        let file_set = protobuf::FileSet::from_file(path)?;
+
         self.services.extend(
-            ProtobufService::load_file(path)?
-                .into_iter()
+            file_set.services()
                 .map(service::ServiceState::from),
         );
         Ok(())

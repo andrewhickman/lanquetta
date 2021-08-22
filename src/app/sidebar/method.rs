@@ -6,7 +6,6 @@ use druid::{
 
 use crate::{
     app::command,
-    protobuf::{ProtobufMethod, ProtobufMethodKind},
     theme,
     widget::Icon,
 };
@@ -19,17 +18,17 @@ pub(in crate::app) struct State {
 
 #[derive(Debug, Clone, Data)]
 pub(in crate::app) struct MethodState {
-    method: ProtobufMethod,
+    method: protobuf::Method,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
     let kind = ViewSwitcher::new(
         |data: &MethodState, _| data.method.kind(),
-        |&kind: &ProtobufMethodKind, _, _| match kind {
-            ProtobufMethodKind::Unary => Icon::unary().boxed(),
-            ProtobufMethodKind::ClientStreaming => Icon::client_streaming().boxed(),
-            ProtobufMethodKind::ServerStreaming => Icon::server_streaming().boxed(),
-            ProtobufMethodKind::Streaming => Icon::streaming().boxed(),
+        |&kind: &protobuf::MethodKind, _, _| match kind {
+            protobuf::MethodKind::Unary => Icon::unary().boxed(),
+            protobuf::MethodKind::ClientStreaming => Icon::client_streaming().boxed(),
+            protobuf::MethodKind::ServerStreaming => Icon::server_streaming().boxed(),
+            protobuf::MethodKind::Streaming => Icon::streaming().boxed(),
         },
     )
     .padding((6.0, 3.0));
@@ -89,7 +88,7 @@ impl MethodState {
 
         impl Lens<MethodState, ArcStr> for NameLens {
             fn with<V, F: FnOnce(&ArcStr) -> V>(&self, data: &MethodState, f: F) -> V {
-                f(data.method.name())
+                f(&data.method.name())
             }
 
             fn with_mut<V, F: FnOnce(&mut ArcStr) -> V>(&self, data: &mut MethodState, f: F) -> V {
@@ -100,13 +99,13 @@ impl MethodState {
         NameLens
     }
 
-    pub fn method(&self) -> &ProtobufMethod {
+    pub fn method(&self) -> &protobuf::Method {
         &self.method
     }
 }
 
-impl From<ProtobufMethod> for MethodState {
-    fn from(method: ProtobufMethod) -> Self {
+impl From<protobuf::Method> for MethodState {
+    fn from(method: protobuf::Method) -> Self {
         MethodState { method }
     }
 }

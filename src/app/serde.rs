@@ -5,8 +5,7 @@ use std::{
 };
 
 use anyhow::{Context, Error, Result};
-use druid::piet::TextStorage;
-use protobuf::descriptor::FileDescriptorSet;
+use druid::{Data, piet::TextStorage};
 use serde::{
     de::{self, Deserializer},
     ser::{self, Serializer},
@@ -16,7 +15,6 @@ use serde::{
 use crate::{
     app,
     json::JsonText,
-    protobuf::ProtobufService,
     widget::{TabId, TabsData},
 };
 
@@ -44,14 +42,14 @@ impl<'de> Deserialize<'de> for app::State {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppState {
-    file_descriptor_sets: Vec<AppFileDescriptorSetState>,
+    file_descriptor_sets: Vec<protobuf::FileSet>,
     services: Vec<AppServiceState>,
     body: AppBodyState,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppServiceRef {
-    fd_set: usize,
+    file_set: usize,
     service: usize,
 }
 
@@ -60,15 +58,6 @@ struct AppServiceState {
     #[serde(flatten)]
     idx: AppServiceRef,
     expanded: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(try_from = "Arc<FileDescriptorSet>")]
-struct AppFileDescriptorSetState {
-    #[serde(flatten)]
-    files: Arc<FileDescriptorSet>,
-    #[serde(skip)]
-    services: Vec<ProtobufService>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,12 +87,12 @@ impl<'a> TryFrom<&'a app::State> for AppState {
             .services()
             .iter()
             .map(|service| {
-                let fd_set =
-                    get_or_insert_fd_set(&mut file_descriptor_sets, service.service().fd_set())?;
+                let file_set =
+                    get_or_insert_file_set(&mut file_descriptor_sets, service.service().file_set())?;
                 Ok(AppServiceState {
                     idx: AppServiceRef {
-                        fd_set,
-                        service: service.service().service_index(),
+                        file_set,
+                        service: service.service().index(),
                     },
                     expanded: service.expanded(),
                 })
@@ -115,14 +104,14 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 .body
                 .tabs()
                 .map(|(_, tab)| {
-                    let fd_set =
-                        get_or_insert_fd_set(&mut file_descriptor_sets, tab.method().fd_set())?;
+                    let file_set =
+                        get_or_insert_file_set(&mut file_descriptor_sets, tab.method().file_set())?;
                     Ok(AppBodyTabState {
                         idx: AppServiceRef {
-                            fd_set,
-                            service: tab.method().service_index(),
+                            file_set,
+                            service: tab.method().index(),
                         },
-                        method: tab.method().method_index(),
+                        method: tab.method().index(),
                         address: tab.address().text().to_owned(),
                         request: tab.request().text().as_str().to_owned(),
                         stream: tab.stream().clone(),
@@ -170,12 +159,12 @@ impl TryInto<app::State> for AppState {
 }
 
 impl AppBodyState {
-    fn into_state(self, fd_sets: &[AppFileDescriptorSetState]) -> Result<app::body::State> {
+    fn into_state(self, file_sets: &[protobuf::FileSet]) -> Result<app::body::State> {
         let tabs = self
             .tabs
             .into_iter()
             .map(|tab| {
-                let method = get_service(fd_sets, &tab.idx)?
+                let method = get_service(file_sets, &tab.idx)?
                     .get_method(tab.method)
                     .context("invalid method index")?
                     .clone();
@@ -199,37 +188,25 @@ impl AppBodyState {
     }
 }
 
-impl TryFrom<Arc<FileDescriptorSet>> for AppFileDescriptorSetState {
-    type Error = Error;
-
-    fn try_from(files: Arc<FileDescriptorSet>) -> Result<Self, Self::Error> {
-        Ok(AppFileDescriptorSetState {
-            services: ProtobufService::load(&files)?,
-            files,
-        })
-    }
-}
-
-fn get_or_insert_fd_set(
-    vec: &mut Vec<AppFileDescriptorSetState>,
-    files: Arc<FileDescriptorSet>,
+fn get_or_insert_file_set(
+    vec: &mut Vec<protobuf::FileSet>,
+    files: &protobuf::FileSet,
 ) -> Result<usize> {
-    match vec.iter().position(|data| Arc::ptr_eq(&data.files, &files)) {
+    match vec.iter().position(|data| data.same(files)) {
         Some(index) => Ok(index),
         None => {
             let index = vec.len();
-            vec.push(AppFileDescriptorSetState::try_from(files)?);
+            vec.push(files.clone());
             Ok(index)
         }
     }
 }
 
-fn get_service(vec: &[AppFileDescriptorSetState], idx: &AppServiceRef) -> Result<ProtobufService> {
+fn get_service(vec: &[protobuf::FileSet], idx: &AppServiceRef) -> Result<protobuf::Service> {
     Ok(vec
-        .get(idx.fd_set)
-        .context("invalid fd set index")?
-        .services
-        .get(idx.service)
+        .get(idx.file_set)
+        .context("invalid file set index")?
+        .get_service(idx.service)
         .context("invalid service index")?
         .clone())
 }

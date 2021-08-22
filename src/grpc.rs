@@ -1,4 +1,5 @@
 mod channel;
+mod codec;
 
 use std::{
     sync::Arc,
@@ -6,26 +7,24 @@ use std::{
 };
 
 use anyhow::Result;
+use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
 use http::{uri::PathAndQuery, Uri};
-use protobuf::MessageDyn;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{client::Grpc, transport::Channel, IntoRequest};
-
-use crate::protobuf::{ProtobufCodec, ProtobufMethod, ProtobufMethodKind};
 
 pub type ConnectResult = Result<Client, Error>;
 pub type ResponseResult = Result<Response, Error>;
 
 #[derive(Debug, Clone)]
 pub struct Request {
-    pub body: Box<dyn MessageDyn>,
+    pub bytes: Bytes,
 }
 
 #[derive(Debug, Clone)]
 pub struct Response {
-    pub body: Box<dyn MessageDyn>,
+    pub bytes: Bytes,
     pub timestamp: Instant,
 }
 
@@ -50,19 +49,18 @@ impl Client {
         })
     }
 
-    pub fn call<F>(self, method: &ProtobufMethod, request: Request, mut on_response: F) -> Call
+    pub fn call<F>(self, method: &protobuf::Method, request: Request, mut on_response: F) -> Call
     where
         F: FnMut(Option<ResponseResult>) + Send + 'static,
     {
         let path = method.path();
-        let codec = method.codec();
 
         let last_request = Some(Instant::now());
 
         let request_sender = match method.kind() {
-            ProtobufMethodKind::Unary => {
+            protobuf::MethodKind::Unary => {
                 tokio::spawn(async move {
-                    match self.unary(request, path, codec).await {
+                    match self.unary(request, path).await {
                         Ok(response) => on_response(Some(Ok(response))),
                         Err(err) => on_response(Some(Err(err.into()))),
                     }
@@ -71,7 +69,7 @@ impl Client {
 
                 None
             }
-            ProtobufMethodKind::ClientStreaming => {
+            protobuf::MethodKind::ClientStreaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
                 request_sender.send(request).unwrap();
@@ -81,7 +79,6 @@ impl Client {
                         .client_streaming(
                             UnboundedReceiverStream::new(request_receiver),
                             path,
-                            codec,
                         )
                         .await
                     {
@@ -93,9 +90,9 @@ impl Client {
 
                 Some(request_sender)
             }
-            ProtobufMethodKind::ServerStreaming => {
+            protobuf::MethodKind::ServerStreaming => {
                 tokio::spawn(async move {
-                    match self.server_streaming(request, path, codec).await {
+                    match self.server_streaming(request, path).await {
                         Ok(stream) => {
                             let mut stream = stream.map_err(arc_err);
                             while let Some(result) = stream.next().await {
@@ -116,14 +113,14 @@ impl Client {
 
                 None
             }
-            ProtobufMethodKind::Streaming => {
+            protobuf::MethodKind::Streaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
                 request_sender.send(request).unwrap();
 
                 tokio::spawn(async move {
                     match self
-                        .streaming(UnboundedReceiverStream::new(request_receiver), path, codec)
+                        .streaming(UnboundedReceiverStream::new(request_receiver), path)
                         .await
                     {
                         Ok(stream) => {
@@ -158,12 +155,11 @@ impl Client {
         mut self,
         request: Request,
         path: PathAndQuery,
-        codec: ProtobufCodec,
     ) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .unary(request.into_request(), path, codec)
+            .unary(request.into_request(), path, codec::BytesCodec)
             .await?
             .into_inner())
     }
@@ -172,12 +168,11 @@ impl Client {
         mut self,
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         path: PathAndQuery,
-        codec: ProtobufCodec,
     ) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .client_streaming(requests.into_request(), path, codec)
+            .client_streaming(requests.into_request(), path, codec::BytesCodec)
             .await?
             .into_inner())
     }
@@ -186,12 +181,11 @@ impl Client {
         mut self,
         request: Request,
         path: PathAndQuery,
-        codec: ProtobufCodec,
     ) -> anyhow::Result<tonic::Streaming<Response>> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .server_streaming(request.into_request(), path, codec)
+            .server_streaming(request.into_request(), path, codec::BytesCodec)
             .await?
             .into_inner())
     }
@@ -200,31 +194,20 @@ impl Client {
         mut self,
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         path: PathAndQuery,
-        codec: ProtobufCodec,
     ) -> anyhow::Result<tonic::Streaming<Response>> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .streaming(requests.into_request(), path, codec)
+            .streaming(requests.into_request(), path, codec::BytesCodec)
             .await?
             .into_inner())
     }
 }
 
-impl Request {
-    pub fn body(&self) -> &dyn MessageDyn {
-        &*self.body
-    }
-
-    pub fn body_mut(&mut self) -> &mut dyn MessageDyn {
-        &mut *self.body
-    }
-}
-
 impl Response {
-    pub fn new(body: Box<dyn MessageDyn>) -> Self {
+    pub fn new(bytes: Bytes) -> Self {
         Response {
-            body,
+            bytes,
             timestamp: Instant::now(),
         }
     }

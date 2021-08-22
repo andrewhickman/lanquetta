@@ -14,7 +14,6 @@ use iter_set::Inclusion;
 use self::controller::TabController;
 use crate::{
     json::JsonText,
-    protobuf::ProtobufMethod,
     theme,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
@@ -37,7 +36,7 @@ pub enum RequestState {
 #[derive(Debug, Clone, Data, Lens)]
 pub struct TabState {
     #[lens(ignore)]
-    method: ProtobufMethod,
+    method: protobuf::Method,
     #[lens(ignore)]
     address: address::AddressState,
     #[lens(name = "request_lens")]
@@ -83,7 +82,7 @@ impl State {
         }
     }
 
-    pub fn select_or_create_tab(&mut self, method: ProtobufMethod) {
+    pub fn select_or_create_tab(&mut self, method: protobuf::Method) {
         if self
             .with_selected(|_, tab_data| tab_data.method.same(&method))
             .unwrap_or(false)
@@ -101,7 +100,7 @@ impl State {
         self.create_tab(method)
     }
 
-    pub fn create_tab(&mut self, method: ProtobufMethod) {
+    pub fn create_tab(&mut self, method: protobuf::Method) {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(id, TabState::empty(method));
@@ -153,7 +152,7 @@ impl State {
         self.with_selected_mut(|_, tab| tab.stream.clear());
     }
 
-    pub fn selected_method(&self) -> Option<ProtobufMethod> {
+    pub fn selected_method(&self) -> Option<protobuf::Method> {
         self.with_selected(|_, tab_data| tab_data.method.clone())
     }
 
@@ -167,7 +166,7 @@ impl State {
 }
 
 impl TabState {
-    pub fn empty(method: ProtobufMethod) -> Self {
+    pub fn empty(method: protobuf::Method) -> Self {
         TabState {
             address: address::AddressState::default(),
             stream: stream::State::new(),
@@ -177,7 +176,7 @@ impl TabState {
     }
 
     pub fn new(
-        method: ProtobufMethod,
+        method: protobuf::Method,
         address: String,
         request: impl Into<JsonText>,
         stream: stream::State,
@@ -190,7 +189,7 @@ impl TabState {
         }
     }
 
-    pub fn method(&self) -> &ProtobufMethod {
+    pub fn method(&self) -> &protobuf::Method {
         &self.method
     }
 
