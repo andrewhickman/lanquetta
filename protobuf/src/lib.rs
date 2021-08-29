@@ -7,7 +7,9 @@ use anyhow::Result;
 use druid::{ArcStr, Data};
 use http::uri::PathAndQuery;
 use prost::bytes::Buf;
-use prost_types::{FileDescriptorProto, FileDescriptorSet, MethodDescriptorProto, ServiceDescriptorProto};
+use prost_types::{
+    FileDescriptorProto, FileDescriptorSet, MethodDescriptorProto, ServiceDescriptorProto,
+};
 
 #[derive(Debug, Clone, Data)]
 pub struct FileSet {
@@ -89,14 +91,15 @@ impl FileSet {
         let type_map = ty::TypeMap::new(&raw)?;
         let type_map_ref = &type_map;
 
-        let services = raw
-            .file
-            .iter()
-            .flat_map(|raw_file| raw_file.service
+        let services =
+            raw.file
                 .iter()
-                .map(move |raw_service| Service::from_raw(raw_file, raw_service, type_map_ref))
-            )
-            .collect::<Result<_>>()?;
+                .flat_map(|raw_file| {
+                    raw_file.service.iter().map(move |raw_service| {
+                        Service::from_raw(raw_file, raw_service, type_map_ref)
+                    })
+                })
+                .collect::<Result<_>>()?;
 
         Ok(FileSetInner {
             raw,
@@ -129,7 +132,11 @@ impl FileSet {
 }
 
 impl Service {
-    fn from_raw(raw_file: &FileDescriptorProto, raw_service: &ServiceDescriptorProto, type_map: &ty::TypeMap) -> Result<ServiceInner> {
+    fn from_raw(
+        raw_file: &FileDescriptorProto,
+        raw_service: &ServiceDescriptorProto,
+        type_map: &ty::TypeMap,
+    ) -> Result<ServiceInner> {
         let methods = raw_service
             .method
             .iter()
@@ -177,7 +184,12 @@ impl Service {
 }
 
 impl Method {
-    fn from_raw(raw_file: &FileDescriptorProto, raw_service: &ServiceDescriptorProto, raw_method: &MethodDescriptorProto, type_map: &ty::TypeMap) -> Result<MethodInner> {
+    fn from_raw(
+        raw_file: &FileDescriptorProto,
+        raw_service: &ServiceDescriptorProto,
+        raw_method: &MethodDescriptorProto,
+        type_map: &ty::TypeMap,
+    ) -> Result<MethodInner> {
         let kind = match (raw_method.client_streaming(), raw_method.server_streaming()) {
             (false, false) => MethodKind::Unary,
             (true, false) => MethodKind::ClientStreaming,
@@ -189,7 +201,7 @@ impl Method {
             "" => String::default(),
             package => format!(".{}", package),
         };
-        let path =  PathAndQuery::from_str(&format!(
+        let path = PathAndQuery::from_str(&format!(
             "/{}{}/{}",
             namespace,
             raw_service.name(),
@@ -265,14 +277,14 @@ impl MethodKind {
 
 impl Message {
     pub fn template_json(&self) -> String {
-        todo!()
+        self.file_set.inner.type_map.decode_template(self.ty)
     }
 
     pub fn decode(&self, protobuf: &[u8]) -> Result<String> {
-        todo!()
+        self.file_set.inner.type_map.decode(self.ty, protobuf)
     }
 
     pub fn encode(&self, json: &str) -> Result<Vec<u8>> {
-        todo!()
+        self.file_set.inner.type_map.encode(self.ty, json)
     }
 }
