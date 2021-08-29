@@ -1,6 +1,3 @@
-mod decode;
-mod encode;
-
 use std::{array, collections::HashMap};
 
 use anyhow::{Context, Result};
@@ -48,6 +45,7 @@ pub enum Primitive {
 #[derive(Debug)]
 pub struct Message {
     fields: Vec<MessageField>,
+    is_map_entry: bool,
 }
 
 #[derive(Debug)]
@@ -55,6 +53,8 @@ pub struct MessageField {
     name: String,
     json_name: String,
     number: i32,
+    is_group: bool,
+    is_repeated: bool,
     ty: TypeId,
 }
 
@@ -92,16 +92,69 @@ impl TypeMap {
             ])
             .map(Ty::Primitive),
         );
-        let primitive_count = tys.len();
 
         // Gather all type names.
+        let mut counter = tys.len();
         let mut map = HashMap::with_capacity(128);
-
         iter_tys(raw, &mut |name, proto| {
-            map.insert(name.to_owned(), TypeId(tys.len()));
+            map.insert(name.to_owned(), TypeId(counter));
+            counter += 1;
+            Ok(())
+        })?;
+
+        // Map type names to indices
+        map.shrink_to_fit();
+        let mut tys = Vec::with_capacity(map.len());
+        iter_tys(raw, &mut |name, proto| {
+            use prost_types::field_descriptor_proto::{Label, Type};
+
+            debug_assert_eq!(map[name], TypeId(tys.len()));
 
             let ty = match proto {
-                TyProto::Message(message_type) => Ty::Message(Message { fields: vec![] }),
+                TyProto::Message(message_type) => Ty::Message(Message {
+                    is_map_entry: message_type
+                        .options
+                        .as_ref()
+                        .map(|o| o.map_entry())
+                        .unwrap_or(false),
+                    fields: message_type
+                        .field
+                        .iter()
+                        .map(|field_proto| {
+                            let ty = match field_proto.r#type() {
+                                Type::Double => Primitive::Double.type_id(),
+                                Type::Float => Primitive::Float.type_id(),
+                                Type::Int64 => Primitive::Int64.type_id(),
+                                Type::Uint64 => Primitive::Uint64.type_id(),
+                                Type::Int32 => Primitive::Int32.type_id(),
+                                Type::Fixed64 => Primitive::Fixed64.type_id(),
+                                Type::Fixed32 => Primitive::Fixed32.type_id(),
+                                Type::Bool => Primitive::Bool.type_id(),
+                                Type::String => Primitive::String.type_id(),
+                                Type::Bytes => Primitive::Bytes.type_id(),
+                                Type::Uint32 => Primitive::Uint32.type_id(),
+                                Type::Sfixed32 => Primitive::Sfixed32.type_id(),
+                                Type::Sfixed64 => Primitive::Sfixed64.type_id(),
+                                Type::Sint32 => Primitive::Sint32.type_id(),
+                                Type::Sint64 => Primitive::Sint64.type_id(),
+                                Type::Enum | Type::Message | Type::Group => {
+                                    *map.get(field_proto.type_name()).with_context(|| {
+                                        format!("type {} not found", field_proto.type_name())
+                                    })?
+                                }
+                            };
+
+                            Ok(MessageField {
+                                name: field_proto.name().to_owned(),
+                                json_name: field_proto.json_name().to_owned(),
+                                number: field_proto.number(),
+                                is_group: field_proto.r#type() == Type::Group,
+                                is_repeated: field_proto.label() == Label::Repeated,
+                                ty,
+                            })
+                        })
+                        .collect::<Result<_>>()?,
+                }),
                 TyProto::Enum(enum_type) => Ty::Enum(Enum {
                     values: enum_type
                         .value
@@ -116,73 +169,6 @@ impl TypeMap {
             tys.push(ty);
             Ok(())
         })?;
-
-        // Populate message fields with resolved types
-        map.shrink_to_fit();
-        tys.reserve_exact(map.len());
-
-        let mut counter = primitive_count;
-        iter_tys(raw, &mut |name, proto| {
-            use prost_types::field_descriptor_proto::Type;
-
-            counter += 1;
-            let message_type = match proto {
-                TyProto::Message(message_type) => message_type,
-                TyProto::Enum(_) => return Ok(()),
-            };
-
-            let mut fields = message_type
-                .field
-                .iter()
-                .map(|field_proto| {
-                    let mut is_group = false;
-                    let ty = match field_proto.r#type() {
-                        Type::Double => Primitive::Double.type_id(),
-                        Type::Float => Primitive::Float.type_id(),
-                        Type::Int64 => Primitive::Int64.type_id(),
-                        Type::Uint64 => Primitive::Uint64.type_id(),
-                        Type::Int32 => Primitive::Int32.type_id(),
-                        Type::Fixed64 => Primitive::Fixed64.type_id(),
-                        Type::Fixed32 => Primitive::Fixed32.type_id(),
-                        Type::Bool => Primitive::Bool.type_id(),
-                        Type::String => Primitive::String.type_id(),
-                        Type::Bytes => Primitive::Bytes.type_id(),
-                        Type::Uint32 => Primitive::Uint32.type_id(),
-                        Type::Sfixed32 => Primitive::Sfixed32.type_id(),
-                        Type::Sfixed64 => Primitive::Sfixed64.type_id(),
-                        Type::Sint32 => Primitive::Sint32.type_id(),
-                        Type::Sint64 => Primitive::Sint64.type_id(),
-                        Type::Enum => *map.get(field_proto.type_name()).with_context(|| {
-                            format!("type {} not found", field_proto.type_name())
-                        })?,
-                        Type::Group => {
-                            is_group = true;
-                            *map.get(field_proto.type_name()).with_context(|| {
-                                format!("type {} not found", field_proto.type_name())
-                            })?
-                        }
-                        Type::Message => *map.get(field_proto.type_name()).with_context(|| {
-                            format!("type {} not found", field_proto.type_name())
-                        })?,
-                    };
-
-                    Ok(MessageField {
-                        name: field_proto.name().to_owned(),
-                        json_name: field_proto.json_name().to_owned(),
-                        number: field_proto.number(),
-                        ty,
-                    })
-                })
-                .collect::<Result<Vec<_>>>()?;
-
-            match &mut tys[counter] {
-                Ty::Message(message) => message.fields = fields,
-                _ => unreachable!(),
-            };
-            Ok(())
-        })?;
-
-        tys.shrink_to_fit();
 
         Ok(TypeMap { map, tys })
     }
