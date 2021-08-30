@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Index};
 
 use anyhow::{bail, Result};
 use druid::Data;
@@ -81,5 +81,13 @@ impl TypeMap {
             let id = self.add(Ty::Scalar(scalar));
             debug_assert_eq!(self.get_scalar(scalar), id);
         }
+    }
+}
+
+impl Index<TypeId> for TypeMap {
+    type Output = Ty;
+
+    fn index(&self, index: TypeId) -> &Self::Output {
+        &self.storage[index.0]
     }
 }

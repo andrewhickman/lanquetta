@@ -1,10 +1,16 @@
+mod decode;
+mod encode;
 mod map;
 
-use std::{cell::Cell, collections::HashMap};
+use std::{cell::Cell, collections::HashMap, io};
 
-use anyhow::{Result, bail, ensure};
+use anyhow::{bail, ensure, Result};
 
-use prost_types::{DescriptorProto, EnumDescriptorProto, FieldDescriptorProto, FileDescriptorSet, field_descriptor_proto};
+use prost_types::{
+    field_descriptor_proto, DescriptorProto, EnumDescriptorProto, FieldDescriptorProto,
+    FileDescriptorSet,
+};
+use slab::Slab;
 
 pub use self::map::{TypeId, TypeMap};
 
@@ -15,6 +21,7 @@ pub enum Ty {
     Scalar(Scalar),
     List(TypeId),
     Map(TypeId),
+    Group(TypeId),
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -38,14 +45,13 @@ pub enum Scalar {
 
 #[derive(Debug)]
 pub struct Message {
-    fields: Vec<MessageField>,
+    fields: Slab<MessageField>,
 }
 
 #[derive(Debug)]
 pub struct MessageField {
     name: String,
     json_name: String,
-    number: i32,
     is_group: bool,
     ty: TypeId,
 }
@@ -67,9 +73,12 @@ impl TypeMap {
 
         for (name, proto) in &protos {
             match *proto {
-                TyProto::Message { message_proto, ref processing } => {
+                TyProto::Message {
+                    message_proto,
+                    ref processing,
+                } => {
                     self.add_message(name, message_proto, processing, &protos)?;
-                },
+                }
                 TyProto::Enum { enum_proto } => {
                     self.add_enum(name, enum_proto)?;
                 }
@@ -79,7 +88,13 @@ impl TypeMap {
         Ok(())
     }
 
-    fn add_message(&mut self, name: &str, message_proto: &DescriptorProto, recursion_flag: &Cell<bool>, protos: &HashMap<String, TyProto>) -> Result<TypeId> {
+    fn add_message(
+        &mut self,
+        name: &str,
+        message_proto: &DescriptorProto,
+        recursion_flag: &Cell<bool>,
+        protos: &HashMap<String, TyProto>,
+    ) -> Result<TypeId> {
         if let Some(id) = self.try_get_by_name(name) {
             return Ok(id);
         }
@@ -89,33 +104,38 @@ impl TypeMap {
         }
         recursion_flag.set(true);
 
-        let fields = message_proto.field
+        let fields = message_proto
+            .field
             .iter()
             .map(|field_proto| {
                 let ty = self.add_message_field(field_proto, protos)?;
-                Ok(MessageField {
+
+                let tag = field_proto.number() as usize;
+                let field = MessageField {
                     name: field_proto.name().to_owned(),
                     json_name: field_proto.json_name().to_owned(),
-                    number: field_proto.number(),
                     is_group: field_proto.r#type() == field_descriptor_proto::Type::Group,
                     ty,
-                })
+                };
+                Ok((tag, field))
             })
-            .collect::<Result<_>>()?;
+            .collect::<Result<Slab<MessageField>>>()?;
 
-        let ty = Ty::Message(Message {
-            fields,
-        });
+        let ty = Ty::Message(Message { fields });
         Ok(self.add_with_name(name.to_owned(), ty))
     }
 
-    fn add_message_field(&mut self, field_proto: &FieldDescriptorProto, protos: &HashMap<String, TyProto>) -> Result<TypeId> {
+    fn add_message_field(
+        &mut self,
+        field_proto: &FieldDescriptorProto,
+        protos: &HashMap<String, TyProto>,
+    ) -> Result<TypeId> {
         use prost_types::field_descriptor_proto::{Label, Type};
 
         let is_repeated = field_proto.label() == Label::Repeated;
         let mut is_map = false;
 
-        let base_ty = match field_proto.r#type() {
+        let mut base_ty = match field_proto.r#type() {
             Type::Double => self.get_scalar(Scalar::Double),
             Type::Float => self.get_scalar(Scalar::Float),
             Type::Int64 => self.get_scalar(Scalar::Int64),
@@ -131,22 +151,33 @@ impl TypeMap {
             Type::Sfixed64 => self.get_scalar(Scalar::Sfixed64),
             Type::Sint32 => self.get_scalar(Scalar::Sint32),
             Type::Sint64 => self.get_scalar(Scalar::Sint64),
-            Type::Enum | Type::Message | Type::Group => {
-                match protos.get(field_proto.type_name()) {
-                    None => bail!("type {} not found", field_proto.type_name()),
-                    Some(TyProto::Message { message_proto, processing }) => {
-                        is_map = match &message_proto.options {
-                            Some(options) => options.map_entry(),
-                            None => false,
-                        };
-                        self.add_message(field_proto.type_name(), message_proto, processing, protos)?
-                    },
-                    Some(TyProto::Enum { enum_proto }) => self.add_enum(field_proto.type_name(), enum_proto)?
+            Type::Enum | Type::Message | Type::Group => match protos.get(field_proto.type_name()) {
+                None => bail!("type {} not found", field_proto.type_name()),
+                Some(TyProto::Message {
+                    message_proto,
+                    processing,
+                }) => {
+                    is_map = match &message_proto.options {
+                        Some(options) => options.map_entry(),
+                        None => false,
+                    };
+                    self.add_message(field_proto.type_name(), message_proto, processing, protos)?
                 }
-            }
+                Some(TyProto::Enum { enum_proto }) => {
+                    self.add_enum(field_proto.type_name(), enum_proto)?
+                }
+            },
         };
 
+        if field_proto.r#type() == Type::Group {
+            base_ty = self.add(Ty::Group(base_ty));
+        }
+
         if is_map {
+            ensure!(
+                field_proto.r#type() == Type::Message,
+                "map entry must be message"
+            );
             ensure!(is_repeated, "map entry must be repeated");
             Ok(self.add(Ty::Map(base_ty)))
         } else if is_repeated {
@@ -178,8 +209,12 @@ impl TypeMap {
         todo!()
     }
 
-    pub fn decode(&self, _ty: TypeId, _protobuf: &[u8]) -> Result<String> {
-        todo!()
+    pub fn decode(&self, ty: TypeId, mut protobuf: &[u8]) -> Result<String> {
+        let deserializer = decode::Decoder::new(self, ty, &mut protobuf);
+        let mut result = Vec::new();
+        let mut serializer = serde_json::Serializer::pretty(io::Cursor::new(&mut result));
+        serde_transcode::transcode(deserializer, &mut serializer)?;
+        Ok(String::from_utf8(result).expect("JSON is valid UTF-8"))
     }
 
     pub fn encode(&self, _ty: TypeId, _json: &str) -> Result<Vec<u8>> {
@@ -198,9 +233,7 @@ enum TyProto<'a> {
     },
 }
 
-fn iter_tys<'a>(
-    raw: &'a FileDescriptorSet,
-) -> Result<HashMap<String, TyProto<'a>>> {
+fn iter_tys<'a>(raw: &'a FileDescriptorSet) -> Result<HashMap<String, TyProto<'a>>> {
     let mut result = HashMap::with_capacity(128);
 
     for file in &raw.file {
@@ -213,7 +246,13 @@ fn iter_tys<'a>(
             let full_name = format!("{}.{}", namespace, message_proto.name());
             iter_message(&full_name, &mut result, message_proto)?;
             if result
-                .insert(full_name, TyProto::Message { message_proto, processing: Cell::new(false) })
+                .insert(
+                    full_name,
+                    TyProto::Message {
+                        message_proto,
+                        processing: Cell::new(false),
+                    },
+                )
                 .is_some()
             {
                 bail!(
@@ -225,7 +264,10 @@ fn iter_tys<'a>(
         }
         for enum_proto in &file.enum_type {
             let full_name = format!("{}.{}", namespace, enum_proto.name());
-            if result.insert(full_name, TyProto::Enum { enum_proto }).is_some() {
+            if result
+                .insert(full_name, TyProto::Enum { enum_proto })
+                .is_some()
+            {
                 bail!(
                     "duplicate type definition {}.{}",
                     namespace,
@@ -247,7 +289,13 @@ fn iter_message<'a>(
         let full_name = format!("{}.{}", namespace, message_proto.name());
         iter_message(&full_name, result, message_proto)?;
         if result
-            .insert(full_name, TyProto::Message { message_proto, processing: Cell::new(false) })
+            .insert(
+                full_name,
+                TyProto::Message {
+                    message_proto,
+                    processing: Cell::new(false),
+                },
+            )
             .is_some()
         {
             bail!(
@@ -260,7 +308,10 @@ fn iter_message<'a>(
 
     for enum_proto in &raw.enum_type {
         let full_name = format!("{}.{}", namespace, enum_proto.name());
-        if result.insert(full_name, TyProto::Enum { enum_proto }).is_some() {
+        if result
+            .insert(full_name, TyProto::Enum { enum_proto })
+            .is_some()
+        {
             bail!(
                 "duplicate type definition {}.{}",
                 namespace,
