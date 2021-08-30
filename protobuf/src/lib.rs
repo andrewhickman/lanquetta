@@ -88,7 +88,9 @@ impl FileSet {
     }
 
     fn from_raw(raw: FileDescriptorSet) -> Result<FileSetInner> {
-        let type_map = ty::TypeMap::new(&raw)?;
+        let mut type_map = ty::TypeMap::new();
+        type_map.add_files(&raw)?;
+        type_map.shrink_to_fit();
         let type_map_ref = &type_map;
 
         let services =
