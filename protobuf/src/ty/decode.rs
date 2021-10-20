@@ -1,11 +1,8 @@
 use std::fmt;
 
-use bytes::Buf;
+use bytes::{Buf, buf::Take};
 use prost::encoding::WireType;
-use serde::{
-    de::{self, value::StrDeserializer, IntoDeserializer, Visitor},
-    forward_to_deserialize_any, Deserializer,
-};
+use serde::{Deserializer, de::{self, IntoDeserializer, Visitor, value::StrDeserializer}, forward_to_deserialize_any};
 
 use crate::ty::MessageField;
 
@@ -42,12 +39,8 @@ where
         V: Visitor<'de>,
     {
         match &self.map[self.ty] {
-            Ty::Message(message) => deserialize_message(self.buf, self.map, message, visitor),
-            Ty::Enum(enum_ty) => deserialize_enum(self.buf, self.map, enum_ty, visitor),
-            Ty::Scalar(scalar) => deserialize_scalar(self.buf, self.map, scalar, visitor),
-            Ty::List(inner_ty) => deserialize_list(self.buf, self.map, *inner_ty, visitor),
-            Ty::Map(message_ty) => deserialize_map(self.buf, self.map, *message_ty, visitor),
-            Ty::Group(group) => deserialize_group(self.buf, self.map, *group, visitor),
+            Ty::Message(message) => deserialize_message(self.buf.take(self.buf.len()), self.map, WireType::LengthDelimited, message, visitor),
+            _ => Err(de::Error::custom("expected top-level type to be a message")),
         }
     }
 
@@ -58,9 +51,17 @@ where
     }
 }
 
+struct MessageDecoder<'a, B> {
+    buf: Take<&'a mut B>,
+    map: &'a TypeMap,
+    wire_type: WireType,
+    message: &'a Message,
+}
+
 fn deserialize_message<'de, B, V>(
-    buf: &mut B,
+    buf: Take<&mut B>,
     map: &TypeMap,
+    wire_type: WireType,
     message: &Message,
     visitor: V,
 ) -> Result<V::Value, Error>
@@ -69,7 +70,7 @@ where
     V: Visitor<'de>,
 {
     struct MapAccess<'a, B> {
-        buf: &'a mut B,
+        buf: Take<&'a mut B>,
         map: &'a TypeMap,
         message: &'a Message,
         current_key: Option<(WireType, &'a MessageField)>,
@@ -87,7 +88,7 @@ where
         {
             assert!(self.current_key.is_none());
             if self.buf.has_remaining() {
-                let (tag, wire_type) = prost::encoding::decode_key(self.buf)?;
+                let (tag, wire_type) = prost::encoding::decode_key(&mut self.buf)?;
                 let field = &self.message.fields[tag as usize];
                 self.current_key = Some((wire_type, field));
 
@@ -105,12 +106,25 @@ where
             V: de::DeserializeSeed<'de>,
         {
             let (wire_type, field) = self.current_key.expect("next_value called before next key");
-            match wire_type {}
+            match &self.map[field.ty] {
+                Ty::Message(_) => todo!(),
+                Ty::Enum(_) => todo!(),
+                Ty::Scalar(_) => todo!(),
+                Ty::List(_) => todo!(),
+                Ty::Map(_) => todo!(),
+                Ty::Group(_) => todo!(),
+            }
         }
     }
 
+    if wire_type != WireType::LengthDelimited {
+        return Err(de::Error::custom("invalid wire type for message"));
+    }
+    let len = prost::encoding::decode_varint(&mut buf)?;
+    let limited_buf = buf.into_inner().take(len as usize);
+
     visitor.visit_map(MapAccess {
-        buf,
+        buf: limited_buf,
         map,
         message,
         current_key: None,
@@ -118,7 +132,7 @@ where
 }
 
 fn deserialize_enum<'de, B, V>(
-    buf: &mut B,
+    buf: Take<&mut B>,
     map: &TypeMap,
     enum_ty: &Enum,
     visitor: V,
@@ -131,7 +145,7 @@ where
 }
 
 fn deserialize_scalar<'de, B, V>(
-    buf: &mut B,
+    buf: Take<&mut B>,
     map: &TypeMap,
     scalar: &Scalar,
     visitor: V,
@@ -144,7 +158,7 @@ where
 }
 
 fn deserialize_list<'de, B, V>(
-    buf: &mut B,
+    buf: Take<&mut B>,
     map: &TypeMap,
     inner_ty: TypeId,
     visitor: V,
@@ -157,7 +171,7 @@ where
 }
 
 fn deserialize_map<'de, B, V>(
-    buf: &mut B,
+    buf: Take<&mut B>,
     map: &TypeMap,
     message_ty: TypeId,
     visitor: V,
@@ -170,7 +184,7 @@ where
 }
 
 fn deserialize_group<'de, B, V>(
-    buf: &mut B,
+    buf: Take<&mut B>,
     map: &TypeMap,
     message_ty: TypeId,
     visitor: V,
