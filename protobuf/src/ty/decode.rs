@@ -1,8 +1,12 @@
 use std::fmt;
 
-use bytes::{Buf, buf::Take};
+use bytes::{buf::Take, Buf};
 use prost::encoding::WireType;
-use serde::{Deserializer, de::{self, IntoDeserializer, Visitor, value::StrDeserializer}, forward_to_deserialize_any};
+use serde::{
+    de::{self, Visitor},
+    forward_to_deserialize_any, Deserializer,
+};
+use serde_json::{Map, Value};
 
 use crate::ty::MessageField;
 
@@ -38,10 +42,17 @@ where
     where
         V: Visitor<'de>,
     {
-        match &self.map[self.ty] {
-            Ty::Message(message) => deserialize_message(self.buf.take(self.buf.len()), self.map, WireType::LengthDelimited, message, visitor),
+        let json: Value = match &self.map[self.ty] {
+            Ty::Message(message) => deserialize_message(
+                self.buf,
+                self.map,
+                WireType::LengthDelimited,
+                message,
+            ),
             _ => Err(de::Error::custom("expected top-level type to be a message")),
-        }
+        }?;
+
+        json.deserialize_any(visitor).map_err(|e| Error { inner: e.into() })
     }
 
     forward_to_deserialize_any! {
@@ -53,145 +64,123 @@ where
 
 struct MessageDecoder<'a, B> {
     buf: Take<&'a mut B>,
-    map: &'a TypeMap,
+    type_map: &'a TypeMap,
     wire_type: WireType,
     message: &'a Message,
 }
 
-fn deserialize_message<'de, B, V>(
-    buf: Take<&mut B>,
-    map: &TypeMap,
+fn deserialize_message<'de, B>(
+    buf: &mut B,
+    type_map: &TypeMap,
     wire_type: WireType,
     message: &Message,
-    visitor: V,
-) -> Result<V::Value, Error>
+) -> Result<Value, Error>
 where
     B: Buf,
-    V: Visitor<'de>,
 {
-    struct MapAccess<'a, B> {
-        buf: Take<&'a mut B>,
-        map: &'a TypeMap,
-        message: &'a Message,
-        current_key: Option<(WireType, &'a MessageField)>,
-    }
-
-    impl<'a, 'de, B> de::MapAccess<'de> for MapAccess<'a, B>
-    where
-        B: Buf,
-    {
-        type Error = Error;
-
-        fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
-        where
-            K: de::DeserializeSeed<'de>,
-        {
-            assert!(self.current_key.is_none());
-            if self.buf.has_remaining() {
-                let (tag, wire_type) = prost::encoding::decode_key(&mut self.buf)?;
-                let field = &self.message.fields[tag as usize];
-                self.current_key = Some((wire_type, field));
-
-                let key_deserializer: StrDeserializer<'a, Error> =
-                    field.json_name.as_str().into_deserializer();
-                let key: K::Value = seed.deserialize(key_deserializer)?;
-                Ok(Some(key))
-            } else {
-                Ok(None)
-            }
-        }
-
-        fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
-        where
-            V: de::DeserializeSeed<'de>,
-        {
-            let (wire_type, field) = self.current_key.expect("next_value called before next key");
-            match &self.map[field.ty] {
-                Ty::Message(_) => todo!(),
-                Ty::Enum(_) => todo!(),
-                Ty::Scalar(_) => todo!(),
-                Ty::List(_) => todo!(),
-                Ty::Map(_) => todo!(),
-                Ty::Group(_) => todo!(),
-            }
-        }
-    }
-
     if wire_type != WireType::LengthDelimited {
         return Err(de::Error::custom("invalid wire type for message"));
     }
-    let len = prost::encoding::decode_varint(&mut buf)?;
-    let limited_buf = buf.into_inner().take(len as usize);
+    let len = prost::encoding::decode_varint(buf)?;
+    let mut buf = buf.take(len as usize);
 
-    visitor.visit_map(MapAccess {
-        buf: limited_buf,
-        map,
-        message,
-        current_key: None,
-    })
+    let mut map = Map::new();
+
+    while buf.has_remaining() {
+        let (tag, wire_type) = prost::encoding::decode_key(&mut buf)?;
+        let field = &message.fields[tag as usize];
+
+        let key = field.json_name.to_owned();
+
+        let value = match &type_map[field.ty] {
+            Ty::Message(nested_message) => {
+                deserialize_message(&mut buf, type_map, wire_type, nested_message)
+            }
+            Ty::Enum(enum_ty) => deserialize_enum(&mut buf, type_map, enum_ty),
+            Ty::Scalar(scalar) => deserialize_scalar(&mut buf, type_map, *scalar),
+            Ty::List(inner_ty) => deserialize_list(&mut buf, type_map, *inner_ty),
+            Ty::Map(inner_ty) => deserialize_map(&mut buf, type_map, *inner_ty),
+            Ty::Group(_) => todo!(),
+        }?;
+
+        map.insert(key, value);
+    }
+
+    Ok(Value::Object(map))
 }
 
-fn deserialize_enum<'de, B, V>(
-    buf: Take<&mut B>,
+fn deserialize_enum<'de, B>(
+    buf: &mut B,
     map: &TypeMap,
     enum_ty: &Enum,
-    visitor: V,
-) -> Result<V::Value, Error>
+) -> Result<Value, Error>
 where
     B: Buf,
-    V: Visitor<'de>,
 {
-    todo!()
+    let value = prost::encoding::decode_varint(buf)?;
+    if let Some(variant) = enum_ty.values.iter().find(|v| v.number as u64 == value) {
+        Ok(Value::String(variant.name.to_owned()))
+    } else {
+        Ok(Value::Number(value.into()))
+    }
 }
 
-fn deserialize_scalar<'de, B, V>(
-    buf: Take<&mut B>,
+fn deserialize_scalar<'de, B>(
+    buf: &mut B,
     map: &TypeMap,
-    scalar: &Scalar,
-    visitor: V,
-) -> Result<V::Value, Error>
+    scalar: Scalar,
+) -> Result<Value, Error>
 where
     B: Buf,
-    V: Visitor<'de>,
 {
-    todo!()
+    match scalar {
+        Scalar::Double => todo!(),
+        Scalar::Float => todo!(),
+        Scalar::Int64 => todo!(),
+        Scalar::Uint64 => todo!(),
+        Scalar::Int32 => todo!(),
+        Scalar::Fixed64 => todo!(),
+        Scalar::Fixed32 => todo!(),
+        Scalar::Bool => todo!(),
+        Scalar::String => todo!(),
+        Scalar::Bytes => todo!(),
+        Scalar::Uint32 => todo!(),
+        Scalar::Sfixed32 => todo!(),
+        Scalar::Sfixed64 => todo!(),
+        Scalar::Sint32 => todo!(),
+        Scalar::Sint64 => todo!(),
+    }
 }
 
-fn deserialize_list<'de, B, V>(
-    buf: Take<&mut B>,
+fn deserialize_list<'de, B>(
+    buf: &mut B,
     map: &TypeMap,
     inner_ty: TypeId,
-    visitor: V,
-) -> Result<V::Value, Error>
+) -> Result<Value, Error>
 where
     B: Buf,
-    V: Visitor<'de>,
 {
     todo!()
 }
 
-fn deserialize_map<'de, B, V>(
-    buf: Take<&mut B>,
+fn deserialize_map<'de, B>(
+    buf: &mut B,
     map: &TypeMap,
     message_ty: TypeId,
-    visitor: V,
-) -> Result<V::Value, Error>
+) -> Result<Value, Error>
 where
     B: Buf,
-    V: Visitor<'de>,
 {
     todo!()
 }
 
-fn deserialize_group<'de, B, V>(
-    buf: Take<&mut B>,
+fn deserialize_group<'de, B>(
+    buf: &mut B,
     map: &TypeMap,
     message_ty: TypeId,
-    visitor: V,
-) -> Result<V::Value, Error>
+) -> Result<Value, Error>
 where
     B: Buf,
-    V: Visitor<'de>,
 {
     todo!()
 }
