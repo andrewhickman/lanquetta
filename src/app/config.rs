@@ -109,6 +109,8 @@ impl WindowConfig {
     }
 
     fn from_handle(handle: &WindowHandle) -> Self {
+        let position = handle.get_position();
+
         WindowConfig {
             size: if let Ok(scale) = handle.get_scale() {
                 let size_px = handle.get_size();
@@ -116,7 +118,11 @@ impl WindowConfig {
             } else {
                 WindowConfig::default().size
             },
-            position: Some(handle.get_position()),
+            position: if position.x >= 0.0 && position.y >= 0.0 {
+                Some(position)
+            } else {
+                None
+            },
             state: match handle.get_window_state() {
                 druid::WindowState::Maximized => WindowState::Maximized,
                 druid::WindowState::Minimized | druid::WindowState::Restored => {
