@@ -28,19 +28,19 @@ pub enum Ty {
 pub enum Scalar {
     Double = 0,
     Float,
-    Int64,
-    Uint64,
     Int32,
-    Fixed64,
+    Int64,
+    Uint32,
+    Uint64,
+    Sint32,
+    Sint64,
     Fixed32,
+    Fixed64,
+    Sfixed32,
+    Sfixed64,
     Bool,
     String,
     Bytes,
-    Uint32,
-    Sfixed32,
-    Sfixed64,
-    Sint32,
-    Sint64,
 }
 
 #[derive(Debug)]
@@ -205,7 +205,7 @@ impl TypeMap {
         Ok(self.add_with_name(name.to_owned(), ty))
     }
 
-    pub fn decode_template(&self, ty: TypeId) -> String {
+    pub fn decode_template(&self, _ty: TypeId) -> String {
         todo!()
     }
 
@@ -321,4 +321,22 @@ fn iter_message<'a>(
     }
 
     Ok(())
+}
+
+impl Ty {
+    fn default_value(&self) -> serde_json::Value {
+        match &self {
+            Ty::Message(_) => serde_json::Map::default().into(),
+            Ty::Enum(enum_ty) => enum_ty.values.iter().find(|value| value.number == 0).map(|value| serde_json::Value::String(value.name.clone())).unwrap_or(serde_json::Value::Null),
+            Ty::Scalar(scalar_ty) => match scalar_ty {
+                Scalar::Double | Scalar::Float | Scalar::Int32 | Scalar::Int64 | Scalar::Uint32 | Scalar::Uint64 | Scalar::Sint32 | Scalar::Sint64 | Scalar::Fixed32 | Scalar::Fixed64 | Scalar::Sfixed32 | Scalar::Sfixed64 => serde_json::Value::Number(0.into()),
+                Scalar::Bool => serde_json::Value::Bool(false),
+                Scalar::String => serde_json::Value::String(String::default()),
+                Scalar::Bytes => serde_json::Value::String(String::default()),
+            },
+            Ty::List(_) => serde_json::Value::Array(vec![]),
+            Ty::Map(_) => serde_json::Map::default().into(),
+            Ty::Group(_) => serde_json::Map::default().into(),
+        }
+    }
 }
