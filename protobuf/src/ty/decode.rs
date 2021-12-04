@@ -16,7 +16,7 @@ pub struct Decoder<'a, B> {
 
 struct DecodeBuf<'a, B> {
     buf: &'a mut B,
-    limit: usize,
+    limit_stack: &'a mut Vec<usize>,
 }
 
 #[derive(Debug)]
@@ -25,9 +25,9 @@ pub struct Error {
 }
 
 impl<'a, B> DecodeBuf<'a, B> {
-    fn new(buf: &'a mut B) -> Self {
+    fn new(buf: &'a mut B, limit_stack: &'a mut Vec<usize>) -> Self {
         DecodeBuf {
-            limit: usize::MAX,
+            limit_stack,
             buf,
         }
     }
@@ -35,16 +35,21 @@ impl<'a, B> DecodeBuf<'a, B> {
     fn reborrow<'b>(&'b mut self) -> DecodeBuf<'b, B> {
         DecodeBuf {
             buf: &mut *self.buf,
-            limit: self.limit,
+            limit_stack: &mut *self.limit_stack,
         }
     }
 
-    fn with_limit<'b>(&'b mut self, new_limit: usize) -> DecodeBuf<'b, B> {
-        DecodeBuf {
-            buf: &mut *self.buf,
-            limit: new_limit,
-        }
+    fn push_limit(&mut self, limit: usize) {
+        if let Some(limit)
+        self.limit_stack.push(limit);
     }
+
+    fn pop_limit(&mut self) {
+        let limit = self.limit_stack.pop().expect("unbalanced stack")?;
+        if let Some(prev_limit)
+    }
+
+    fn limit(&mut self)
 }
 
 impl<'a, B> Buf for DecodeBuf<'a, B> where B: Buf {
@@ -57,8 +62,8 @@ impl<'a, B> Buf for DecodeBuf<'a, B> where B: Buf {
     }
 
     fn advance(&mut self, cnt: usize) {
-        debug_assert!(cnt > self.remaining());
         self.buf.advance(cnt);
+        self.limit = self.limit.checked_sub(cnt).expect("cnt > remaining");
     }
 }
 
@@ -87,7 +92,6 @@ where
                 self.buf.reborrow(),
                 &mut json,
                 self.map,
-                WireType::LengthDelimited,
                 message,
             ),
             _ => Err(de::Error::custom("expected top-level type to be a message")),
@@ -106,7 +110,7 @@ where
 fn deserialize<B>(buf: DecodeBuf<B>, field_value: &mut Value, type_map: &TypeMap, wire_type: WireType, ty: TypeId) -> Result<(), Error> where B: Buf{
     match &type_map[ty] {
         Ty::Message(nested_message) => {
-            deserialize_message(buf, field_value, type_map, wire_type, nested_message)?
+            deserialize_message_length_delimited(buf, field_value, type_map, wire_type, nested_message)?
         }
         Ty::Enum(enum_ty) => { *field_value = deserialize_enum(buf, type_map, enum_ty)? },
         Ty::Scalar(scalar) => { *field_value = deserialize_scalar(buf, type_map, *scalar)? },
@@ -121,6 +125,33 @@ fn deserialize_message<'de, B>(
     mut buf: DecodeBuf<'de, B>,
     value: &mut serde_json::Value,
     type_map: &TypeMap,
+    message: &Message,
+) -> Result<(), Error>
+where
+    B: Buf,
+{
+    let map = value.as_object_mut().expect("expected object type");
+
+    while buf.has_remaining() {
+        let (tag, wire_type) = prost::encoding::decode_key(&mut buf)?;
+        let field = &message.fields[tag as usize];
+
+        let key = field.json_name.clone();
+
+        let default_value = type_map[field.ty].default_value();
+
+        let field_value = map.entry(key).or_insert(default_value);
+
+        deserialize(buf.reborrow(), field_value, type_map, wire_type, field.ty)?;
+    }
+
+    Ok(())
+}
+
+fn deserialize_message_length_delimited<'de, B>(
+    mut buf: DecodeBuf<'de, B>,
+    value: &mut serde_json::Value,
+    type_map: &TypeMap,
     wire_type: WireType,
     message: &Message,
 ) -> Result<(), Error>
@@ -131,24 +162,9 @@ where
         return Err(de::Error::custom("invalid wire type for message"));
     }
     let len = prost::decode_length_delimiter(&mut buf)?;
-    let mut buf = buf.with_limit(len);
+    let buf = buf.with_limit(len);
 
-    let map = value.as_object_mut().expect("expected object type");
-
-    while buf.has_remaining() {
-        let (tag, wire_type) = prost::encoding::decode_key(&mut buf)?;
-        let field = &message.fields[tag as usize];
-
-        let key = field.json_name.to_owned();
-
-        let default_value = type_map[field.ty].default_value();
-
-        let field_value = map.entry(key).or_insert(default_value);
-
-        deserialize(buf.reborrow(), field_value, type_map, wire_type, field.ty)?;
-    }
-
-    Ok(())
+    deserialize_message(buf, value, type_map, message)
 }
 
 fn deserialize_enum<'de, B>(
@@ -265,7 +281,7 @@ where
         },
         Scalar::Bool => {
             let mut value: bool = false;
-            prost::encoding::bool::merge(WireType::SixtyFourBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::bool::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
             Ok(value.into())
         },
         Scalar::String => {

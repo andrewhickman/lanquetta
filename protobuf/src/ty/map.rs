@@ -62,19 +62,19 @@ impl TypeMap {
         let scalars = [
             Scalar::Double,
             Scalar::Float,
-            Scalar::Int64,
-            Scalar::Uint64,
             Scalar::Int32,
-            Scalar::Fixed64,
+            Scalar::Int64,
+            Scalar::Uint32,
+            Scalar::Uint64,
+            Scalar::Sint32,
+            Scalar::Sint64,
             Scalar::Fixed32,
+            Scalar::Fixed64,
+            Scalar::Sfixed32,
+            Scalar::Sfixed64,
             Scalar::Bool,
             Scalar::String,
             Scalar::Bytes,
-            Scalar::Uint32,
-            Scalar::Sfixed32,
-            Scalar::Sfixed64,
-            Scalar::Sint32,
-            Scalar::Sint64,
         ];
 
         for scalar in scalars {

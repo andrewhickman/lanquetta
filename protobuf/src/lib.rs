@@ -131,6 +131,14 @@ impl FileSet {
             None
         }
     }
+
+    pub fn get_message_by_name(&self, name: &str) -> Option<Message> {
+        let ty = self.inner.type_map.get_by_name(name).ok()?;
+        Some(Message {
+            file_set: self.clone(),
+            ty,
+        })
+    }
 }
 
 impl Service {
