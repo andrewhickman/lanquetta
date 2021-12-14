@@ -160,9 +160,9 @@ where
         if let Some(field) = message.fields.get(tag as usize) {
             let key = field.json_name.clone();
 
-            let default_value = type_map[field.ty].default_value();
-
-            let field_value = map.entry(key).or_insert(default_value);
+            let field_value = map
+                .entry(key)
+                .or_insert_with(|| type_map[field.ty].default_value());
 
             deserialize(buf, field_value, type_map, wire_type, field.ty)?;
         } else {
@@ -262,7 +262,7 @@ where
         Scalar::Int64 => {
             let mut value: i64 = 0;
             prost::encoding::int64::merge(WireType::Varint, &mut value, buf, ctx)?;
-            Ok(serde_json::Number::from(value).into())
+            Ok(serde_json::Value::from(value.to_string()))
         }
         Scalar::Uint32 => {
             let mut value: u32 = 0;
@@ -272,7 +272,7 @@ where
         Scalar::Uint64 => {
             let mut value: u64 = 0;
             prost::encoding::uint64::merge(WireType::Varint, &mut value, buf, ctx)?;
-            Ok(serde_json::Number::from(value).into())
+            Ok(serde_json::Value::from(value.to_string()))
         }
         Scalar::Sint32 => {
             let mut value: i32 = 0;
@@ -282,7 +282,7 @@ where
         Scalar::Sint64 => {
             let mut value: i64 = 0;
             prost::encoding::sint64::merge(WireType::Varint, &mut value, buf, ctx)?;
-            Ok(serde_json::Number::from(value).into())
+            Ok(serde_json::Value::from(value.to_string()))
         }
         Scalar::Fixed32 => {
             let mut value: u32 = 0;
@@ -292,7 +292,7 @@ where
         Scalar::Fixed64 => {
             let mut value: u64 = 0;
             prost::encoding::fixed64::merge(WireType::SixtyFourBit, &mut value, buf, ctx)?;
-            Ok(serde_json::Number::from(value).into())
+            Ok(serde_json::Value::from(value.to_string()))
         }
         Scalar::Sfixed32 => {
             let mut value: i32 = 0;
@@ -302,7 +302,7 @@ where
         Scalar::Sfixed64 => {
             let mut value: i64 = 0;
             prost::encoding::sfixed64::merge(WireType::SixtyFourBit, &mut value, buf, ctx)?;
-            Ok(serde_json::Number::from(value).into())
+            Ok(serde_json::Value::from(value.to_string()))
         }
         Scalar::Bool => {
             let mut value: bool = false;
