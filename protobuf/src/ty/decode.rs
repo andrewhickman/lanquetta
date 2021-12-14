@@ -2,8 +2,11 @@ use std::fmt;
 
 use anyhow::Context;
 use bytes::Buf;
-use prost::encoding::WireType;
-use serde::{Deserializer, de::{self, Visitor}, forward_to_deserialize_any};
+use prost::encoding::{DecodeContext, WireType};
+use serde::{
+    de::{self, Visitor},
+    forward_to_deserialize_any, Deserializer,
+};
 use serde_json::Value;
 
 use super::{Enum, Message, Scalar, Ty, TypeId, TypeMap};
@@ -11,12 +14,12 @@ use super::{Enum, Message, Scalar, Ty, TypeId, TypeMap};
 pub struct Decoder<'a, B> {
     map: &'a TypeMap,
     ty: TypeId,
-    buf: DecodeBuf<'a, B>,
+    buf: DecodeBuf<B>,
 }
 
-struct DecodeBuf<'a, B> {
-    buf: &'a mut B,
-    limit_stack: &'a mut Vec<usize>,
+struct DecodeBuf<B> {
+    buf: B,
+    limit_stack: Vec<usize>,
 }
 
 #[derive(Debug)]
@@ -24,37 +27,40 @@ pub struct Error {
     inner: anyhow::Error,
 }
 
-impl<'a, B> DecodeBuf<'a, B> {
-    fn new(buf: &'a mut B, limit_stack: &'a mut Vec<usize>) -> Self {
+impl<B> DecodeBuf<B> {
+    fn new(buf: B) -> Self {
         DecodeBuf {
-            limit_stack,
+            limit_stack: Vec::new(),
             buf,
         }
     }
 
-    fn reborrow<'b>(&'b mut self) -> DecodeBuf<'b, B> {
-        DecodeBuf {
-            buf: &mut *self.buf,
-            limit_stack: &mut *self.limit_stack,
+    fn push_limit(&mut self, limit: usize) -> Result<(), Error> {
+        if let Some(prev_limit) = self.limit_stack.last_mut() {
+            *prev_limit = prev_limit
+                .checked_sub(limit)
+                .ok_or_else(|| Error::from(anyhow::format_err!("limit too large")))?;
         }
-    }
-
-    fn push_limit(&mut self, limit: usize) {
-        if let Some(limit)
         self.limit_stack.push(limit);
+        Ok(())
     }
 
     fn pop_limit(&mut self) {
-        let limit = self.limit_stack.pop().expect("unbalanced stack")?;
-        if let Some(prev_limit)
+        let prev_limit = self.limit_stack.pop();
+        debug_assert_eq!(prev_limit, Some(0));
     }
-
-    fn limit(&mut self)
 }
 
-impl<'a, B> Buf for DecodeBuf<'a, B> where B: Buf {
+impl<B> Buf for DecodeBuf<B>
+where
+    B: Buf,
+{
     fn remaining(&self) -> usize {
-        self.buf.remaining().min(self.limit)
+        if let Some(&limit) = self.limit_stack.last() {
+            self.buf.remaining().min(limit)
+        } else {
+            self.buf.remaining()
+        }
     }
 
     fn chunk(&self) -> &[u8] {
@@ -63,16 +69,22 @@ impl<'a, B> Buf for DecodeBuf<'a, B> where B: Buf {
 
     fn advance(&mut self, cnt: usize) {
         self.buf.advance(cnt);
-        self.limit = self.limit.checked_sub(cnt).expect("cnt > remaining");
+        if let Some(limit) = self.limit_stack.last_mut() {
+            *limit = limit.checked_sub(cnt).expect("cnt > remaining");
+        }
     }
 }
 
-impl<'a, 'de, B> Decoder<'a, B>
+impl<'a, B> Decoder<'a, B>
 where
     B: Buf,
 {
-    pub fn new(map: &'a TypeMap, ty: TypeId, buf: &'a mut B) -> Self {
-        Decoder { map, ty, buf: DecodeBuf::new(buf) }
+    pub fn new(map: &'a TypeMap, ty: TypeId, buf: B) -> Self {
+        Decoder {
+            map,
+            ty,
+            buf: DecodeBuf::new(buf),
+        }
     }
 }
 
@@ -88,16 +100,14 @@ where
     {
         let mut json = serde_json::Value::Object(Default::default());
         match &self.map[self.ty] {
-            Ty::Message(message) => deserialize_message(
-                self.buf.reborrow(),
-                &mut json,
-                self.map,
-                message,
-            ),
+            Ty::Message(message) => {
+                deserialize_message(&mut self.buf, &mut json, self.map, message)
+            }
             _ => Err(de::Error::custom("expected top-level type to be a message")),
         }?;
 
-        json.deserialize_any(visitor).map_err(|e| Error { inner: e.into() })
+        json.deserialize_any(visitor)
+            .map_err(|e| Error { inner: e.into() })
     }
 
     forward_to_deserialize_any! {
@@ -107,13 +117,26 @@ where
     }
 }
 
-fn deserialize<B>(buf: DecodeBuf<B>, field_value: &mut Value, type_map: &TypeMap, wire_type: WireType, ty: TypeId) -> Result<(), Error> where B: Buf{
+fn deserialize<B>(
+    buf: &mut DecodeBuf<B>,
+    field_value: &mut Value,
+    type_map: &TypeMap,
+    wire_type: WireType,
+    ty: TypeId,
+) -> Result<(), Error>
+where
+    B: Buf,
+{
     match &type_map[ty] {
-        Ty::Message(nested_message) => {
-            deserialize_message_length_delimited(buf, field_value, type_map, wire_type, nested_message)?
-        }
-        Ty::Enum(enum_ty) => { *field_value = deserialize_enum(buf, type_map, enum_ty)? },
-        Ty::Scalar(scalar) => { *field_value = deserialize_scalar(buf, type_map, *scalar)? },
+        Ty::Message(nested_message) => deserialize_message_length_delimited(
+            buf,
+            field_value,
+            type_map,
+            wire_type,
+            nested_message,
+        )?,
+        Ty::Enum(enum_ty) => *field_value = deserialize_enum(buf, type_map, enum_ty)?,
+        Ty::Scalar(scalar) => *field_value = deserialize_scalar(buf, type_map, *scalar)?,
         Ty::List(inner_ty) => deserialize_list(buf, field_value, wire_type, type_map, *inner_ty)?,
         Ty::Map(inner_ty) => deserialize_map(buf, field_value, wire_type, type_map, *inner_ty)?,
         Ty::Group(inner_ty) => deserialize_group(buf, field_value, type_map, *inner_ty)?,
@@ -121,8 +144,8 @@ fn deserialize<B>(buf: DecodeBuf<B>, field_value: &mut Value, type_map: &TypeMap
     Ok(())
 }
 
-fn deserialize_message<'de, B>(
-    mut buf: DecodeBuf<'de, B>,
+fn deserialize_message<B>(
+    mut buf: &mut DecodeBuf<B>,
     value: &mut serde_json::Value,
     type_map: &TypeMap,
     message: &Message,
@@ -134,22 +157,25 @@ where
 
     while buf.has_remaining() {
         let (tag, wire_type) = prost::encoding::decode_key(&mut buf)?;
-        let field = &message.fields[tag as usize];
+        if let Some(field) = message.fields.get(tag as usize) {
+            let key = field.json_name.clone();
 
-        let key = field.json_name.clone();
+            let default_value = type_map[field.ty].default_value();
 
-        let default_value = type_map[field.ty].default_value();
+            let field_value = map.entry(key).or_insert(default_value);
 
-        let field_value = map.entry(key).or_insert(default_value);
-
-        deserialize(buf.reborrow(), field_value, type_map, wire_type, field.ty)?;
+            deserialize(buf, field_value, type_map, wire_type, field.ty)?;
+        } else {
+            // Skip field
+            prost::encoding::skip_field(wire_type, tag, &mut buf, DecodeContext::default())?;
+        }
     }
 
     Ok(())
 }
 
 fn deserialize_message_length_delimited<'de, B>(
-    mut buf: DecodeBuf<'de, B>,
+    mut buf: &mut DecodeBuf<B>,
     value: &mut serde_json::Value,
     type_map: &TypeMap,
     wire_type: WireType,
@@ -162,20 +188,19 @@ where
         return Err(de::Error::custom("invalid wire type for message"));
     }
     let len = prost::decode_length_delimiter(&mut buf)?;
-    let buf = buf.with_limit(len);
+    buf.push_limit(len)?;
 
-    deserialize_message(buf, value, type_map, message)
+    deserialize_message(buf, value, type_map, message)?;
+
+    buf.pop_limit();
+    Ok(())
 }
 
-fn deserialize_enum<'de, B>(
-    mut buf: DecodeBuf<'de, B>,
-    _: &TypeMap,
-    enum_ty: &Enum,
-) -> Result<Value, Error>
+fn deserialize_enum<B>(buf: &mut DecodeBuf<B>, _: &TypeMap, enum_ty: &Enum) -> Result<Value, Error>
 where
     B: Buf,
 {
-    let value = prost::encoding::decode_varint(&mut buf)?;
+    let value = prost::encoding::decode_varint(buf)?;
     if let Some(variant) = enum_ty.values.iter().find(|v| v.number as u64 == value) {
         Ok(Value::String(variant.name.to_owned()))
     } else {
@@ -183,8 +208,8 @@ where
     }
 }
 
-fn deserialize_scalar<'de, B>(
-    mut buf: DecodeBuf<'de, B>,
+fn deserialize_scalar<B>(
+    buf: &mut DecodeBuf<B>,
     _: &TypeMap,
     scalar: Scalar,
 ) -> Result<Value, Error>
@@ -195,110 +220,110 @@ where
     match scalar {
         Scalar::Double => {
             let mut value: f64 = 0.0;
-            prost::encoding::double::merge(WireType::SixtyFourBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::double::merge(WireType::SixtyFourBit, &mut value, buf, ctx)?;
             match serde_json::Number::from_f64(value) {
                 Some(number) => Ok(number.into()),
                 None => {
                     if value == f64::INFINITY {
-                        return Ok("Infinity".into())
+                        return Ok("Infinity".into());
                     } else if value == f64::NEG_INFINITY {
-                        return Ok("-Infinity".into())
+                        return Ok("-Infinity".into());
                     } else if value.is_nan() {
-                        return Ok("NaN".into())
+                        return Ok("NaN".into());
                     } else {
                         unreachable!("unexpected floating point value: {}", value)
                     }
                 }
             }
-        },
+        }
         Scalar::Float => {
             let mut value: f32 = 0.0;
-            prost::encoding::float::merge(WireType::ThirtyTwoBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::float::merge(WireType::ThirtyTwoBit, &mut value, buf, ctx)?;
             match serde_json::Number::from_f64(value.into()) {
                 Some(number) => Ok(number.into()),
                 None => {
                     if value == f32::INFINITY {
-                        return Ok("Infinity".into())
+                        return Ok("Infinity".into());
                     } else if value == f32::NEG_INFINITY {
-                        return Ok("-Infinity".into())
+                        return Ok("-Infinity".into());
                     } else if value.is_nan() {
-                        return Ok("NaN".into())
+                        return Ok("NaN".into());
                     } else {
                         unreachable!("unexpected floating point value: {}", value)
                     }
                 }
             }
-        },
+        }
         Scalar::Int32 => {
             let mut value: i32 = 0;
-            prost::encoding::int32::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::int32::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Int64 => {
             let mut value: i64 = 0;
-            prost::encoding::int64::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::int64::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Uint32 => {
             let mut value: u32 = 0;
-            prost::encoding::uint32::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::uint32::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Uint64 => {
             let mut value: u64 = 0;
-            prost::encoding::uint64::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::uint64::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Sint32 => {
             let mut value: i32 = 0;
-            prost::encoding::sint32::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::sint32::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Sint64 => {
             let mut value: i64 = 0;
-            prost::encoding::sint64::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::sint64::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Fixed32 => {
             let mut value: u32 = 0;
-            prost::encoding::fixed32::merge(WireType::ThirtyTwoBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::fixed32::merge(WireType::ThirtyTwoBit, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Fixed64 => {
             let mut value: u64 = 0;
-            prost::encoding::fixed64::merge(WireType::SixtyFourBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::fixed64::merge(WireType::SixtyFourBit, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Sfixed32 => {
             let mut value: i32 = 0;
-            prost::encoding::sfixed32::merge(WireType::ThirtyTwoBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::sfixed32::merge(WireType::ThirtyTwoBit, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Sfixed64 => {
             let mut value: i64 = 0;
-            prost::encoding::sfixed64::merge(WireType::SixtyFourBit, &mut value, &mut buf, ctx)?;
+            prost::encoding::sfixed64::merge(WireType::SixtyFourBit, &mut value, buf, ctx)?;
             Ok(serde_json::Number::from(value).into())
-        },
+        }
         Scalar::Bool => {
             let mut value: bool = false;
-            prost::encoding::bool::merge(WireType::Varint, &mut value, &mut buf, ctx)?;
+            prost::encoding::bool::merge(WireType::Varint, &mut value, buf, ctx)?;
             Ok(value.into())
-        },
+        }
         Scalar::String => {
             let mut value: String = String::default();
-            prost::encoding::string::merge(WireType::LengthDelimited, &mut value, &mut buf, ctx)?;
+            prost::encoding::string::merge(WireType::LengthDelimited, &mut value, buf, ctx)?;
             Ok(value.into())
-        },
+        }
         Scalar::Bytes => {
             let mut value: Vec<u8> = Vec::default();
-            prost::encoding::bytes::merge(WireType::LengthDelimited, &mut value, &mut buf, ctx)?;
+            prost::encoding::bytes::merge(WireType::LengthDelimited, &mut value, buf, ctx)?;
             Ok(serde_json::Value::String(base64::encode(value)))
-        },
+        }
     }
 }
 
 fn deserialize_list<'de, B>(
-    mut buf: DecodeBuf<'de, B>,
+    buf: &mut DecodeBuf<B>,
     value: &mut serde_json::Value,
     wire_type: WireType,
     type_map: &TypeMap,
@@ -309,27 +334,30 @@ where
 {
     let list = value.as_array_mut().expect("expected array type");
 
-    if wire_type == WireType::LengthDelimited {
+    let ty = &type_map[inner_ty];
+
+    if wire_type == WireType::LengthDelimited && ty.is_numeric() {
         // Packed
-        let len = prost::decode_length_delimiter(&mut buf)?;
-        let mut buf = buf.with_limit(len);
+        let len = prost::decode_length_delimiter(&mut *buf)?;
+        buf.push_limit(len)?;
         while buf.has_remaining() {
-            let mut value = type_map[inner_ty].default_value();
-            deserialize(buf.reborrow(), &mut value, type_map, wire_type, inner_ty)?;
+            let mut value = ty.default_value();
+            deserialize(buf, &mut value, type_map, wire_type, inner_ty)?;
             list.push(value);
         }
+        buf.pop_limit();
     } else {
         // Unpacked
         let mut value = type_map[inner_ty].default_value();
-        deserialize(buf.reborrow(), &mut value, type_map, wire_type, inner_ty)?;
+        deserialize(buf, &mut value, type_map, wire_type, inner_ty)?;
         list.push(value);
     }
 
     Ok(())
 }
 
-fn deserialize_map<'de, B>(
-    buf: DecodeBuf<'de, B>,
+fn deserialize_map<B>(
+    buf: &mut DecodeBuf<B>,
     value: &mut serde_json::Value,
     wire_type: WireType,
     type_map: &TypeMap,
@@ -345,14 +373,22 @@ where
     let list = list.as_array_mut().expect("expected array type");
 
     for mut entry in list.drain(..) {
-        let key = match entry.as_object_mut().context("invalid type for map entry")?.remove("key") {
+        let key = match entry
+            .as_object_mut()
+            .context("invalid type for map entry")?
+            .remove("key")
+        {
             Some(Value::String(string)) => string,
             Some(Value::Bool(b)) => b.to_string(),
             Some(Value::Number(number)) => number.to_string(),
             Some(_) => return Err(anyhow::format_err!("invalid type for map entry").into()),
             None => return Err(anyhow::format_err!("no key found for map entry").into()),
         };
-        let value = match entry.as_object_mut().context("invalid type for map entry")?.remove("value") {
+        let value = match entry
+            .as_object_mut()
+            .context("invalid type for map entry")?
+            .remove("value")
+        {
             Some(value) => value,
             None => return Err(anyhow::format_err!("no key found for map entry").into()),
         };
@@ -363,8 +399,8 @@ where
     Ok(())
 }
 
-fn deserialize_group<'de, B>(
-    _buf: DecodeBuf<'de, B>,
+fn deserialize_group<B>(
+    _buf: &mut DecodeBuf<B>,
     _value: &mut serde_json::Value,
     _map: &TypeMap,
     _message_ty: TypeId,

@@ -15,7 +15,7 @@ pub static TYPE_MAP: Lazy<FileSet> = Lazy::new(|| {
 #[cfg(test)]
 mod tests {
     use assert_json_diff::assert_json_eq;
-    use prost::Message;
+    use prost::{encoding::WireType, Message};
     use serde_json::{json, Value};
 
     use crate::{definitions, TYPE_MAP};
@@ -64,6 +64,18 @@ mod tests {
                 "bytes": "Ng==",
             })
         );
+    }
+
+    #[test]
+    fn test_extra_fields() {
+        let mut bytes = vec![];
+        prost::encoding::encode_key(100, WireType::Varint, &mut bytes);
+        prost::encoding::encode_varint(42, &mut bytes);
+
+        let value = TYPE_MAP.get_message_by_name(".test.Scalars").unwrap();
+        let actual: Value = serde_json::from_str(&value.decode(&bytes).unwrap()).unwrap();
+
+        assert_json_eq!(actual, json!({}));
     }
 
     #[test]

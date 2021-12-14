@@ -324,12 +324,35 @@ fn iter_message<'a>(
 }
 
 impl Ty {
+    fn is_numeric(&self) -> bool {
+        match &self {
+            Ty::Scalar(scalar) => scalar.is_numeric(),
+            _ => false,
+        }
+    }
+
     fn default_value(&self) -> serde_json::Value {
         match &self {
             Ty::Message(_) => serde_json::Map::default().into(),
-            Ty::Enum(enum_ty) => enum_ty.values.iter().find(|value| value.number == 0).map(|value| serde_json::Value::String(value.name.clone())).unwrap_or(serde_json::Value::Null),
+            Ty::Enum(enum_ty) => enum_ty
+                .values
+                .iter()
+                .find(|value| value.number == 0)
+                .map(|value| serde_json::Value::String(value.name.clone()))
+                .unwrap_or(serde_json::Value::Null),
             Ty::Scalar(scalar_ty) => match scalar_ty {
-                Scalar::Double | Scalar::Float | Scalar::Int32 | Scalar::Int64 | Scalar::Uint32 | Scalar::Uint64 | Scalar::Sint32 | Scalar::Sint64 | Scalar::Fixed32 | Scalar::Fixed64 | Scalar::Sfixed32 | Scalar::Sfixed64 => serde_json::Value::Number(0.into()),
+                Scalar::Double
+                | Scalar::Float
+                | Scalar::Int32
+                | Scalar::Int64
+                | Scalar::Uint32
+                | Scalar::Uint64
+                | Scalar::Sint32
+                | Scalar::Sint64
+                | Scalar::Fixed32
+                | Scalar::Fixed64
+                | Scalar::Sfixed32
+                | Scalar::Sfixed64 => serde_json::Value::Number(0.into()),
                 Scalar::Bool => serde_json::Value::Bool(false),
                 Scalar::String => serde_json::Value::String(String::default()),
                 Scalar::Bytes => serde_json::Value::String(String::default()),
@@ -337,6 +360,27 @@ impl Ty {
             Ty::List(_) => serde_json::Value::Array(vec![]),
             Ty::Map(_) => serde_json::Map::default().into(),
             Ty::Group(_) => serde_json::Map::default().into(),
+        }
+    }
+}
+
+impl Scalar {
+    fn is_numeric(&self) -> bool {
+        match *self {
+            Scalar::Double
+            | Scalar::Float
+            | Scalar::Int32
+            | Scalar::Int64
+            | Scalar::Uint32
+            | Scalar::Uint64
+            | Scalar::Sint32
+            | Scalar::Sint64
+            | Scalar::Fixed32
+            | Scalar::Fixed64
+            | Scalar::Sfixed32
+            | Scalar::Sfixed64
+            | Scalar::Bool => true,
+            Scalar::String | Scalar::Bytes => false,
         }
     }
 }
