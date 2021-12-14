@@ -327,6 +327,7 @@ impl Ty {
     fn is_numeric(&self) -> bool {
         match &self {
             Ty::Scalar(scalar) => scalar.is_numeric(),
+            Ty::Enum(_) => true,
             _ => false,
         }
     }

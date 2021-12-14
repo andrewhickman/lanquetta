@@ -14,6 +14,8 @@ pub static TYPE_MAP: Lazy<FileSet> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_json_diff::assert_json_eq;
     use prost::{encoding::WireType, Message};
     use serde_json::{json, Value};
@@ -120,6 +122,104 @@ mod tests {
                 "bool": [true, false],
                 "string": ["25", "26"],
                 "bytes": [base64::encode(b"27"), base64::encode(b"28")],
+            })
+        );
+    }
+
+    #[test]
+    fn test_complex_type() {
+        let scalars = definitions::ComplexType {
+            string_map: HashMap::from([
+                (
+                    "1".to_owned(),
+                    definitions::Scalars {
+                        double: 1.1,
+                        float: 2.2,
+                        int32: 3,
+                        ..Default::default()
+                    },
+                ),
+                (
+                    "2".to_owned(),
+                    definitions::Scalars {
+                        int64: 4,
+                        uint32: 5,
+                        uint64: 6,
+                        ..Default::default()
+                    },
+                ),
+            ]),
+            int_map: HashMap::from([
+                (
+                    3,
+                    definitions::Scalars {
+                        sint32: 7,
+                        sint64: 8,
+                        fixed32: 9,
+                        ..Default::default()
+                    },
+                ),
+                (
+                    4,
+                    definitions::Scalars {
+                        sint64: 8,
+                        fixed32: 9,
+                        fixed64: 10,
+                        ..Default::default()
+                    },
+                ),
+            ]),
+            nested: Some(definitions::Scalars {
+                sfixed32: 11,
+                sfixed64: 12,
+                r#bool: true,
+                string: "5".to_owned(),
+                bytes: b"6".to_vec(),
+                ..Default::default()
+            }),
+            my_enum: vec![0, 1, 2, 3],
+            ..Default::default()
+        };
+        let bytes = scalars.encode_to_vec();
+
+        let value = TYPE_MAP.get_message_by_name(".test.ComplexType").unwrap();
+        let actual: Value = serde_json::from_str(&value.decode(&bytes).unwrap()).unwrap();
+
+        assert_json_eq!(
+            actual,
+            json!({
+                "stringMap": {
+                    "1": {
+                        "double": 1.1,
+                        "float": 2.2f32,
+                        "int32": 3,
+                    },
+                    "2": {
+                        "int64": 4,
+                        "uint32": 5,
+                        "uint64": 6,
+                    },
+                },
+                "intMap": {
+                    "3": {
+                        "sint32": 7,
+                        "sint64": 8,
+                        "fixed32": 9,
+                    },
+                    "4": {
+                        "sint64": 8,
+                        "fixed32": 9,
+                        "fixed64": 10,
+                    },
+                },
+                "nested": {
+                    "sfixed32": 11,
+                    "sfixed64": 12,
+                    "bool": true,
+                    "string": "5",
+                    "bytes": "Ng==",
+                },
+                "myEnum": ["DEFAULT", "FOO", 2, "BAR"],
             })
         );
     }

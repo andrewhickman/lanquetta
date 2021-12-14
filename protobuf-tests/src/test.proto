@@ -37,3 +37,16 @@ message ScalarArrays {
   repeated string string = 14;
   repeated bytes bytes = 15;
 }
+
+message ComplexType {
+  map<string, Scalars> string_map = 1;
+  map<int32, Scalars> int_map = 2;
+  Scalars nested = 3;
+  repeated MyEnum my_enum = 4;
+
+  enum MyEnum {
+    DEFAULT = 0;
+    FOO = 1;
+    BAR = 3;
+  }
+}
