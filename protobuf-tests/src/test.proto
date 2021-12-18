@@ -1,5 +1,12 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/empty.proto";
+
 package test;
 
 message Scalars {
@@ -49,4 +56,23 @@ message ComplexType {
     FOO = 1;
     BAR = 3;
   }
+}
+
+message WellKnownTypes {
+  google.protobuf.Timestamp timestamp = 1;
+  google.protobuf.Duration duration = 2;
+  google.protobuf.Struct struct = 3;
+  google.protobuf.FloatValue float = 4;
+  google.protobuf.DoubleValue double = 5;
+  google.protobuf.Int32Value int32 = 6;
+  google.protobuf.Int64Value int64 = 7;
+  google.protobuf.UInt32Value uint32 = 8;
+  google.protobuf.UInt64Value uint64 = 9;
+  google.protobuf.BoolValue bool = 10;
+  google.protobuf.StringValue string = 11;
+  google.protobuf.BytesValue bytes = 12;
+  google.protobuf.FieldMask mask = 13;
+  google.protobuf.ListValue list = 14;
+  google.protobuf.NullValue null = 15;
+  google.protobuf.Empty empty = 16;
 }

@@ -1,3 +1,5 @@
+mod well_known;
+
 use std::fmt;
 
 use anyhow::Context;
@@ -79,7 +81,7 @@ impl<'a, B> Decoder<'a, B>
 where
     B: Buf,
 {
-    pub fn new(map: &'a TypeMap, ty: TypeId, buf: B) -> Self {
+    pub(crate) fn new(map: &'a TypeMap, ty: TypeId, buf: B) -> Self {
         Decoder {
             map,
             ty,
@@ -141,6 +143,7 @@ where
         Ty::Map(inner_ty) => deserialize_map(buf, field_value, wire_type, type_map, *inner_ty)?,
         Ty::Group(inner_ty) => deserialize_group(buf, field_value, type_map, *inner_ty)?,
     };
+
     Ok(())
 }
 
@@ -153,6 +156,75 @@ fn deserialize_message<B>(
 where
     B: Buf,
 {
+    // Check for well-known types with special JSON mappings
+    match &*message.name {
+        ".google.protobuf.Timestamp" => {
+            *value = well_known::deserialize_timestamp(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.Duration" => {
+            *value = well_known::deserialize_duration(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.Struct" => {
+            *value = well_known::deserialize_struct(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.FloatValue" => {
+            *value = well_known::deserialize_float_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.DoubleValue" => {
+            *value = well_known::deserialize_double_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.Int32Value" => {
+            *value = well_known::deserialize_int32_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.Int64Value" => {
+            *value = well_known::deserialize_int64_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.UInt32Value" => {
+            *value = well_known::deserialize_uint32_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.UInt64Value" => {
+            *value = well_known::deserialize_uint64_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.BoolValue" => {
+            *value = well_known::deserialize_bool_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.StringValue" => {
+            *value = well_known::deserialize_string_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.BytesValue" => {
+            *value = well_known::deserialize_bytes_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.FieldMask" => {
+            *value = well_known::deserialize_field_mask(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.ListValue" => {
+            *value = well_known::deserialize_list_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.Value" => {
+            *value = well_known::deserialize_value(buf)?;
+            return Ok(());
+        }
+        ".google.protobuf.Empty" => {
+            *value = well_known::deserialize_empty(buf)?;
+            return Ok(());
+        }
+        _ => (),
+    }
+
     let map = value.as_object_mut().expect("expected object type");
 
     while buf.has_remaining() {
@@ -200,6 +272,12 @@ fn deserialize_enum<B>(buf: &mut DecodeBuf<B>, _: &TypeMap, enum_ty: &Enum) -> R
 where
     B: Buf,
 {
+    // Check for well-known types with special JSON mappings
+    match &*enum_ty.name {
+        ".google.protobuf.NullValue" => return well_known::deserialize_null_value(buf),
+        _ => (),
+    }
+
     let value = prost::encoding::decode_varint(buf)?;
     if let Some(variant) = enum_ty.values.iter().find(|v| v.number as u64 == value) {
         Ok(Value::String(variant.name.to_owned()))
@@ -221,38 +299,12 @@ where
         Scalar::Double => {
             let mut value: f64 = 0.0;
             prost::encoding::double::merge(WireType::SixtyFourBit, &mut value, buf, ctx)?;
-            match serde_json::Number::from_f64(value) {
-                Some(number) => Ok(number.into()),
-                None => {
-                    if value == f64::INFINITY {
-                        return Ok("Infinity".into());
-                    } else if value == f64::NEG_INFINITY {
-                        return Ok("-Infinity".into());
-                    } else if value.is_nan() {
-                        return Ok("NaN".into());
-                    } else {
-                        unreachable!("unexpected floating point value: {}", value)
-                    }
-                }
-            }
+            Ok(double_to_json(value))
         }
         Scalar::Float => {
             let mut value: f32 = 0.0;
             prost::encoding::float::merge(WireType::ThirtyTwoBit, &mut value, buf, ctx)?;
-            match serde_json::Number::from_f64(value.into()) {
-                Some(number) => Ok(number.into()),
-                None => {
-                    if value == f32::INFINITY {
-                        return Ok("Infinity".into());
-                    } else if value == f32::NEG_INFINITY {
-                        return Ok("-Infinity".into());
-                    } else if value.is_nan() {
-                        return Ok("NaN".into());
-                    } else {
-                        unreachable!("unexpected floating point value: {}", value)
-                    }
-                }
-            }
+            Ok(float_to_json(value))
         }
         Scalar::Int32 => {
             let mut value: i32 = 0;
@@ -318,6 +370,40 @@ where
             let mut value: Vec<u8> = Vec::default();
             prost::encoding::bytes::merge(WireType::LengthDelimited, &mut value, buf, ctx)?;
             Ok(serde_json::Value::String(base64::encode(value)))
+        }
+    }
+}
+
+fn double_to_json(value: f64) -> Value {
+    match serde_json::Number::from_f64(value) {
+        Some(number) => number.into(),
+        None => {
+            if value == f64::INFINITY {
+                "Infinity".into()
+            } else if value == f64::NEG_INFINITY {
+                "-Infinity".into()
+            } else if value.is_nan() {
+                "NaN".into()
+            } else {
+                unreachable!("unexpected floating point value: {}", value)
+            }
+        }
+    }
+}
+
+fn float_to_json(value: f32) -> Value {
+    match serde_json::Number::from_f64(value.into()) {
+        Some(number) => number.into(),
+        None => {
+            if value == f32::INFINITY {
+                "Infinity".into()
+            } else if value == f32::NEG_INFINITY {
+                "-Infinity".into()
+            } else if value.is_nan() {
+                "NaN".into()
+            } else {
+                unreachable!("unexpected floating point value: {}", value)
+            }
         }
     }
 }

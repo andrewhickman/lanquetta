@@ -1,4 +1,7 @@
-use std::{collections::HashMap, ops::Index};
+use std::{
+    collections::HashMap,
+    ops::{Index, IndexMut},
+};
 
 use anyhow::{bail, Result};
 use druid::Data;
@@ -9,7 +12,7 @@ use super::{Scalar, Ty};
 pub struct TypeId(usize);
 
 #[derive(Debug)]
-pub struct TypeMap {
+pub(crate) struct TypeMap {
     named_types: HashMap<String, TypeId>,
     storage: Vec<Ty>,
 }
@@ -89,5 +92,11 @@ impl Index<TypeId> for TypeMap {
 
     fn index(&self, index: TypeId) -> &Self::Output {
         &self.storage[index.0]
+    }
+}
+
+impl IndexMut<TypeId> for TypeMap {
+    fn index_mut(&mut self, index: TypeId) -> &mut Self::Output {
+        &mut self.storage[index.0]
     }
 }

@@ -2,7 +2,7 @@ mod decode;
 mod encode;
 mod map;
 
-use std::{cell::Cell, collections::HashMap, io};
+use std::{collections::HashMap, io};
 
 use anyhow::{bail, ensure, Result};
 
@@ -12,7 +12,7 @@ use prost_types::{
 };
 use slab::Slab;
 
-pub use self::map::{TypeId, TypeMap};
+pub(crate) use self::map::{TypeId, TypeMap};
 
 #[derive(Debug)]
 pub enum Ty {
@@ -45,6 +45,7 @@ pub enum Scalar {
 
 #[derive(Debug)]
 pub struct Message {
+    name: String,
     fields: Slab<MessageField>,
 }
 
@@ -58,6 +59,7 @@ pub struct MessageField {
 
 #[derive(Debug)]
 pub struct Enum {
+    name: String,
     values: Vec<EnumValue>,
 }
 
@@ -73,11 +75,8 @@ impl TypeMap {
 
         for (name, proto) in &protos {
             match *proto {
-                TyProto::Message {
-                    message_proto,
-                    ref processing,
-                } => {
-                    self.add_message(name, message_proto, processing, &protos)?;
+                TyProto::Message { message_proto } => {
+                    self.add_message(name, message_proto, &protos)?;
                 }
                 TyProto::Enum { enum_proto } => {
                     self.add_enum(name, enum_proto)?;
@@ -92,17 +91,19 @@ impl TypeMap {
         &mut self,
         name: &str,
         message_proto: &DescriptorProto,
-        recursion_flag: &Cell<bool>,
         protos: &HashMap<String, TyProto>,
     ) -> Result<TypeId> {
         if let Some(id) = self.try_get_by_name(name) {
             return Ok(id);
         }
 
-        if recursion_flag.get() {
-            bail!("infinite recursion detected while processing {}", name);
-        }
-        recursion_flag.set(true);
+        let id = self.add_with_name(
+            name.to_owned(),
+            Ty::Message(Message {
+                fields: Default::default(),
+                name: name.to_owned(),
+            }),
+        );
 
         let fields = message_proto
             .field
@@ -121,8 +122,9 @@ impl TypeMap {
             })
             .collect::<Result<Slab<MessageField>>>()?;
 
-        let ty = Ty::Message(Message { fields });
-        Ok(self.add_with_name(name.to_owned(), ty))
+        self[id].message_mut().unwrap().fields = fields;
+
+        Ok(id)
     }
 
     fn add_message_field(
@@ -153,15 +155,12 @@ impl TypeMap {
             Type::Sint64 => self.get_scalar(Scalar::Sint64),
             Type::Enum | Type::Message | Type::Group => match protos.get(field_proto.type_name()) {
                 None => bail!("type {} not found", field_proto.type_name()),
-                Some(TyProto::Message {
-                    message_proto,
-                    processing,
-                }) => {
+                Some(TyProto::Message { message_proto }) => {
                     is_map = match &message_proto.options {
                         Some(options) => options.map_entry(),
                         None => false,
                     };
-                    self.add_message(field_proto.type_name(), message_proto, processing, protos)?
+                    self.add_message(field_proto.type_name(), message_proto, protos)?
                 }
                 Some(TyProto::Enum { enum_proto }) => {
                     self.add_enum(field_proto.type_name(), enum_proto)?
@@ -193,6 +192,7 @@ impl TypeMap {
         }
 
         let ty = Ty::Enum(Enum {
+            name: name.to_owned(),
             values: enum_proto
                 .value
                 .iter()
@@ -224,13 +224,8 @@ impl TypeMap {
 
 #[derive(Clone)]
 enum TyProto<'a> {
-    Message {
-        message_proto: &'a DescriptorProto,
-        processing: Cell<bool>,
-    },
-    Enum {
-        enum_proto: &'a EnumDescriptorProto,
-    },
+    Message { message_proto: &'a DescriptorProto },
+    Enum { enum_proto: &'a EnumDescriptorProto },
 }
 
 fn iter_tys<'a>(raw: &'a FileDescriptorSet) -> Result<HashMap<String, TyProto<'a>>> {
@@ -246,13 +241,7 @@ fn iter_tys<'a>(raw: &'a FileDescriptorSet) -> Result<HashMap<String, TyProto<'a
             let full_name = format!("{}.{}", namespace, message_proto.name());
             iter_message(&full_name, &mut result, message_proto)?;
             if result
-                .insert(
-                    full_name,
-                    TyProto::Message {
-                        message_proto,
-                        processing: Cell::new(false),
-                    },
-                )
+                .insert(full_name, TyProto::Message { message_proto })
                 .is_some()
             {
                 bail!(
@@ -289,13 +278,7 @@ fn iter_message<'a>(
         let full_name = format!("{}.{}", namespace, message_proto.name());
         iter_message(&full_name, result, message_proto)?;
         if result
-            .insert(
-                full_name,
-                TyProto::Message {
-                    message_proto,
-                    processing: Cell::new(false),
-                },
-            )
+            .insert(full_name, TyProto::Message { message_proto })
             .is_some()
         {
             bail!(
@@ -361,6 +344,13 @@ impl Ty {
             Ty::List(_) => serde_json::Value::Array(vec![]),
             Ty::Map(_) => serde_json::Map::default().into(),
             Ty::Group(_) => serde_json::Map::default().into(),
+        }
+    }
+
+    fn message_mut(&mut self) -> Option<&mut Message> {
+        match self {
+            Ty::Message(message) => Some(message),
+            _ => None,
         }
     }
 }

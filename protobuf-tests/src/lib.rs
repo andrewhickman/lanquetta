@@ -14,7 +14,7 @@ pub static TYPE_MAP: Lazy<FileSet> = Lazy::new(|| {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{BTreeMap, HashMap};
 
     use assert_json_diff::assert_json_eq;
     use prost::{encoding::WireType, Message};
@@ -178,7 +178,6 @@ mod tests {
                 ..Default::default()
             }),
             my_enum: vec![0, 1, 2, 3],
-            ..Default::default()
         };
         let bytes = scalars.encode_to_vec();
 
@@ -220,6 +219,90 @@ mod tests {
                     "bytes": "Ng==",
                 },
                 "myEnum": ["DEFAULT", "FOO", 2, "BAR"],
+            })
+        );
+    }
+
+    #[test]
+    fn test_well_known_types() {
+        let scalars = definitions::WellKnownTypes {
+            timestamp: Some(prost_types::Timestamp {
+                seconds: 63_108_020,
+                nanos: 21_000_000,
+            }),
+            duration: Some(prost_types::Duration {
+                seconds: 1,
+                nanos: 340_012,
+            }),
+            r#struct: Some(prost_types::Struct {
+                fields: BTreeMap::from([
+                    (
+                        "number".to_owned(),
+                        prost_types::Value {
+                            kind: Some(prost_types::value::Kind::NumberValue(42.)),
+                        },
+                    ),
+                    (
+                        "null".to_owned(),
+                        prost_types::Value {
+                            kind: Some(prost_types::value::Kind::NullValue(0)),
+                        },
+                    ),
+                ]),
+            }),
+            float: Some(42.1),
+            double: Some(12.4),
+            int32: Some(1),
+            int64: Some(-2),
+            uint32: Some(3),
+            uint64: Some(4),
+            bool: Some(false),
+            string: Some("hello".to_owned()),
+            bytes: Some(b"hello".to_vec()),
+            mask: Some(prost_types::FieldMask {
+                paths: vec!["field_one".to_owned(), "field_two.b.d".to_owned()],
+            }),
+            list: Some(prost_types::ListValue {
+                values: vec![
+                    prost_types::Value {
+                        kind: Some(prost_types::value::Kind::StringValue("foo".to_owned())),
+                    },
+                    prost_types::Value {
+                        kind: Some(prost_types::value::Kind::BoolValue(false)),
+                    },
+                ],
+            }),
+            null: 0,
+            empty: Some(()),
+        };
+        let bytes = scalars.encode_to_vec();
+
+        let value = TYPE_MAP
+            .get_message_by_name(".test.WellKnownTypes")
+            .unwrap();
+        let actual: Value = serde_json::from_str(&value.decode(&bytes).unwrap()).unwrap();
+
+        assert_json_eq!(
+            actual,
+            json!({
+                "timestamp": "1972-01-01T10:00:20.021Z",
+                "duration": "1.000340012s",
+                "struct": {
+                    "number": 42.0,
+                    "null": null,
+                },
+                "float": 42.1f32,
+                "double": 12.4,
+                "int32": 1,
+                "int64": "-2",
+                "uint32": 3,
+                "uint64": "4",
+                "bool": false,
+                "string": "hello",
+                "bytes": "aGVsbG8=",
+                "mask": "fieldOne,fieldTwo.b.d",
+                "list": ["foo", false],
+                "empty": {}
             })
         );
     }

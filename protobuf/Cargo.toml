@@ -18,6 +18,12 @@ bytes = "1.1.0"
 serde-transcode = "1.1.1"
 serde_json = "1.0.67"
 slab = "0.4.4"
+heck = "0.4.0"
+
+[dependencies.chrono]
+version = "0.4.19"
+default-features = false
+features = ["std"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid.git"
@@ -26,7 +32,7 @@ features = []
 
 [dependencies.serde]
 version = "1.0.128"
-features = []
+features = ["derive"]
 
 [dependencies.tonic]
 version = "0.5.2"
