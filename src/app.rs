@@ -118,9 +118,7 @@ impl State {
                     sidebar::State::new(data.sidebar.clone(), data.body.selected_method());
                 let result = f(&mut sidebar_data);
 
-                debug_assert!(sidebar_data
-                    .selected_method()
-                    .same(&data.body.selected_method()));
+                debug_assert!(sidebar_data.selected_method() == &data.body.selected_method());
                 if !sidebar_data.list_state().same(&data.sidebar) {
                     data.sidebar = sidebar_data.into_list_state();
                 }

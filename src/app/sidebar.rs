@@ -15,7 +15,8 @@ use crate::{app::command::REMOVE_SERVICE, theme};
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     services: ServiceListState,
-    selected: Option<protobuf::Method>,
+    #[data(same_fn = "PartialEq::eq")]
+    selected: Option<prost_reflect::MethodDescriptor>,
 }
 
 #[derive(Debug, Default, Clone, Data)]
@@ -37,7 +38,10 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 }
 
 impl State {
-    pub fn new(services: ServiceListState, selected: Option<protobuf::Method>) -> Self {
+    pub fn new(
+        services: ServiceListState,
+        selected: Option<prost_reflect::MethodDescriptor>,
+    ) -> Self {
         State { services, selected }
     }
 
@@ -45,7 +49,7 @@ impl State {
         &self.services
     }
 
-    pub fn selected_method(&self) -> &Option<protobuf::Method> {
+    pub fn selected_method(&self) -> &Option<prost_reflect::MethodDescriptor> {
         &self.selected
     }
 
@@ -56,7 +60,9 @@ impl State {
 
 impl ServiceListState {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
-        let file_set = protobuf::FileSet::from_file(path)?;
+        let bytes = fs_err::read(path)?;
+
+        let file_set = prost_reflect::FileDescriptor::decode(bytes.as_ref())?;
 
         self.services
             .extend(file_set.services().map(service::ServiceState::from));
@@ -92,7 +98,7 @@ impl ListIter<service::State> for State {
             let mut state = service::State::new(self.selected.to_owned(), service.to_owned(), i);
             cb(&mut state, i);
 
-            debug_assert!(self.selected.same(&state.selected));
+            debug_assert!(self.selected == state.selected);
             if !service.same(&state.service) {
                 *service = state.service;
             }

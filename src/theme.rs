@@ -4,7 +4,7 @@ mod scope;
 
 use druid::{
     widget::{Container, Painter},
-    Color, Data, Env, FontDescriptor, Key, KeyOrValue, RenderContext, Widget,
+    Color, Data, Env, FontDescriptor, Key, KeyOrValue, RenderContext, RoundedRectRadii, Widget,
 };
 
 pub(crate) const BODY_PADDING: f64 = 16.0;
@@ -130,10 +130,10 @@ pub(crate) fn error_label_scope<T: Data>(child: impl Widget<T> + 'static) -> imp
     Container::new(child)
         .border(color::ERROR, 1.0)
         .background(color::ERROR.with_alpha(0.38))
-        .rounded(druid::theme::TEXTBOX_BORDER_RADIUS)
+        .rounded(2.0)
 }
 
-pub(crate) fn hot_or_active_painter<T>(border_radius: impl Into<KeyOrValue<f64>>) -> Painter<T> {
+pub(crate) fn hot_or_active_painter<T>(border_radius: impl Into<KeyOrValue<RoundedRectRadii>>) -> Painter<T> {
     let border_radius = border_radius.into();
     Painter::new(move |ctx, _: &T, env: &Env| {
         let mut color = env.get(druid::theme::BACKGROUND_LIGHT);

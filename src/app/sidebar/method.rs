@@ -1,10 +1,10 @@
 use druid::{
     widget::LineBreaking,
     widget::{Flex, Label, ViewSwitcher},
-    ArcStr, Data, Lens, Widget, WidgetExt as _,
+    ArcStr, Data, Lens, RoundedRectRadii, Widget, WidgetExt as _,
 };
 
-use crate::{app::command, theme, widget::Icon};
+use crate::{app::command, grpc::MethodKind, theme, widget::Icon};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -14,17 +14,18 @@ pub(in crate::app) struct State {
 
 #[derive(Debug, Clone, Data)]
 pub(in crate::app) struct MethodState {
-    method: protobuf::Method,
+    #[data(same_fn = "PartialEq::eq")]
+    method: prost_reflect::MethodDescriptor,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
     let kind = ViewSwitcher::new(
-        |data: &MethodState, _| data.method.kind(),
-        |&kind: &protobuf::MethodKind, _, _| match kind {
-            protobuf::MethodKind::Unary => Icon::unary().boxed(),
-            protobuf::MethodKind::ClientStreaming => Icon::client_streaming().boxed(),
-            protobuf::MethodKind::ServerStreaming => Icon::server_streaming().boxed(),
-            protobuf::MethodKind::Streaming => Icon::streaming().boxed(),
+        |data: &MethodState, _| MethodKind::for_method(&data.method),
+        |&kind: &MethodKind, _, _| match kind {
+            MethodKind::Unary => Icon::unary().boxed(),
+            MethodKind::ClientStreaming => Icon::client_streaming().boxed(),
+            MethodKind::ServerStreaming => Icon::server_streaming().boxed(),
+            MethodKind::Streaming => Icon::streaming().boxed(),
         },
     )
     .padding((6.0, 3.0));
@@ -41,7 +42,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_child(kind)
         .with_flex_child(label, 1.0)
         .lens(State::method)
-        .background(theme::hot_or_active_painter(0.0))
+        .background(theme::hot_or_active_painter(RoundedRectRadii::from(0.0)))
         .on_click(|ctx, data: &mut State, _| {
             ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
         });
@@ -84,24 +85,24 @@ impl MethodState {
 
         impl Lens<MethodState, ArcStr> for NameLens {
             fn with<V, F: FnOnce(&ArcStr) -> V>(&self, data: &MethodState, f: F) -> V {
-                f(&data.method.name())
+                f(&data.method.name().into())
             }
 
             fn with_mut<V, F: FnOnce(&mut ArcStr) -> V>(&self, data: &mut MethodState, f: F) -> V {
-                f(&mut data.method.name().clone())
+                f(&mut data.method.name().into())
             }
         }
 
         NameLens
     }
 
-    pub fn method(&self) -> &protobuf::Method {
+    pub fn method(&self) -> &prost_reflect::MethodDescriptor {
         &self.method
     }
 }
 
-impl From<protobuf::Method> for MethodState {
-    fn from(method: protobuf::Method) -> Self {
+impl From<prost_reflect::MethodDescriptor> for MethodState {
+    fn from(method: prost_reflect::MethodDescriptor) -> Self {
         MethodState { method }
     }
 }

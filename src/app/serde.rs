@@ -4,7 +4,9 @@ use std::{
 };
 
 use anyhow::{Context, Error, Result};
-use druid::{piet::TextStorage, Data};
+use druid::piet::TextStorage;
+use prost::Message;
+use prost_reflect::FileDescriptor;
 use serde::{
     de::{self, Deserializer},
     ser::{self, Serializer},
@@ -41,7 +43,7 @@ impl<'de> Deserialize<'de> for app::State {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppState {
-    file_descriptor_sets: Vec<protobuf::FileSet>,
+    file_descriptor_sets: Vec<String>,
     services: Vec<AppServiceState>,
     body: AppBodyState,
 }
@@ -88,7 +90,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
             .map(|service| {
                 let file_set = get_or_insert_file_set(
                     &mut file_descriptor_sets,
-                    service.service().file_set(),
+                    service.service().parent_file(),
                 )?;
                 Ok(AppServiceState {
                     idx: AppServiceRef {
@@ -105,8 +107,10 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 .body
                 .tabs()
                 .map(|(_, tab)| {
-                    let file_set =
-                        get_or_insert_file_set(&mut file_descriptor_sets, tab.method().file_set())?;
+                    let file_set = get_or_insert_file_set(
+                        &mut file_descriptor_sets,
+                        tab.method().parent_file(),
+                    )?;
                     Ok(AppBodyTabState {
                         idx: AppServiceRef {
                             file_set,
@@ -124,6 +128,14 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 .selected()
                 .and_then(|selected| data.body.tabs().position(|(id, _)| id == selected)),
         };
+
+        let file_descriptor_sets = file_descriptor_sets
+            .into_iter()
+            .map(|f| {
+                let bytes = f.file_descriptor_set().encode_to_vec();
+                base64::encode(bytes)
+            })
+            .collect();
 
         Ok(AppState {
             file_descriptor_sets,
@@ -143,6 +155,14 @@ impl TryInto<app::State> for AppState {
             body,
         } = self;
 
+        let file_descriptor_sets = file_descriptor_sets
+            .into_iter()
+            .map(|b64| {
+                let bytes = base64::decode(b64)?;
+                anyhow::Ok(FileDescriptor::decode(bytes.as_ref())?)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(app::State {
             sidebar: services
                 .into_iter()
@@ -160,15 +180,15 @@ impl TryInto<app::State> for AppState {
 }
 
 impl AppBodyState {
-    fn into_state(self, file_sets: &[protobuf::FileSet]) -> Result<app::body::State> {
+    fn into_state(self, file_sets: &[prost_reflect::FileDescriptor]) -> Result<app::body::State> {
         let tabs = self
             .tabs
             .into_iter()
             .map(|tab| {
                 let method = get_service(file_sets, &tab.idx)?
-                    .get_method(tab.method)
-                    .context("invalid method index")?
-                    .clone();
+                    .methods()
+                    .nth(tab.method)
+                    .context("invalid method index")?;
                 Ok((
                     TabId::next(),
                     app::body::TabState::new(
@@ -190,10 +210,10 @@ impl AppBodyState {
 }
 
 fn get_or_insert_file_set(
-    vec: &mut Vec<protobuf::FileSet>,
-    files: &protobuf::FileSet,
+    vec: &mut Vec<prost_reflect::FileDescriptor>,
+    files: &prost_reflect::FileDescriptor,
 ) -> Result<usize> {
-    match vec.iter().position(|data| data.same(files)) {
+    match vec.iter().position(|data| data == files) {
         Some(index) => Ok(index),
         None => {
             let index = vec.len();
@@ -203,11 +223,13 @@ fn get_or_insert_file_set(
     }
 }
 
-fn get_service(vec: &[protobuf::FileSet], idx: &AppServiceRef) -> Result<protobuf::Service> {
-    Ok(vec
-        .get(idx.file_set)
+fn get_service(
+    vec: &[prost_reflect::FileDescriptor],
+    idx: &AppServiceRef,
+) -> Result<prost_reflect::ServiceDescriptor> {
+    vec.get(idx.file_set)
         .context("invalid file set index")?
-        .get_service(idx.service)
-        .context("invalid service index")?
-        .clone())
+        .services()
+        .nth(idx.service)
+        .context("invalid service index")
 }

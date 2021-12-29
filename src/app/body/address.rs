@@ -13,6 +13,7 @@ use once_cell::sync::Lazy;
 
 use crate::{
     app::{body::RequestState, command, theme},
+    grpc::MethodKind,
     widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
 };
 
@@ -30,7 +31,7 @@ pub(in crate::app) struct AddressState {
 pub(in crate::app) struct State {
     address: AddressState,
     body_valid: bool,
-    method_kind: protobuf::MethodKind,
+    method_kind: MethodKind,
 }
 
 struct AddressController {
@@ -138,7 +139,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
         .with_child(finish_button.fix_width(100.0))
 }
 
-static VALIDATE_URI: Lazy<ValidationFn<Uri, String>> = Lazy::new(|| Arc::new(|s| validate_uri(s)));
+static VALIDATE_URI: Lazy<ValidationFn<Uri, String>> = Lazy::new(|| Arc::new(validate_uri));
 
 fn validate_uri(s: &str) -> Result<Uri, String> {
     let uri = Uri::from_str(s).map_err(|err| err.to_string())?;
@@ -149,7 +150,7 @@ fn validate_uri(s: &str) -> Result<Uri, String> {
 }
 
 impl State {
-    pub fn new(address: AddressState, method_kind: protobuf::MethodKind, body_valid: bool) -> Self {
+    pub fn new(address: AddressState, method_kind: MethodKind, body_valid: bool) -> Self {
         State {
             address,
             method_kind,

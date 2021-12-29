@@ -1,11 +1,9 @@
 use druid::{
-    keyboard_types::Key, menu, Env, FileDialogOptions, FileSpec, LocalizedString, Menu, MenuItem,
-    SysMods, WindowId,
+    keyboard_types::Key, menu, Env, FileDialogOptions, LocalizedString, Menu, MenuItem, SysMods,
+    WindowId,
 };
 
 use crate::app;
-
-pub const PROTOBUF_FILE_TYPE: FileSpec = FileSpec::new("Protocol buffers file", &["proto"]);
 
 pub(in crate::app) fn build(
     _window: Option<WindowId>,
@@ -24,10 +22,7 @@ fn file_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-file-menu"))
         .entry(
             MenuItem::new(LocalizedString::new("common-menu-file-open"))
-                .command(
-                    druid::commands::SHOW_OPEN_PANEL
-                        .with(FileDialogOptions::new().allowed_types(vec![PROTOBUF_FILE_TYPE])),
-                )
+                .command(druid::commands::SHOW_OPEN_PANEL.with(FileDialogOptions::new()))
                 .hotkey(SysMods::Cmd, "o"),
         )
         .separator()

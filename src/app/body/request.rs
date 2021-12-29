@@ -4,6 +4,7 @@ use druid::{
     widget::{prelude::*, Controller, Either, Flex, Label, TextBox},
     Data, Lens, Widget, WidgetExt as _,
 };
+use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
 
 use crate::{
     grpc,
@@ -51,20 +52,17 @@ pub(in crate::app) fn build_header() -> impl Widget<State> {
 }
 
 impl State {
-    pub fn empty(request: protobuf::Message) -> Self {
-        let json = JsonText::pretty(request.template_json());
+    pub fn empty(request: prost_reflect::MessageDescriptor) -> Self {
+        let json = make_template_message_json(request.clone());
         State::with_text(request, json)
     }
 
-    pub fn with_text(request: protobuf::Message, json: impl Into<JsonText>) -> Self {
+    pub fn with_text(request: prost_reflect::MessageDescriptor, json: impl Into<JsonText>) -> Self {
         State {
             body: ValidationState::dirty(
                 json.into(),
-                Arc::new(move |s| match request.encode(s) {
-                    Ok(bytes) => Ok(grpc::Request {
-                        bytes: bytes.into(),
-                    }),
-                    Err(err) => Err(err.to_string()),
+                Arc::new(move |s| {
+                    grpc::Request::from_json(request.clone(), s).map_err(|e| e.to_string())
                 }),
             ),
         }
@@ -102,5 +100,46 @@ impl Controller<RequestValidationState, FormField<JsonText>> for RequestControll
             }
         }
         child.event(ctx, event, data, env)
+    }
+}
+
+fn make_template_message_json(desc: MessageDescriptor) -> JsonText {
+    let message = make_template_message(desc);
+
+    JsonText::pretty(grpc::Response::new(message).to_json())
+}
+
+fn make_template_message(desc: MessageDescriptor) -> DynamicMessage {
+    let mut message = DynamicMessage::new(desc);
+
+    for field in message.descriptor().fields() {
+        if field.is_list() {
+            let value = make_template_field(field.kind());
+            message.set_field(field.number(), prost_reflect::Value::List(vec![value]));
+        } else if field.is_map() {
+            let map_entry = field.kind();
+            let map_entry = map_entry.as_message().unwrap();
+
+            let key = prost_reflect::MapKey::default_value(&map_entry.get_field(1).unwrap().kind());
+            let value = make_template_field(map_entry.get_field(2).unwrap().kind());
+
+            message.set_field(
+                field.number(),
+                prost_reflect::Value::Map([(key, value)].into()),
+            );
+        } else {
+            message.set_field(field.number(), make_template_field(field.kind()));
+        }
+    }
+
+    message
+}
+
+fn make_template_field(kind: prost_reflect::Kind) -> prost_reflect::Value {
+    match kind {
+        prost_reflect::Kind::Message(message) => {
+            prost_reflect::Value::Message(make_template_message(message))
+        }
+        kind => prost_reflect::Value::default_value(&kind),
     }
 }

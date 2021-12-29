@@ -2,14 +2,15 @@ mod channel;
 mod codec;
 
 use std::{
+    str::FromStr,
     sync::Arc,
     time::{Duration, Instant},
 };
 
 use anyhow::Result;
-use bytes::Bytes;
 use futures::{Stream, StreamExt, TryStreamExt};
 use http::{uri::PathAndQuery, Uri};
+use prost_reflect::{DeserializeOptions, DynamicMessage, MessageDescriptor, SerializeOptions};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{client::Grpc, transport::Channel, IntoRequest};
@@ -19,13 +20,21 @@ pub type ResponseResult = Result<Response, Error>;
 
 #[derive(Debug, Clone)]
 pub struct Request {
-    pub bytes: Bytes,
+    pub message: DynamicMessage,
 }
 
 #[derive(Debug, Clone)]
 pub struct Response {
-    pub bytes: Bytes,
+    pub message: DynamicMessage,
     pub timestamp: Instant,
+}
+
+#[derive(Debug, Copy, Clone, druid::Data, PartialEq, Eq)]
+pub enum MethodKind {
+    Unary,
+    ClientStreaming,
+    ServerStreaming,
+    Streaming,
 }
 
 #[derive(Debug)]
@@ -49,18 +58,28 @@ impl Client {
         })
     }
 
-    pub fn call<F>(self, method: &protobuf::Method, request: Request, mut on_response: F) -> Call
+    pub fn call<F>(
+        self,
+        method: prost_reflect::MethodDescriptor,
+        request: Request,
+        mut on_response: F,
+    ) -> Call
     where
         F: FnMut(Option<ResponseResult>) + Send + 'static,
     {
-        let path = method.path();
+        let path = PathAndQuery::from_str(&format!(
+            "/{}/{}",
+            method.parent_service().full_name(),
+            method.name()
+        ))
+        .unwrap();
 
         let last_request = Some(Instant::now());
 
-        let request_sender = match method.kind() {
-            protobuf::MethodKind::Unary => {
+        let request_sender = match MethodKind::for_method(&method) {
+            MethodKind::Unary => {
                 tokio::spawn(async move {
-                    match self.unary(request, path).await {
+                    match self.unary(&method, request, path).await {
                         Ok(response) => on_response(Some(Ok(response))),
                         Err(err) => on_response(Some(Err(err.into()))),
                     }
@@ -69,14 +88,18 @@ impl Client {
 
                 None
             }
-            protobuf::MethodKind::ClientStreaming => {
+            MethodKind::ClientStreaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
                 request_sender.send(request).unwrap();
 
                 tokio::spawn(async move {
                     match self
-                        .client_streaming(UnboundedReceiverStream::new(request_receiver), path)
+                        .client_streaming(
+                            &method,
+                            UnboundedReceiverStream::new(request_receiver),
+                            path,
+                        )
                         .await
                     {
                         Ok(response) => on_response(Some(Ok(response))),
@@ -87,9 +110,9 @@ impl Client {
 
                 Some(request_sender)
             }
-            protobuf::MethodKind::ServerStreaming => {
+            MethodKind::ServerStreaming => {
                 tokio::spawn(async move {
-                    match self.server_streaming(request, path).await {
+                    match self.server_streaming(&method, request, path).await {
                         Ok(stream) => {
                             let mut stream = stream.map_err(arc_err);
                             while let Some(result) = stream.next().await {
@@ -110,14 +133,18 @@ impl Client {
 
                 None
             }
-            protobuf::MethodKind::Streaming => {
+            MethodKind::Streaming => {
                 let (request_sender, request_receiver) = mpsc::unbounded_channel();
 
                 request_sender.send(request).unwrap();
 
                 tokio::spawn(async move {
                     match self
-                        .streaming(UnboundedReceiverStream::new(request_receiver), path)
+                        .streaming(
+                            &method,
+                            UnboundedReceiverStream::new(request_receiver),
+                            path,
+                        )
                         .await
                     {
                         Ok(stream) => {
@@ -148,61 +175,109 @@ impl Client {
         }
     }
 
-    async fn unary(mut self, request: Request, path: PathAndQuery) -> anyhow::Result<Response> {
+    async fn unary(
+        mut self,
+        method: &prost_reflect::MethodDescriptor,
+        request: Request,
+        path: PathAndQuery,
+    ) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .unary(request.into_request(), path, codec::BytesCodec)
+            .unary(
+                request.into_request(),
+                path,
+                codec::DynamicCodec::new(method.clone()),
+            )
             .await?
             .into_inner())
     }
 
     async fn client_streaming(
         mut self,
+        method: &prost_reflect::MethodDescriptor,
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         path: PathAndQuery,
     ) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .client_streaming(requests.into_request(), path, codec::BytesCodec)
+            .client_streaming(
+                requests.into_request(),
+                path,
+                codec::DynamicCodec::new(method.clone()),
+            )
             .await?
             .into_inner())
     }
 
     async fn server_streaming(
         mut self,
+        method: &prost_reflect::MethodDescriptor,
         request: Request,
         path: PathAndQuery,
     ) -> anyhow::Result<tonic::Streaming<Response>> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .server_streaming(request.into_request(), path, codec::BytesCodec)
+            .server_streaming(
+                request.into_request(),
+                path,
+                codec::DynamicCodec::new(method.clone()),
+            )
             .await?
             .into_inner())
     }
 
     async fn streaming(
         mut self,
+        method: &prost_reflect::MethodDescriptor,
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         path: PathAndQuery,
     ) -> anyhow::Result<tonic::Streaming<Response>> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
-            .streaming(requests.into_request(), path, codec::BytesCodec)
+            .streaming(
+                requests.into_request(),
+                path,
+                codec::DynamicCodec::new(method.clone()),
+            )
             .await?
             .into_inner())
     }
 }
 
+impl Request {
+    pub fn from_json(desc: MessageDescriptor, s: &str) -> Result<Self> {
+        let mut de = serde_json::Deserializer::from_str(s);
+        let message =
+            DynamicMessage::deserialize_with_options(desc, &mut de, &DeserializeOptions::new())?;
+        de.end()?;
+        Ok(Request { message })
+    }
+}
+
 impl Response {
-    pub fn new(bytes: Bytes) -> Self {
+    pub fn new(message: DynamicMessage) -> Self {
         Response {
-            bytes,
+            message,
             timestamp: Instant::now(),
         }
+    }
+
+    pub fn to_json(&self) -> String {
+        let mut s = serde_json::Serializer::new(Vec::new());
+        self.message
+            .serialize_with_options(
+                &mut s,
+                &SerializeOptions::new()
+                    .stringify_64_bit_integers(false)
+                    .emit_unpopulated_fields(true),
+            )
+            .unwrap();
+
+        String::from_utf8(s.into_inner()).unwrap()
     }
 }
 
@@ -220,6 +295,24 @@ impl Call {
         self.last_request.take().and_then(|request_timestamp| {
             response.timestamp.checked_duration_since(request_timestamp)
         })
+    }
+}
+
+impl MethodKind {
+    pub(crate) fn for_method(method: &prost_reflect::MethodDescriptor) -> MethodKind {
+        match (method.is_client_streaming(), method.is_server_streaming()) {
+            (false, false) => MethodKind::Unary,
+            (true, false) => MethodKind::ClientStreaming,
+            (false, true) => MethodKind::ServerStreaming,
+            (true, true) => MethodKind::Streaming,
+        }
+    }
+
+    pub(crate) fn client_streaming(&self) -> bool {
+        match self {
+            MethodKind::Unary | MethodKind::ServerStreaming => false,
+            MethodKind::ClientStreaming | MethodKind::Streaming => true,
+        }
     }
 }
 

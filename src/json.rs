@@ -115,7 +115,7 @@ impl JsonText {
 
     pub fn original_data(&self) -> &str {
         match &self.original_data {
-            Some(data) => &data,
+            Some(data) => data,
             None => &self.data,
         }
     }

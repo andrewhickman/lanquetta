@@ -96,7 +96,7 @@ where
         env: &Env,
     ) {
         if let LifeCycle::WidgetAdded = event {
-            self.update_env(data, &env);
+            self.update_env(data, env);
             ctx.children_changed();
         }
 
@@ -114,7 +114,7 @@ where
         if ctx.env_changed() {
             self.env = None;
         }
-        self.update_env(data, &env);
+        self.update_env(data, env);
 
         self.child
             .update(ctx, &data.raw, self.env.as_ref().unwrap_or(env));
@@ -122,7 +122,7 @@ where
         if ctx.env_changed() {
             self.env = None;
         }
-        if self.update_env(data, &env) {
+        if self.update_env(data, env) {
             ctx.request_paint();
         }
     }
@@ -137,8 +137,8 @@ where
         bc.debug_check("FormField");
 
         let env = self.env.as_ref().unwrap_or(env);
-        let size = self.child.layout(ctx, bc, &data.raw, &env);
-        self.child.set_origin(ctx, &data.raw, &env, Point::ORIGIN);
+        let size = self.child.layout(ctx, bc, &data.raw, env);
+        self.child.set_origin(ctx, &data.raw, env, Point::ORIGIN);
         size
     }
 

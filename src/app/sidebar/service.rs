@@ -15,7 +15,8 @@ use crate::{
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     pub index: usize,
-    pub selected: Option<protobuf::Method>,
+    #[data(same_fn = "PartialEq::eq")]
+    pub selected: Option<prost_reflect::MethodDescriptor>,
     pub service: ServiceState,
 }
 
@@ -28,7 +29,7 @@ pub(in crate::app) struct ServiceState {
     expanded: bool,
     #[data(ignore)]
     #[lens(ignore)]
-    service: protobuf::Service,
+    service: prost_reflect::ServiceDescriptor,
 }
 
 pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
@@ -61,7 +62,11 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
 }
 
 impl State {
-    pub fn new(selected: Option<protobuf::Method>, service: ServiceState, index: usize) -> Self {
+    pub fn new(
+        selected: Option<prost_reflect::MethodDescriptor>,
+        service: ServiceState,
+        index: usize,
+    ) -> Self {
         State {
             selected,
             service,
@@ -74,7 +79,7 @@ impl State {
             self.service
                 .methods
                 .iter()
-                .any(|method| selected_method.same(method.method()))
+                .any(|method| selected_method == method.method())
         } else {
             false
         }
@@ -82,7 +87,7 @@ impl State {
 }
 
 impl ServiceState {
-    pub fn new(service: protobuf::Service, expanded: bool) -> Self {
+    pub fn new(service: prost_reflect::ServiceDescriptor, expanded: bool) -> Self {
         ServiceState {
             name: service.name().into(),
             methods: service.methods().map(method::MethodState::from).collect(),
@@ -91,7 +96,7 @@ impl ServiceState {
         }
     }
 
-    pub fn service(&self) -> &protobuf::Service {
+    pub fn service(&self) -> &prost_reflect::ServiceDescriptor {
         &self.service
     }
 
@@ -100,8 +105,8 @@ impl ServiceState {
     }
 }
 
-impl From<protobuf::Service> for ServiceState {
-    fn from(service: protobuf::Service) -> Self {
+impl From<prost_reflect::ServiceDescriptor> for ServiceState {
+    fn from(service: prost_reflect::ServiceDescriptor) -> Self {
         ServiceState::new(service, true)
     }
 }
@@ -120,7 +125,7 @@ impl ListIter<method::State> for State {
     fn for_each(&self, mut cb: impl FnMut(&method::State, usize)) {
         for (i, method) in self.service.methods.iter().enumerate() {
             let selected = match &self.selected {
-                Some(selected_method) => selected_method.same(method.method()),
+                Some(selected_method) => selected_method == method.method(),
                 None => false,
             };
             let state = method::State::new(selected, method.to_owned());
@@ -131,7 +136,7 @@ impl ListIter<method::State> for State {
     fn for_each_mut(&mut self, mut cb: impl FnMut(&mut method::State, usize)) {
         for (i, method) in self.service.methods.iter().enumerate() {
             let selected = match &self.selected {
-                Some(selected_method) => selected_method.same(method.method()),
+                Some(selected_method) => selected_method == method.method(),
                 None => false,
             };
             let mut state = method::State::new(selected, method.to_owned());

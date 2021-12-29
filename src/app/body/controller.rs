@@ -160,7 +160,7 @@ impl TabController {
         data.stream.add_request(json);
 
         if let Some(call) = &mut self.call {
-            if data.method.kind().client_streaming() {
+            if data.method.is_client_streaming() {
                 call.send(request);
             } else {
                 tracing::warn!("Send called on active call with non-streaming method");
@@ -175,7 +175,7 @@ impl TabController {
             };
 
             let update_writer = self.get_update_writer(ctx);
-            self.call = Some(client.call(&data.method, request, move |response| {
+            self.call = Some(client.call(data.method.clone(), request, move |response| {
                 update_writer.update(|controller, data| controller.finish_send(data, response));
             }));
 
@@ -192,12 +192,7 @@ impl TabController {
                 };
 
                 let json_result = result
-                    .and_then(|response| {
-                        data.method
-                            .request()
-                            .decode(&response.bytes)
-                            .map_err(Arc::new)
-                    })
+                    .map(|response| response.to_json())
                     .map(JsonText::short);
 
                 data.stream.add_response(json_result, duration);

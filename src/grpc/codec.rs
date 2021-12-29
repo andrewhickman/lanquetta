@@ -1,47 +1,67 @@
-use bytes::{Buf, BufMut};
+use prost::Message;
+use prost_reflect::{DynamicMessage, MethodDescriptor, ReflectMessage};
 use tonic::{
     codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder},
     Status,
 };
 
-use super::{Request, Response};
+use crate::grpc;
 
-#[derive(Debug, Default)]
-pub struct BytesCodec;
+#[derive(Debug, Clone)]
+pub struct DynamicCodec(MethodDescriptor);
 
-impl Codec for BytesCodec {
-    type Encode = Request;
-    type Decode = Response;
-
-    type Encoder = BytesCodec;
-    type Decoder = BytesCodec;
-
-    fn encoder(&mut self) -> Self::Encoder {
-        BytesCodec
-    }
-
-    fn decoder(&mut self) -> Self::Decoder {
-        BytesCodec
+impl DynamicCodec {
+    pub fn new(desc: MethodDescriptor) -> Self {
+        DynamicCodec(desc)
     }
 }
 
-impl Encoder for BytesCodec {
-    type Item = Request;
+impl Codec for DynamicCodec {
+    type Encode = grpc::Request;
+    type Decode = grpc::Response;
+
+    type Encoder = DynamicCodec;
+    type Decoder = DynamicCodec;
+
+    fn encoder(&mut self) -> Self::Encoder {
+        self.clone()
+    }
+
+    fn decoder(&mut self) -> Self::Decoder {
+        self.clone()
+    }
+}
+
+impl Encoder for DynamicCodec {
+    type Item = grpc::Request;
     type Error = Status;
 
-    fn encode(&mut self, item: Self::Item, dst: &mut EncodeBuf<'_>) -> Result<(), Self::Error> {
-        dst.put(item.bytes);
+    fn encode(&mut self, request: Self::Item, dst: &mut EncodeBuf<'_>) -> Result<(), Self::Error> {
+        debug_assert_eq!(request.message.descriptor(), self.0.input());
+        request
+            .message
+            .encode(dst)
+            .expect("insufficient space for message");
         Ok(())
     }
 }
 
-impl Decoder for BytesCodec {
-    type Item = Response;
+impl Decoder for DynamicCodec {
+    type Item = grpc::Response;
     type Error = Status;
 
     fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error> {
-        let len = src.remaining();
-        let bytes = src.copy_to_bytes(len);
-        Ok(Some(Response::new(bytes)))
+        let mut message = DynamicMessage::new(self.0.output());
+        message
+            .merge(src)
+            .map_err(|err| Status::internal(err.to_string()))?;
+        Ok(Some(grpc::Response::new(message)))
+    }
+}
+
+// tonic requires this impl but never uses it
+impl Default for DynamicCodec {
+    fn default() -> Self {
+        unimplemented!()
     }
 }

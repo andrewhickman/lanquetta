@@ -59,10 +59,10 @@ where
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
             self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
-        } else if let LifeCycle::HotChanged(_) = event {
-            self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
-            ctx.request_paint();
-        } else if let LifeCycle::DisabledChanged(_) = event {
+        } else if matches!(
+            event,
+            LifeCycle::HotChanged(_) | LifeCycle::DisabledChanged(_)
+        ) {
             self.update_env(env, ctx.is_hot(), ctx.is_active(), ctx.is_disabled());
             ctx.request_paint();
         }

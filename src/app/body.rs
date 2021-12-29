@@ -13,6 +13,7 @@ use iter_set::Inclusion;
 
 use self::controller::TabController;
 use crate::{
+    grpc::MethodKind,
     json::JsonText,
     theme,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
@@ -36,7 +37,8 @@ pub enum RequestState {
 #[derive(Debug, Clone, Data, Lens)]
 pub struct TabState {
     #[lens(ignore)]
-    method: protobuf::Method,
+    #[data(same_fn = "PartialEq::eq")]
+    method: prost_reflect::MethodDescriptor,
     #[lens(ignore)]
     address: address::AddressState,
     #[lens(name = "request_lens")]
@@ -82,16 +84,16 @@ impl State {
         }
     }
 
-    pub fn select_or_create_tab(&mut self, method: protobuf::Method) {
+    pub fn select_or_create_tab(&mut self, method: prost_reflect::MethodDescriptor) {
         if self
-            .with_selected(|_, tab_data| tab_data.method.same(&method))
+            .with_selected(|_, tab_data| tab_data.method == method)
             .unwrap_or(false)
         {
             return;
         }
 
         for (&id, tab) in self.tabs.iter() {
-            if tab.method.same(&method) {
+            if tab.method == method {
                 self.selected = Some(id);
                 return;
             }
@@ -100,7 +102,7 @@ impl State {
         self.create_tab(method)
     }
 
-    pub fn create_tab(&mut self, method: protobuf::Method) {
+    pub fn create_tab(&mut self, method: prost_reflect::MethodDescriptor) {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(id, TabState::empty(method));
@@ -152,7 +154,7 @@ impl State {
         self.with_selected_mut(|_, tab| tab.stream.clear());
     }
 
-    pub fn selected_method(&self) -> Option<protobuf::Method> {
+    pub fn selected_method(&self) -> Option<prost_reflect::MethodDescriptor> {
         self.with_selected(|_, tab_data| tab_data.method.clone())
     }
 
@@ -166,30 +168,30 @@ impl State {
 }
 
 impl TabState {
-    pub fn empty(method: protobuf::Method) -> Self {
+    pub fn empty(method: prost_reflect::MethodDescriptor) -> Self {
         TabState {
             address: address::AddressState::default(),
             stream: stream::State::new(),
-            request: request::State::empty(method.request()),
+            request: request::State::empty(method.input()),
             method,
         }
     }
 
     pub fn new(
-        method: protobuf::Method,
+        method: prost_reflect::MethodDescriptor,
         address: String,
         request: impl Into<JsonText>,
         stream: stream::State,
     ) -> Self {
         TabState {
             address: address::AddressState::new(address),
-            request: request::State::with_text(method.request(), request),
+            request: request::State::with_text(method.input(), request),
             method,
             stream,
         }
     }
 
-    pub fn method(&self) -> &protobuf::Method {
+    pub fn method(&self) -> &prost_reflect::MethodDescriptor {
         &self.method
     }
 
@@ -212,7 +214,7 @@ impl TabState {
             fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
                 f(&address::State::new(
                     data.address.clone(),
-                    data.method.kind(),
+                    MethodKind::for_method(&data.method),
                     data.request.is_valid(),
                 ))
             }
@@ -224,7 +226,7 @@ impl TabState {
             ) -> V {
                 let mut address_data = address::State::new(
                     data.address.clone(),
-                    data.method.kind(),
+                    MethodKind::for_method(&data.method),
                     data.request.is_valid(),
                 );
                 let result = f(&mut address_data);
@@ -307,7 +309,7 @@ impl TabsData for State {
     fn for_each_label(&self, mut f: impl FnMut(TabId, &TabLabelState)) {
         for (&tab_id, tab_data) in self.tabs.iter() {
             let selected = self.selected == Some(tab_id);
-            let label_data = TabLabelState::new(tab_data.method.name().clone(), selected);
+            let label_data = TabLabelState::new(tab_data.method.name().into(), selected);
 
             f(tab_id, &label_data);
         }
@@ -316,7 +318,7 @@ impl TabsData for State {
     fn for_each_label_mut(&mut self, mut f: impl FnMut(TabId, &mut TabLabelState)) {
         for (&tab_id, tab_data) in self.tabs.iter() {
             let selected = self.selected == Some(tab_id);
-            let mut label_data = TabLabelState::new(tab_data.method.name().clone(), selected);
+            let mut label_data = TabLabelState::new(tab_data.method.name().into(), selected);
 
             f(tab_id, &mut label_data);
 
@@ -344,7 +346,7 @@ impl TabsData for State {
                 }
                 Inclusion::Both(_, (&tab_id, tab_data)) => {
                     let selected = self.selected == Some(tab_id);
-                    let label_data = TabLabelState::new(tab_data.method.name().clone(), selected);
+                    let label_data = TabLabelState::new(tab_data.method.name().into(), selected);
 
                     f(tab_id, TabsDataChange::Changed(&label_data));
                 }
