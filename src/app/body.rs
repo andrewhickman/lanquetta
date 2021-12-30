@@ -62,7 +62,11 @@ impl State {
         }
     }
 
-    pub fn select_or_create_method_tab(&mut self, method: &MethodDescriptor) {
+    pub fn select_or_create_method_tab(
+        &mut self,
+        method: &MethodDescriptor,
+        options: &ServiceOptions,
+    ) {
         if self
             .with_selected_method(|_, tab_data| tab_data.method() == method)
             .unwrap_or(false)
@@ -80,7 +84,7 @@ impl State {
             }
         }
 
-        self.create_method_tab(method)
+        self.create_method_tab(method, options)
     }
 
     pub fn select_or_create_options_tab(
@@ -108,10 +112,10 @@ impl State {
         self.create_options_tab(service, options)
     }
 
-    pub fn create_method_tab(&mut self, method: &MethodDescriptor) {
+    pub fn create_method_tab(&mut self, method: &MethodDescriptor, options: &ServiceOptions) {
         let id = TabId::next();
         self.selected = Some(id);
-        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_method(method.clone()));
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_method(method.clone(), options));
     }
 
     pub fn create_options_tab(&mut self, service: &ServiceDescriptor, options: &ServiceOptions) {
@@ -255,8 +259,8 @@ impl State {
 }
 
 impl TabState {
-    fn empty_method(method: prost_reflect::MethodDescriptor) -> TabState {
-        TabState::Method(MethodTabState::empty(method))
+    fn empty_method(method: prost_reflect::MethodDescriptor, options: &ServiceOptions) -> TabState {
+        TabState::Method(MethodTabState::empty(method, options))
     }
 
     pub fn new_method(

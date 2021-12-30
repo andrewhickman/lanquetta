@@ -11,7 +11,7 @@ use druid::{
 };
 
 use self::controller::MethodTabController;
-use crate::{grpc::MethodKind, json::JsonText, theme};
+use crate::{app::sidebar::service::ServiceOptions, grpc::MethodKind, json::JsonText, theme};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct MethodTabState {
@@ -52,9 +52,9 @@ pub fn build_body() -> impl Widget<MethodTabState> {
 }
 
 impl MethodTabState {
-    pub fn empty(method: prost_reflect::MethodDescriptor) -> Self {
+    pub fn empty(method: prost_reflect::MethodDescriptor, options: &ServiceOptions) -> Self {
         MethodTabState {
-            address: address::AddressState::default(),
+            address: address::AddressState::with_options(options),
             stream: stream::State::new(),
             request: request::State::empty(method.input()),
             method,

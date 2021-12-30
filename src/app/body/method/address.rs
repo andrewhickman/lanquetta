@@ -10,7 +10,9 @@ use http::Uri;
 use crate::{
     app::{
         body::{RequestState, VALIDATE_URI},
-        command, theme,
+        command,
+        sidebar::service::ServiceOptions,
+        theme,
     },
     grpc::MethodKind,
     widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT},
@@ -192,6 +194,13 @@ impl AddressState {
         AddressState {
             uri: ValidationState::new(address, VALIDATE_URI.clone()),
             request_state: RequestState::NotStarted,
+        }
+    }
+
+    pub fn with_options(options: &ServiceOptions) -> AddressState {
+        match &options.default_address {
+            Some(addr) => AddressState::new(addr.to_string()),
+            None => AddressState::default(),
         }
     }
 

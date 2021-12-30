@@ -73,6 +73,19 @@ impl ServiceListState {
         self.services.remove(index)
     }
 
+    pub fn get_service_options(
+        &self,
+        service: &ServiceDescriptor,
+    ) -> Option<&service::ServiceOptions> {
+        for service_state in self.services.iter() {
+            if service_state.service() == service {
+                return Some(service_state.options());
+            }
+        }
+
+        None
+    }
+
     pub fn set_service_options(
         &mut self,
         service: &ServiceDescriptor,

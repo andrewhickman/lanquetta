@@ -68,14 +68,18 @@ impl AppDelegate<app::State> for Delegate {
             data.body.select_or_create_options_tab(service, options);
             Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_METHOD_TAB) {
-            data.body.select_or_create_method_tab(method);
+            if let Some(options) = data.sidebar.get_service_options(method.parent_service()) {
+                data.body.select_or_create_method_tab(method, options);
+            }
             Handled::Yes
         } else if let Some(service_index) = cmd.get(command::REMOVE_SERVICE) {
             let service = data.sidebar.remove_service(*service_index);
             data.body.remove_service(service.service());
             Handled::Yes
         } else if let Some(method) = cmd.get(command::CREATE_TAB) {
-            data.body.create_method_tab(method);
+            if let Some(options) = data.sidebar.get_service_options(method.parent_service()) {
+                data.body.create_method_tab(method, options);
+            }
             Handled::Yes
         } else {
             Handled::No
