@@ -6,11 +6,12 @@ use std::{iter::FromIterator, path::Path};
 use anyhow::Result;
 use druid::{
     widget::Scroll,
-    widget::{prelude::*, Controller, List, ListIter},
-    Data, Lens, Widget, WidgetExt as _, WidgetId,
+    widget::{List, ListIter},
+    Data, Lens, Widget, WidgetExt as _,
 };
+use prost_reflect::ServiceDescriptor;
 
-use crate::{app::command::REMOVE_SERVICE, theme};
+use crate::theme;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -24,17 +25,12 @@ pub(in crate::app) struct ServiceListState {
     services: im::Vector<service::ServiceState>,
 }
 
-struct SidebarController;
-
 pub(in crate::app) fn build() -> impl Widget<State> {
-    let sidebar_id = WidgetId::next();
-    Scroll::new(List::new(move || service::build(sidebar_id)))
+    Scroll::new(List::new(service::build))
         .vertical()
         .expand_height()
         .background(druid::theme::BACKGROUND_LIGHT)
         .env_scope(|env, _| theme::set_contrast(env))
-        .controller(SidebarController)
-        .with_id(sidebar_id)
 }
 
 impl State {
@@ -72,6 +68,22 @@ impl ServiceListState {
     pub fn services(&self) -> &im::Vector<service::ServiceState> {
         &self.services
     }
+
+    pub fn remove_service(&mut self, index: usize) -> service::ServiceState {
+        self.services.remove(index)
+    }
+
+    pub fn set_service_options(
+        &mut self,
+        service: &ServiceDescriptor,
+        options: &service::ServiceOptions,
+    ) {
+        for service_state in self.services.iter_mut() {
+            if service_state.service() == service {
+                service_state.set_options(options.clone());
+            }
+        }
+    }
 }
 
 impl FromIterator<service::ServiceState> for ServiceListState {
@@ -107,28 +119,5 @@ impl ListIter<service::State> for State {
 
     fn data_len(&self) -> usize {
         self.services.services.len()
-    }
-}
-
-impl<W> Controller<State, W> for SidebarController
-where
-    W: Widget<State>,
-{
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut State,
-        env: &Env,
-    ) {
-        if let Event::Command(command) = event {
-            if let Some(&index) = command.get(REMOVE_SERVICE) {
-                data.services.services.remove(index);
-                return;
-            }
-        }
-
-        child.event(ctx, event, data, env)
     }
 }

@@ -11,6 +11,7 @@ use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use self::{method::MethodTabState, options::OptionsTabState};
 use crate::{
+    app::sidebar::service::ServiceOptions,
     json::JsonText,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
@@ -59,9 +60,9 @@ impl State {
         }
     }
 
-    pub fn select_or_create_method_tab(&mut self, method: MethodDescriptor) {
+    pub fn select_or_create_method_tab(&mut self, method: &MethodDescriptor) {
         if self
-            .with_selected_method(|_, tab_data| tab_data.method() == &method)
+            .with_selected_method(|_, tab_data| tab_data.method() == method)
             .unwrap_or(false)
         {
             return;
@@ -69,7 +70,7 @@ impl State {
 
         for (&id, tab) in self.tabs.iter() {
             match tab {
-                TabState::Method(data) if data.method() == &method => {
+                TabState::Method(data) if data.method() == method => {
                     self.selected = Some(id);
                     return;
                 }
@@ -80,9 +81,13 @@ impl State {
         self.create_method_tab(method)
     }
 
-    pub fn select_or_create_options_tab(&mut self, service: ServiceDescriptor) {
+    pub fn select_or_create_options_tab(
+        &mut self,
+        service: &ServiceDescriptor,
+        options: &ServiceOptions,
+    ) {
         if self
-            .with_selected_options(|_, tab_data| tab_data.service() == &service)
+            .with_selected_options(|_, tab_data| tab_data.service() == service)
             .unwrap_or(false)
         {
             return;
@@ -90,7 +95,7 @@ impl State {
 
         for (&id, tab) in self.tabs.iter() {
             match tab {
-                TabState::Options(data) if data.service() == &service => {
+                TabState::Options(data) if data.service() == service => {
                     self.selected = Some(id);
                     return;
                 }
@@ -98,19 +103,20 @@ impl State {
             }
         }
 
-        self.create_options_tab(service)
+        self.create_options_tab(service, options)
     }
 
-    pub fn create_method_tab(&mut self, method: MethodDescriptor) {
+    pub fn create_method_tab(&mut self, method: &MethodDescriptor) {
         let id = TabId::next();
         self.selected = Some(id);
-        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_method(method));
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_method(method.clone()));
     }
 
-    pub fn create_options_tab(&mut self, service: ServiceDescriptor) {
+    pub fn create_options_tab(&mut self, service: &ServiceDescriptor, options: &ServiceOptions) {
         let id = TabId::next();
         self.selected = Some(id);
-        Arc::make_mut(&mut self.tabs).insert(id, TabState::new_options(service));
+        Arc::make_mut(&mut self.tabs)
+            .insert(id, TabState::new_options(service.clone(), options.clone()));
     }
 
     pub fn first_tab(&self) -> Option<TabId> {
@@ -119,6 +125,14 @@ impl State {
 
     pub fn last_tab(&self) -> Option<TabId> {
         self.tabs.keys().next_back().copied()
+    }
+
+    pub fn remove_service(&mut self, service: &ServiceDescriptor) {
+        Arc::make_mut(&mut self.tabs).retain(|_, v| match v {
+            TabState::Method(method) => method.method().parent_service() != service,
+            TabState::Options(options) => options.service() != service,
+        });
+        self.update_selected_after_remove();
     }
 
     pub fn select_next_tab(&mut self) {
@@ -225,6 +239,17 @@ impl State {
             result
         })
     }
+
+    fn update_selected_after_remove(&mut self) {
+        if let Some(selected) = self.selected {
+            self.selected = self
+                .tabs
+                .range(selected..)
+                .next()
+                .or_else(|| self.tabs.range(..selected).next_back())
+                .map(|(&tab_id, _)| tab_id);
+        }
+    }
 }
 
 impl TabState {
@@ -241,8 +266,8 @@ impl TabState {
         TabState::Method(MethodTabState::new(method, address, request, stream))
     }
 
-    pub fn new_options(service: ServiceDescriptor) -> TabState {
-        TabState::Options(OptionsTabState::new(service))
+    pub fn new_options(service: ServiceDescriptor, options: ServiceOptions) -> TabState {
+        TabState::Options(OptionsTabState::new(service, options))
     }
 
     pub fn label(&self) -> ArcStr {
@@ -410,12 +435,6 @@ impl TabsData for State {
 
     fn remove(&mut self, id: TabId) {
         Arc::make_mut(&mut self.tabs).remove(&id);
-
-        self.selected = self
-            .tabs
-            .range(id..)
-            .next()
-            .or_else(|| self.tabs.range(..id).next_back())
-            .map(|(&tab_id, _)| tab_id);
+        self.update_selected_after_remove();
     }
 }

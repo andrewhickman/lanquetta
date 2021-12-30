@@ -4,6 +4,7 @@ use druid::{
     widget::{prelude::*, Label, LineBreaking, List, ListIter},
     ArcStr, Data, Lens, Widget, WidgetExt,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     app::{
@@ -33,14 +34,16 @@ pub(in crate::app) struct ServiceState {
     #[data(ignore)]
     #[lens(ignore)]
     service: prost_reflect::ServiceDescriptor,
+    #[lens(ignore)]
+    options: ServiceOptions,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct ServiceOptions {
-    default_address: String,
+#[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
+pub struct ServiceOptions {
+    pub default_address: String,
 }
 
-pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
+pub(in crate::app) fn build() -> impl Widget<State> {
     let expander_label = Label::raw()
         .with_font(theme::font::HEADER_ONE)
         .with_line_break_mode(LineBreaking::Clip)
@@ -49,12 +52,15 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
 
     let open_options_tab: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
         Box::new(move |ctx, data, _| {
-            ctx.submit_command(SELECT_OR_CREATE_OPTIONS_TAB.with(data.service.service.clone()));
+            ctx.submit_command(SELECT_OR_CREATE_OPTIONS_TAB.with((
+                data.service.service().clone(),
+                data.service.options().clone(),
+            )));
         });
 
     let close_expander: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
         Box::new(move |ctx, data, _| {
-            ctx.submit_command(REMOVE_SERVICE.with(data.index).to(sidebar_id));
+            ctx.submit_command(REMOVE_SERVICE.with(data.index));
         });
 
     expander::new(
@@ -104,12 +110,17 @@ impl State {
 }
 
 impl ServiceState {
-    pub fn new(service: prost_reflect::ServiceDescriptor, expanded: bool) -> Self {
+    pub fn new(
+        service: prost_reflect::ServiceDescriptor,
+        expanded: bool,
+        options: ServiceOptions,
+    ) -> Self {
         ServiceState {
             name: service.name().into(),
             methods: service.methods().map(method::MethodState::from).collect(),
             expanded,
             service,
+            options,
         }
     }
 
@@ -120,11 +131,19 @@ impl ServiceState {
     pub fn expanded(&self) -> bool {
         self.expanded
     }
+
+    pub fn options(&self) -> &ServiceOptions {
+        &self.options
+    }
+
+    pub fn set_options(&mut self, options: ServiceOptions) {
+        self.options = options;
+    }
 }
 
 impl From<prost_reflect::ServiceDescriptor> for ServiceState {
     fn from(service: prost_reflect::ServiceDescriptor) -> Self {
-        ServiceState::new(service, true)
+        ServiceState::new(service, true, Default::default())
     }
 }
 

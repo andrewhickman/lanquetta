@@ -1,21 +1,28 @@
 use druid::Selector;
+use prost_reflect::{MethodDescriptor, ServiceDescriptor};
+
+use crate::app::sidebar::service::ServiceOptions;
 
 /// Open the source code in a browser
 pub const OPEN_GITHUB: Selector = Selector::new("app.open-github");
 
-/// Select the tab with the given method, or create new one
-pub const SELECT_OR_CREATE_OPTIONS_TAB: Selector<prost_reflect::ServiceDescriptor> =
+/// Select the tab with the given service options, or create a new one
+pub const SELECT_OR_CREATE_OPTIONS_TAB: Selector<(ServiceDescriptor, ServiceOptions)> =
     Selector::new("app.select-or-create-options-tab");
 
-/// Select the tab with the given method, or create new one
-pub const SELECT_OR_CREATE_METHOD_TAB: Selector<prost_reflect::MethodDescriptor> =
+/// Select the tab with the given method, or create a new one
+pub const SELECT_OR_CREATE_METHOD_TAB: Selector<MethodDescriptor> =
     Selector::new("app.select-or-create-method-tab");
+
+/// Set service options
+pub const SET_SERVICE_OPTIONS: Selector<(ServiceDescriptor, ServiceOptions)> =
+    Selector::new("app.set-service-options");
 
 /// Remove a service
 pub const REMOVE_SERVICE: Selector<usize> = Selector::new("app.remove-service");
 
 /// Create a new tab with the given method
-pub const CREATE_TAB: Selector<prost_reflect::MethodDescriptor> = Selector::new("app.create-tab");
+pub const CREATE_TAB: Selector<MethodDescriptor> = Selector::new("app.create-tab");
 
 /// Close the selected tab
 pub const CLOSE_SELECTED_TAB: Selector = Selector::new("app.close-tab");

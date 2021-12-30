@@ -14,7 +14,7 @@ use serde::{
 };
 
 use crate::{
-    app,
+    app::{self, sidebar::service::ServiceOptions},
     json::JsonText,
     widget::{TabId, TabsData},
 };
@@ -48,7 +48,7 @@ struct AppState {
     body: AppBodyState,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct AppServiceRef {
     file_set: usize,
     service: usize,
@@ -59,6 +59,7 @@ struct AppServiceState {
     #[serde(flatten)]
     idx: AppServiceRef,
     expanded: bool,
+    options: ServiceOptions,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -111,6 +112,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                         service: service.service().index(),
                     },
                     expanded: service.expanded(),
+                    options: service.options().clone(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -198,22 +200,27 @@ impl TryInto<app::State> for AppState {
 
         Ok(app::State {
             sidebar: services
-                .into_iter()
+                .iter()
                 .map(|service| {
                     Ok(app::sidebar::service::ServiceState::new(
                         get_service(&file_descriptor_sets, &service.idx)?,
                         service.expanded,
+                        service.options.clone(),
                     ))
                 })
                 .collect::<Result<app::sidebar::ServiceListState>>()?,
-            body: body.into_state(&file_descriptor_sets)?,
+            body: body.into_state(&file_descriptor_sets, &services)?,
             error: None,
         })
     }
 }
 
 impl AppBodyState {
-    fn into_state(self, file_sets: &[prost_reflect::FileDescriptor]) -> Result<app::body::State> {
+    fn into_state(
+        self,
+        file_sets: &[prost_reflect::FileDescriptor],
+        services: &[AppServiceState],
+    ) -> Result<app::body::State> {
         let tabs = self
             .tabs
             .into_iter()
@@ -242,7 +249,17 @@ impl AppBodyState {
                 AppBodyTabKind::Options { idx } => {
                     let service = get_service(file_sets, &idx)?;
 
-                    Ok((TabId::next(), app::body::TabState::new_options(service)))
+                    let options = services
+                        .iter()
+                        .find(|s| s.idx == idx)
+                        .context("options tab has no associated service")?
+                        .options
+                        .clone();
+
+                    Ok((
+                        TabId::next(),
+                        app::body::TabState::new_options(service, options),
+                    ))
                 }
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
