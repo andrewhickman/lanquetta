@@ -1,6 +1,3 @@
-use std::string::ToString;
-use std::{str::FromStr, sync::Arc};
-
 use druid::{
     widget::{
         prelude::*, Button, Controller, CrossAxisAlignment, Either, Flex, Label, Spinner, TextBox,
@@ -9,12 +6,14 @@ use druid::{
     Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
 };
 use http::Uri;
-use once_cell::sync::Lazy;
 
 use crate::{
-    app::{body::RequestState, command, theme},
+    app::{
+        body::{RequestState, VALIDATE_URI},
+        command, theme,
+    },
     grpc::MethodKind,
-    widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
+    widget::{Empty, FormField, Icon, ValidationState, FINISH_EDIT},
 };
 
 type AddressValidationState = ValidationState<String, Uri, String>;
@@ -44,8 +43,7 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
             .with_placeholder("http://localhost:80")
             .expand_width(),
     ))
-    .controller(AddressController { body_id })
-    .lens(AddressState::uri_lens);
+    .controller(AddressController { body_id });
 
     let error_label =
         theme::error_label_scope(Label::dynamic(|data: &AddressValidationState, _| {
@@ -60,7 +58,8 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
 
     let address_form_field = Flex::column()
         .with_child(address_textbox)
-        .with_child(error.lens(AddressState::uri_lens));
+        .with_child(error)
+        .lens(AddressState::uri_lens);
 
     let spinner = ViewSwitcher::new(
         |&request_state: &RequestState, _| request_state,
@@ -137,16 +136,6 @@ pub(in crate::app) fn build(body_id: WidgetId) -> impl Widget<State> {
         .with_child(send_button.fix_width(100.0))
         .with_spacer(theme::BODY_SPACER)
         .with_child(finish_button.fix_width(100.0))
-}
-
-static VALIDATE_URI: Lazy<ValidationFn<Uri, String>> = Lazy::new(|| Arc::new(validate_uri));
-
-fn validate_uri(s: &str) -> Result<Uri, String> {
-    let uri = Uri::from_str(s).map_err(|err| err.to_string())?;
-    if uri.scheme().is_none() {
-        return Err("URI must have scheme".to_owned());
-    }
-    Ok(uri)
 }
 
 impl State {

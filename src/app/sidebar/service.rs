@@ -4,6 +4,7 @@ use druid::{
     widget::{prelude::*, Label, LineBreaking, List, ListIter},
     ArcStr, Data, Lens, Widget, WidgetExt,
 };
+use http::Uri;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -40,7 +41,9 @@ pub(in crate::app) struct ServiceState {
 
 #[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
 pub struct ServiceOptions {
-    pub default_address: String,
+    #[data(same_fn = "PartialEq::eq")]
+    #[serde(with = "serde_opt_uri")]
+    pub default_address: Option<Uri>,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -185,5 +188,29 @@ impl ListIter<method::State> for State {
 
     fn data_len(&self) -> usize {
         self.service.methods.len()
+    }
+}
+
+mod serde_opt_uri {
+    use std::str::FromStr;
+
+    use http::Uri;
+    use serde::{de, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(uri: &Option<Uri>, ser: S) -> Result<S::Ok, S::Error> {
+        if let Some(uri) = uri {
+            ser.collect_str(uri)
+        } else {
+            ser.serialize_none()
+        }
+    }
+
+    pub fn deserialize<'de, D>(de: D) -> Result<Option<Uri>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: Option<String> = Deserialize::deserialize(de)?;
+        s.map(|s| Uri::from_str(&s).map_err(de::Error::custom))
+            .transpose()
     }
 }
