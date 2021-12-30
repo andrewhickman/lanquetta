@@ -114,7 +114,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                     Ok(AppBodyTabState {
                         idx: AppServiceRef {
                             file_set,
-                            service: tab.method().index(),
+                            service: tab.method().parent_service().index(),
                         },
                         method: tab.method().index(),
                         address: tab.address().text().to_owned(),
