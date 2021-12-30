@@ -2,9 +2,9 @@ mod method;
 
 pub(in crate::app) use self::method::StreamState;
 
-use std::{collections::BTreeMap, ops::Bound, sync::Arc};
+use std::{collections::BTreeMap, mem, ops::Bound, sync::Arc};
 
-use druid::{Data, Lens, Widget, WidgetExt as _};
+use druid::{widget::ViewSwitcher, Data, Lens, Widget, WidgetExt as _};
 use iter_set::Inclusion;
 use prost_reflect::MethodDescriptor;
 
@@ -29,14 +29,20 @@ pub enum RequestState {
     Active,
 }
 
-#[derive(Debug, Clone, Data, Lens)]
-pub struct TabState {
-    #[lens(name = "method_lens")]
-    method: MethodTabState,
+#[derive(Debug, Clone, Data)]
+pub enum TabState {
+    Method(MethodTabState),
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    tabs::new(|| method::build_body().lens(TabState::method_lens))
+    tabs::new(|| {
+        ViewSwitcher::new(
+            |state, _| mem::discriminant(state),
+            |_, state, _| match state {
+                TabState::Method(_) => method::build_body().lens(TabState::method_lens()).boxed(),
+            },
+        )
+    })
 }
 
 impl State {
@@ -47,18 +53,21 @@ impl State {
         }
     }
 
-    pub fn select_or_create_tab(&mut self, method: prost_reflect::MethodDescriptor) {
+    pub fn select_or_create_method_tab(&mut self, method: prost_reflect::MethodDescriptor) {
         if self
-            .with_selected(|_, tab_data| tab_data.method.method() == &method)
+            .with_selected_method(|_, tab_data| tab_data.method() == &method)
             .unwrap_or(false)
         {
             return;
         }
 
         for (&id, tab) in self.tabs.iter() {
-            if tab.method.method() == &method {
-                self.selected = Some(id);
-                return;
+            match tab {
+                TabState::Method(data) if data.method() == &method => {
+                    self.selected = Some(id);
+                    return;
+                }
+                _ => (),
             }
         }
 
@@ -114,11 +123,29 @@ impl State {
     }
 
     pub fn clear_request_history(&mut self) {
-        self.with_selected_mut(|_, tab| tab.method.clear_request_history());
+        self.with_selected_method_mut(|_, tab| tab.clear_request_history());
     }
 
     pub fn selected_method(&self) -> Option<prost_reflect::MethodDescriptor> {
-        self.with_selected(|_, tab_data| tab_data.method.method().clone())
+        self.with_selected_method(|_, tab_data| tab_data.method().clone())
+    }
+
+    pub fn with_selected_method<V>(
+        &self,
+        f: impl FnOnce(TabId, &MethodTabState) -> V,
+    ) -> Option<V> {
+        self.with_selected(|id, data| match data {
+            TabState::Method(method) => f(id, method),
+        })
+    }
+
+    pub fn with_selected_method_mut<V>(
+        &mut self,
+        f: impl FnOnce(TabId, &mut MethodTabState) -> V,
+    ) -> Option<V> {
+        self.with_selected_mut(|id, data| match data {
+            TabState::Method(method) => f(id, method),
+        })
     }
 
     pub fn tabs(&self) -> impl Iterator<Item = (TabId, &TabState)> {
@@ -129,30 +156,46 @@ impl State {
         &self,
         f: impl FnOnce(&method::AddressState) -> V,
     ) -> Option<V> {
-        self.with_selected(|_, tab| MethodTabState::address_lens().with(&tab.method, f))
+        self.with_selected_method(|_, tab| MethodTabState::address_lens().with(tab, f))
     }
 }
 
 impl TabState {
     fn empty(method: prost_reflect::MethodDescriptor) -> TabState {
-        TabState {
-            method: MethodTabState::empty(method),
-        }
+        TabState::Method(MethodTabState::empty(method))
     }
 
-    pub fn new(
+    pub fn new_method(
         method: MethodDescriptor,
         address: String,
         request: JsonText,
         stream: StreamState,
     ) -> Self {
-        TabState {
-            method: MethodTabState::new(method, address, request, stream),
-        }
+        TabState::Method(MethodTabState::new(method, address, request, stream))
     }
 
-    pub fn method(&self) -> &method::MethodTabState {
-        &self.method
+    fn method_lens() -> impl Lens<TabState, MethodTabState> {
+        struct MethodLens;
+
+        impl Lens<TabState, MethodTabState> for MethodLens {
+            fn with<V, F: FnOnce(&MethodTabState) -> V>(&self, data: &TabState, f: F) -> V {
+                match data {
+                    TabState::Method(method) => f(method),
+                }
+            }
+
+            fn with_mut<V, F: FnOnce(&mut MethodTabState) -> V>(
+                &self,
+                data: &mut TabState,
+                f: F,
+            ) -> V {
+                match data {
+                    TabState::Method(method) => f(method),
+                }
+            }
+        }
+
+        MethodLens
     }
 }
 
@@ -222,7 +265,11 @@ impl TabsData for State {
     fn for_each_label(&self, mut f: impl FnMut(TabId, &TabLabelState)) {
         for (&tab_id, tab_data) in self.tabs.iter() {
             let selected = self.selected == Some(tab_id);
-            let label_data = TabLabelState::new(tab_data.method.method().name().into(), selected);
+            let label_data = match tab_data {
+                TabState::Method(method) => {
+                    TabLabelState::new(method.method().name().into(), selected)
+                }
+            };
 
             f(tab_id, &label_data);
         }
@@ -231,8 +278,11 @@ impl TabsData for State {
     fn for_each_label_mut(&mut self, mut f: impl FnMut(TabId, &mut TabLabelState)) {
         for (&tab_id, tab_data) in self.tabs.iter() {
             let selected = self.selected == Some(tab_id);
-            let mut label_data =
-                TabLabelState::new(tab_data.method.method().name().into(), selected);
+            let mut label_data = match tab_data {
+                TabState::Method(method) => {
+                    TabLabelState::new(method.method().name().into(), selected)
+                }
+            };
 
             f(tab_id, &mut label_data);
 
@@ -260,8 +310,11 @@ impl TabsData for State {
                 }
                 Inclusion::Both(_, (&tab_id, tab_data)) => {
                     let selected = self.selected == Some(tab_id);
-                    let label_data =
-                        TabLabelState::new(tab_data.method.method().name().into(), selected);
+                    let label_data = match tab_data {
+                        TabState::Method(method) => {
+                            TabLabelState::new(method.method().name().into(), selected)
+                        }
+                    };
 
                     f(tab_id, TabsDataChange::Changed(&label_data));
                 }

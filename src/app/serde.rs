@@ -70,11 +70,20 @@ struct AppBodyState {
 #[derive(Debug, Serialize, Deserialize)]
 struct AppBodyTabState {
     #[serde(flatten)]
-    idx: AppServiceRef,
-    method: usize,
-    address: String,
-    request: String,
-    stream: app::body::StreamState,
+    kind: AppBodyTabKind,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum AppBodyTabKind {
+    Method {
+        #[serde(flatten)]
+        idx: AppServiceRef,
+        method: usize,
+        address: String,
+        request: String,
+        stream: app::body::StreamState,
+    },
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -107,20 +116,27 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 .body
                 .tabs()
                 .map(|(_, tab)| {
-                    let file_set = get_or_insert_file_set(
-                        &mut file_descriptor_sets,
-                        tab.method().method().parent_file(),
-                    )?;
-                    Ok(AppBodyTabState {
-                        idx: AppServiceRef {
-                            file_set,
-                            service: tab.method().method().parent_service().index(),
-                        },
-                        method: tab.method().method().index(),
-                        address: tab.method().address().text().to_owned(),
-                        request: tab.method().request().text().as_str().to_owned(),
-                        stream: tab.method().stream().clone(),
-                    })
+                    let kind = match tab {
+                        app::body::TabState::Method(method) => {
+                            let file_set = get_or_insert_file_set(
+                                &mut file_descriptor_sets,
+                                method.method().parent_file(),
+                            )?;
+
+                            AppBodyTabKind::Method {
+                                idx: AppServiceRef {
+                                    file_set,
+                                    service: method.method().parent_service().index(),
+                                },
+                                method: method.method().index(),
+                                address: method.address().text().to_owned(),
+                                request: method.request().text().as_str().to_owned(),
+                                stream: method.stream().clone(),
+                            }
+                        }
+                    };
+
+                    Ok(AppBodyTabState { kind })
                 })
                 .collect::<Result<Vec<_>>>()?,
             selected: data
@@ -184,20 +200,28 @@ impl AppBodyState {
         let tabs = self
             .tabs
             .into_iter()
-            .map(|tab| {
-                let method = get_service(file_sets, &tab.idx)?
-                    .methods()
-                    .nth(tab.method)
-                    .context("invalid method index")?;
-                Ok((
-                    TabId::next(),
-                    app::body::TabState::new(
-                        method,
-                        tab.address,
-                        JsonText::pretty(tab.request),
-                        tab.stream,
-                    ),
-                ))
+            .map(|tab| match tab.kind {
+                AppBodyTabKind::Method {
+                    idx,
+                    method,
+                    address,
+                    request,
+                    stream,
+                } => {
+                    let method = get_service(file_sets, &idx)?
+                        .methods()
+                        .nth(method)
+                        .context("invalid method index")?;
+                    Ok((
+                        TabId::next(),
+                        app::body::TabState::new_method(
+                            method,
+                            address,
+                            JsonText::pretty(request),
+                            stream,
+                        ),
+                    ))
+                }
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
 

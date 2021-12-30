@@ -4,7 +4,7 @@ use druid::Selector;
 pub const OPEN_GITHUB: Selector = Selector::new("app.open-github");
 
 /// Select the tab with the given method, or create new one
-pub const SELECT_OR_CREATE_TAB: Selector<prost_reflect::MethodDescriptor> =
+pub const SELECT_OR_CREATE_METHOD_TAB: Selector<prost_reflect::MethodDescriptor> =
     Selector::new("app.select-or-create-tab");
 
 /// Remove a service

@@ -44,7 +44,9 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .lens(State::method)
         .background(theme::hot_or_active_painter(RoundedRectRadii::from(0.0)))
         .on_click(|ctx, data: &mut State, _| {
-            ctx.submit_command(command::SELECT_OR_CREATE_TAB.with(data.method.method.clone()));
+            ctx.submit_command(
+                command::SELECT_OR_CREATE_METHOD_TAB.with(data.method.method.clone()),
+            );
         });
 
     let add = Icon::add()
