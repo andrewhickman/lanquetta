@@ -1,21 +1,16 @@
-mod address;
-mod controller;
-mod request;
-pub mod stream;
+mod method;
+
+pub(in crate::app) use self::method::StreamState;
 
 use std::{collections::BTreeMap, ops::Bound, sync::Arc};
 
-use druid::{
-    widget::{Flex, Split},
-    Data, Lens, Widget, WidgetExt as _, WidgetId,
-};
+use druid::{Data, Lens, Widget, WidgetExt as _};
 use iter_set::Inclusion;
+use prost_reflect::MethodDescriptor;
 
-use self::controller::TabController;
 use crate::{
-    grpc::MethodKind,
+    app::body::method::MethodTabState,
     json::JsonText,
-    theme,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
 
@@ -36,44 +31,12 @@ pub enum RequestState {
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct TabState {
-    #[lens(ignore)]
-    #[data(same_fn = "PartialEq::eq")]
-    method: prost_reflect::MethodDescriptor,
-    #[lens(ignore)]
-    address: address::AddressState,
-    #[lens(name = "request_lens")]
-    request: request::State,
-    #[lens(name = "stream_lens")]
-    stream: stream::State,
+    #[lens(name = "method_lens")]
+    method: MethodTabState,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    tabs::new(build_body)
-}
-
-fn build_body() -> impl Widget<TabState> {
-    let id = WidgetId::next();
-
-    Split::rows(
-        Flex::column()
-            .with_child(address::build(id).lens(TabState::address_lens()))
-            .with_spacer(theme::BODY_SPACER)
-            .with_child(request::build_header().lens(TabState::request_lens))
-            .with_spacer(theme::BODY_SPACER)
-            .with_flex_child(request::build().lens(TabState::request_lens), 1.0)
-            .padding(theme::BODY_PADDING),
-        Flex::column()
-            .with_child(stream::build_header().lens(TabState::stream_lens))
-            .with_spacer(theme::BODY_SPACER)
-            .with_flex_child(stream::build().lens(TabState::stream_lens), 1.0)
-            .padding(theme::BODY_PADDING),
-    )
-    .min_size(150.0, 100.0)
-    .bar_size(2.0)
-    .solid_bar(true)
-    .draggable(true)
-    .controller(TabController::new())
-    .with_id(id)
+    tabs::new(|| method::build_body().lens(TabState::method_lens))
 }
 
 impl State {
@@ -86,14 +49,14 @@ impl State {
 
     pub fn select_or_create_tab(&mut self, method: prost_reflect::MethodDescriptor) {
         if self
-            .with_selected(|_, tab_data| tab_data.method == method)
+            .with_selected(|_, tab_data| tab_data.method.method() == &method)
             .unwrap_or(false)
         {
             return;
         }
 
         for (&id, tab) in self.tabs.iter() {
-            if tab.method == method {
+            if tab.method.method() == &method {
                 self.selected = Some(id);
                 return;
             }
@@ -151,95 +114,45 @@ impl State {
     }
 
     pub fn clear_request_history(&mut self) {
-        self.with_selected_mut(|_, tab| tab.stream.clear());
+        self.with_selected_mut(|_, tab| tab.method.clear_request_history());
     }
 
     pub fn selected_method(&self) -> Option<prost_reflect::MethodDescriptor> {
-        self.with_selected(|_, tab_data| tab_data.method.clone())
+        self.with_selected(|_, tab_data| tab_data.method.method().clone())
     }
 
     pub fn tabs(&self) -> impl Iterator<Item = (TabId, &TabState)> {
         self.tabs.iter().map(|(&id, tab)| (id, tab))
     }
 
-    pub fn with_selected_address<V>(&self, f: impl FnOnce(&address::State) -> V) -> Option<V> {
-        self.with_selected(|_, tab| TabState::address_lens().with(tab, f))
+    pub fn with_selected_address<V>(
+        &self,
+        f: impl FnOnce(&method::AddressState) -> V,
+    ) -> Option<V> {
+        self.with_selected(|_, tab| MethodTabState::address_lens().with(&tab.method, f))
     }
 }
 
 impl TabState {
-    pub fn empty(method: prost_reflect::MethodDescriptor) -> Self {
+    fn empty(method: prost_reflect::MethodDescriptor) -> TabState {
         TabState {
-            address: address::AddressState::default(),
-            stream: stream::State::new(),
-            request: request::State::empty(method.input()),
-            method,
+            method: MethodTabState::empty(method),
         }
     }
 
     pub fn new(
-        method: prost_reflect::MethodDescriptor,
+        method: MethodDescriptor,
         address: String,
-        request: impl Into<JsonText>,
-        stream: stream::State,
+        request: JsonText,
+        stream: StreamState,
     ) -> Self {
         TabState {
-            address: address::AddressState::new(address),
-            request: request::State::with_text(method.input(), request),
-            method,
-            stream,
+            method: MethodTabState::new(method, address, request, stream),
         }
     }
 
-    pub fn method(&self) -> &prost_reflect::MethodDescriptor {
+    pub fn method(&self) -> &method::MethodTabState {
         &self.method
-    }
-
-    pub(in crate::app) fn address(&self) -> &address::AddressState {
-        &self.address
-    }
-
-    pub(in crate::app) fn request(&self) -> &request::State {
-        &self.request
-    }
-
-    pub(in crate::app) fn stream(&self) -> &stream::State {
-        &self.stream
-    }
-
-    pub(in crate::app) fn address_lens() -> impl Lens<TabState, address::State> {
-        struct AddressLens;
-
-        impl Lens<TabState, address::State> for AddressLens {
-            fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &TabState, f: F) -> V {
-                f(&address::State::new(
-                    data.address.clone(),
-                    MethodKind::for_method(&data.method),
-                    data.request.is_valid(),
-                ))
-            }
-
-            fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
-                &self,
-                data: &mut TabState,
-                f: F,
-            ) -> V {
-                let mut address_data = address::State::new(
-                    data.address.clone(),
-                    MethodKind::for_method(&data.method),
-                    data.request.is_valid(),
-                );
-                let result = f(&mut address_data);
-
-                if !data.address.same(address_data.address_state()) {
-                    data.address = address_data.into_address_state();
-                }
-
-                result
-            }
-        }
-
-        AddressLens
     }
 }
 
@@ -309,7 +222,7 @@ impl TabsData for State {
     fn for_each_label(&self, mut f: impl FnMut(TabId, &TabLabelState)) {
         for (&tab_id, tab_data) in self.tabs.iter() {
             let selected = self.selected == Some(tab_id);
-            let label_data = TabLabelState::new(tab_data.method.name().into(), selected);
+            let label_data = TabLabelState::new(tab_data.method.method().name().into(), selected);
 
             f(tab_id, &label_data);
         }
@@ -318,7 +231,8 @@ impl TabsData for State {
     fn for_each_label_mut(&mut self, mut f: impl FnMut(TabId, &mut TabLabelState)) {
         for (&tab_id, tab_data) in self.tabs.iter() {
             let selected = self.selected == Some(tab_id);
-            let mut label_data = TabLabelState::new(tab_data.method.name().into(), selected);
+            let mut label_data =
+                TabLabelState::new(tab_data.method.method().name().into(), selected);
 
             f(tab_id, &mut label_data);
 
@@ -346,7 +260,8 @@ impl TabsData for State {
                 }
                 Inclusion::Both(_, (&tab_id, tab_data)) => {
                     let selected = self.selected == Some(tab_id);
-                    let label_data = TabLabelState::new(tab_data.method.name().into(), selected);
+                    let label_data =
+                        TabLabelState::new(tab_data.method.method().name().into(), selected);
 
                     f(tab_id, TabsDataChange::Changed(&label_data));
                 }

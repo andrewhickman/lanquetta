@@ -8,16 +8,16 @@ use druid::{
 
 use crate::{
     app::{
-        body::{RequestState, TabState},
+        body::{method::MethodTabState, RequestState},
         command,
     },
     grpc,
     json::JsonText,
 };
 
-type UpdateQueue = SegQueue<Box<dyn FnOnce(&mut TabController, &mut TabState) + Send>>;
+type UpdateQueue = SegQueue<Box<dyn FnOnce(&mut MethodTabController, &mut MethodTabState) + Send>>;
 
-pub struct TabController {
+pub struct MethodTabController {
     updates: Arc<UpdateQueue>,
     client: Option<grpc::Client>,
     call: Option<grpc::Call>,
@@ -29,9 +29,9 @@ struct UpdateWriter {
     updates: Weak<UpdateQueue>,
 }
 
-impl TabController {
-    pub fn new() -> TabController {
-        TabController {
+impl MethodTabController {
+    pub fn new() -> MethodTabController {
+        MethodTabController {
             updates: Arc::default(),
             client: None,
             call: None,
@@ -39,16 +39,16 @@ impl TabController {
     }
 }
 
-impl<W> Controller<TabState, W> for TabController
+impl<W> Controller<MethodTabState, W> for MethodTabController
 where
-    W: Widget<TabState>,
+    W: Widget<MethodTabState>,
 {
     fn event(
         &mut self,
         child: &mut W,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut TabState,
+        data: &mut MethodTabState,
         env: &Env,
     ) {
         match event {
@@ -61,8 +61,8 @@ where
         &mut self,
         child: &mut W,
         ctx: &mut UpdateCtx,
-        old_data: &TabState,
-        data: &TabState,
+        old_data: &MethodTabState,
+        data: &MethodTabState,
         env: &Env,
     ) {
         if old_data.address.uri() != data.address.uri() {
@@ -75,8 +75,13 @@ where
 
 const UPDATE_STATE: Selector = Selector::new("app.body.update-state");
 
-impl TabController {
-    fn command(&mut self, ctx: &mut EventCtx, command: &Command, data: &mut TabState) -> Handled {
+impl MethodTabController {
+    fn command(
+        &mut self,
+        ctx: &mut EventCtx,
+        command: &Command,
+        data: &mut MethodTabState,
+    ) -> Handled {
         tracing::debug!("Body received command: {:?}", command);
 
         if command.is(command::CONNECT) {
@@ -102,7 +107,7 @@ impl TabController {
     }
 }
 
-impl TabController {
+impl MethodTabController {
     fn get_update_writer(&self, ctx: &mut EventCtx) -> UpdateWriter {
         UpdateWriter {
             target: ctx.widget_id(),
@@ -111,7 +116,7 @@ impl TabController {
         }
     }
 
-    fn start_connect(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
+    fn start_connect(&mut self, ctx: &mut EventCtx, data: &mut MethodTabState) {
         let uri = match data.address.uri() {
             Some(uri) => uri.clone(),
             None => {
@@ -135,7 +140,7 @@ impl TabController {
             .set_request_state(RequestState::ConnectInProgress);
     }
 
-    fn finish_connect(&mut self, data: &mut TabState, result: grpc::ConnectResult) {
+    fn finish_connect(&mut self, data: &mut MethodTabState, result: grpc::ConnectResult) {
         match result {
             Ok(client) => {
                 self.client = Some(client);
@@ -147,7 +152,7 @@ impl TabController {
         }
     }
 
-    fn start_send(&mut self, ctx: &mut EventCtx, data: &mut TabState) {
+    fn start_send(&mut self, ctx: &mut EventCtx, data: &mut MethodTabState) {
         let request = match data.request().get() {
             Some(request) => request.clone(),
             None => {
@@ -183,7 +188,7 @@ impl TabController {
         }
     }
 
-    fn finish_send(&mut self, data: &mut TabState, response: Option<grpc::ResponseResult>) {
+    fn finish_send(&mut self, data: &mut MethodTabState, response: Option<grpc::ResponseResult>) {
         match response {
             Some(result) => {
                 let duration = match (&mut self.call, &result) {
@@ -205,7 +210,7 @@ impl TabController {
         self.set_request_state(data);
     }
 
-    fn disconnect(&mut self, _: &mut EventCtx, data: &mut TabState) {
+    fn disconnect(&mut self, _: &mut EventCtx, data: &mut MethodTabState) {
         self.client = None;
         self.call = None;
 
@@ -222,7 +227,7 @@ impl TabController {
         self.call.is_some()
     }
 
-    fn set_request_state(&self, data: &mut TabState) {
+    fn set_request_state(&self, data: &mut MethodTabState) {
         let request_state = match (self.is_active(), self.is_connected()) {
             (false, false) => RequestState::NotStarted,
             (false, true) => RequestState::Connected,
@@ -233,7 +238,10 @@ impl TabController {
 }
 
 impl UpdateWriter {
-    fn update(&self, f: impl FnOnce(&mut TabController, &mut TabState) + Send + 'static) -> bool {
+    fn update(
+        &self,
+        f: impl FnOnce(&mut MethodTabController, &mut MethodTabState) + Send + 'static,
+    ) -> bool {
         if let Some(updates) = self.updates.upgrade() {
             updates.push(Box::new(f));
             self.event_sink

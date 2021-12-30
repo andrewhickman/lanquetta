@@ -74,7 +74,7 @@ struct AppBodyTabState {
     method: usize,
     address: String,
     request: String,
-    stream: app::body::stream::State,
+    stream: app::body::StreamState,
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -109,17 +109,17 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 .map(|(_, tab)| {
                     let file_set = get_or_insert_file_set(
                         &mut file_descriptor_sets,
-                        tab.method().parent_file(),
+                        tab.method().method().parent_file(),
                     )?;
                     Ok(AppBodyTabState {
                         idx: AppServiceRef {
                             file_set,
-                            service: tab.method().parent_service().index(),
+                            service: tab.method().method().parent_service().index(),
                         },
-                        method: tab.method().index(),
-                        address: tab.address().text().to_owned(),
-                        request: tab.request().text().as_str().to_owned(),
-                        stream: tab.stream().clone(),
+                        method: tab.method().method().index(),
+                        address: tab.method().address().text().to_owned(),
+                        request: tab.method().request().text().as_str().to_owned(),
+                        stream: tab.method().stream().clone(),
                     })
                 })
                 .collect::<Result<Vec<_>>>()?,
