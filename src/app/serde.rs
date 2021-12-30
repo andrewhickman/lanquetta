@@ -84,6 +84,10 @@ enum AppBodyTabKind {
         request: String,
         stream: app::body::StreamState,
     },
+    Options {
+        #[serde(flatten)]
+        idx: AppServiceRef,
+    },
 }
 
 impl<'a> TryFrom<&'a app::State> for AppState {
@@ -132,6 +136,19 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                                 address: method.address().text().to_owned(),
                                 request: method.request().text().as_str().to_owned(),
                                 stream: method.stream().clone(),
+                            }
+                        }
+                        app::body::TabState::Options(options) => {
+                            let file_set = get_or_insert_file_set(
+                                &mut file_descriptor_sets,
+                                options.service().parent_file(),
+                            )?;
+
+                            AppBodyTabKind::Options {
+                                idx: AppServiceRef {
+                                    file_set,
+                                    service: options.service().index(),
+                                },
                             }
                         }
                     };
@@ -221,6 +238,11 @@ impl AppBodyState {
                             stream,
                         ),
                     ))
+                }
+                AppBodyTabKind::Options { idx } => {
+                    let service = get_service(file_sets, &idx)?;
+
+                    Ok((TabId::next(), app::body::TabState::new_options(service)))
                 }
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
