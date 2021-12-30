@@ -1,6 +1,9 @@
-use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target};
+use druid::{AppDelegate, Command, DelegateCtx, Env, Event, Handled, Target, WindowId};
 
-use crate::app::{self, command};
+use crate::{
+    app::{self, command},
+    widget::FINISH_EDIT,
+};
 
 pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
     Delegate
@@ -9,6 +12,21 @@ pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
 struct Delegate;
 
 impl AppDelegate<app::State> for Delegate {
+    fn event(
+        &mut self,
+        ctx: &mut DelegateCtx,
+        window_id: WindowId,
+        event: Event,
+        _: &mut app::State,
+        _: &Env,
+    ) -> Option<Event> {
+        if let Event::MouseDown(_) = event {
+            ctx.submit_command(Command::new(FINISH_EDIT, (), window_id));
+        }
+
+        Some(event)
+    }
+
     fn command(
         &mut self,
         _ctx: &mut DelegateCtx,

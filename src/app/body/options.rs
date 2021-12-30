@@ -102,7 +102,7 @@ where
         env: &Env,
     ) {
         if !old_data.same(data) {
-            if let Some(service_options) = dbg!(data.service_options()) {
+            if let Some(service_options) = data.service_options() {
                 ctx.submit_command(
                     SET_SERVICE_OPTIONS.with((data.service.clone(), service_options)),
                 );

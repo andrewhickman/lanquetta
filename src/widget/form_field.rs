@@ -10,6 +10,7 @@ use druid::{Data, Env, Widget};
 
 use crate::theme;
 
+pub const START_EDIT: Selector = Selector::new("app.start-edit");
 pub const FINISH_EDIT: Selector = Selector::new("app.finish-edit");
 
 pub type ValidationFn<O, E> = Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>;
@@ -26,6 +27,7 @@ pub struct ValidationState<T, O, E> {
     validate: ValidationFn<O, E>,
     result: Result<O, E>,
     pristine: bool,
+    editing: bool,
 }
 
 struct FinishEditController {
@@ -77,7 +79,10 @@ where
         env: &Env,
     ) {
         if let Event::Command(command) = event {
-            if command.is(FINISH_EDIT) {
+            if command.is(START_EDIT) {
+                data.editing = true;
+            } else if data.editing && command.is(FINISH_EDIT) {
+                data.editing = false;
                 data.set_dirty();
             }
         }
@@ -163,6 +168,7 @@ where
             result,
             validate,
             pristine: true,
+            editing: false,
         }
     }
 
@@ -173,6 +179,7 @@ where
             result,
             validate,
             pristine: false,
+            editing: false,
         }
     }
 
@@ -226,6 +233,7 @@ where
         self.raw.same(&other.raw)
             && self.validate.same(&other.validate)
             && self.pristine.same(&other.pristine)
+            && self.editing.same(&other.editing)
     }
 }
 
@@ -254,8 +262,12 @@ where
         data: &T,
         env: &Env,
     ) {
-        if let LifeCycle::FocusChanged(false) = event {
-            ctx.submit_command(FINISH_EDIT.to(self.field_id));
+        if let LifeCycle::FocusChanged(focused) = event {
+            if *focused {
+                ctx.submit_command(START_EDIT.to(self.field_id));
+            } else {
+                ctx.submit_command(FINISH_EDIT.to(self.field_id));
+            }
         }
 
         child.lifecycle(ctx, event, data, env)
