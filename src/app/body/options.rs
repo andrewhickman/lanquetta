@@ -20,7 +20,7 @@ impl OptionsTabState {
         format!("{} options", self.service.name())
     }
 
-    pub fn service(&self) -> ServiceDescriptor {
-        self.service.clone()
+    pub fn service(&self) -> &ServiceDescriptor {
+        &self.service
     }
 }

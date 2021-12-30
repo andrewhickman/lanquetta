@@ -7,7 +7,7 @@ repository = "https://github.com/andrewhickman/grpc-client"
 documentation = "https://docs.rs/grpc-client"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 
 [profile.release]

@@ -1,4 +1,4 @@
-use std::{iter, sync::Arc};
+use std::sync::Arc;
 
 use druid::{
     widget::{prelude::*, Label, LineBreaking, List, ListIter},
@@ -6,7 +6,10 @@ use druid::{
 };
 
 use crate::{
-    app::{command::REMOVE_SERVICE, sidebar::method},
+    app::{
+        command::{REMOVE_SERVICE, SELECT_OR_CREATE_OPTIONS_TAB},
+        sidebar::method,
+    },
     theme,
     widget::expander,
     widget::{ExpanderData, Icon},
@@ -32,12 +35,22 @@ pub(in crate::app) struct ServiceState {
     service: prost_reflect::ServiceDescriptor,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ServiceOptions {
+    default_address: String,
+}
+
 pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
     let expander_label = Label::raw()
         .with_font(theme::font::HEADER_ONE)
         .with_line_break_mode(LineBreaking::Clip)
         .lens(ServiceState::name)
         .lens(State::service);
+
+    let open_options_tab: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
+        Box::new(move |ctx, data, _| {
+            ctx.submit_command(SELECT_OR_CREATE_OPTIONS_TAB.with(data.service.service.clone()));
+        });
 
     let close_expander: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
         Box::new(move |ctx, data, _| {
@@ -47,7 +60,11 @@ pub(in crate::app) fn build(sidebar_id: WidgetId) -> impl Widget<State> {
     expander::new(
         expander_label,
         List::new(method::build),
-        iter::once((Icon::close(), close_expander)),
+        [
+            (Icon::settings(), open_options_tab),
+            (Icon::close(), close_expander),
+        ]
+        .into_iter(),
     )
     .env_scope(|env, data: &State| {
         env.set(theme::EXPANDER_PADDING, 8.0);

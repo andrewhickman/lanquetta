@@ -43,11 +43,14 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::CLEAR) {
             data.body.clear_request_history();
             Handled::Yes
+        } else if let Some(service) = cmd.get(command::SELECT_OR_CREATE_OPTIONS_TAB) {
+            data.body.select_or_create_options_tab(service.clone());
+            Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_METHOD_TAB) {
             data.body.select_or_create_method_tab(method.clone());
             Handled::Yes
         } else if let Some(method) = cmd.get(command::CREATE_TAB) {
-            data.body.create_tab(method.clone());
+            data.body.create_method_tab(method.clone());
             Handled::Yes
         } else {
             Handled::No

@@ -59,7 +59,7 @@ impl State {
         }
     }
 
-    pub fn select_or_create_method_tab(&mut self, method: prost_reflect::MethodDescriptor) {
+    pub fn select_or_create_method_tab(&mut self, method: MethodDescriptor) {
         if self
             .with_selected_method(|_, tab_data| tab_data.method() == &method)
             .unwrap_or(false)
@@ -77,13 +77,40 @@ impl State {
             }
         }
 
-        self.create_tab(method)
+        self.create_method_tab(method)
     }
 
-    pub fn create_tab(&mut self, method: prost_reflect::MethodDescriptor) {
+    pub fn select_or_create_options_tab(&mut self, service: ServiceDescriptor) {
+        if self
+            .with_selected_options(|_, tab_data| tab_data.service() == &service)
+            .unwrap_or(false)
+        {
+            return;
+        }
+
+        for (&id, tab) in self.tabs.iter() {
+            match tab {
+                TabState::Options(data) if data.service() == &service => {
+                    self.selected = Some(id);
+                    return;
+                }
+                _ => (),
+            }
+        }
+
+        self.create_options_tab(service)
+    }
+
+    pub fn create_method_tab(&mut self, method: MethodDescriptor) {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_method(method));
+    }
+
+    pub fn create_options_tab(&mut self, service: ServiceDescriptor) {
+        let id = TabId::next();
+        self.selected = Some(id);
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::new_options(service));
     }
 
     pub fn first_tab(&self) -> Option<TabId> {
@@ -152,6 +179,16 @@ impl State {
     ) -> Option<V> {
         self.try_with_selected_mut(|id, data| match data {
             TabState::Method(method) => Some(f(id, method)),
+            _ => None,
+        })
+    }
+
+    pub fn with_selected_options<V>(
+        &self,
+        f: impl FnOnce(TabId, &OptionsTabState) -> V,
+    ) -> Option<V> {
+        self.try_with_selected(|id, data| match data {
+            TabState::Options(options) => Some(f(id, options)),
             _ => None,
         })
     }

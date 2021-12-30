@@ -368,7 +368,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#004c6eb48ad0381fd7f05c4fbf6a2fae81ceb5e3"
+source = "git+https://github.com/linebender/druid.git?branch=master#ab6af4eba3d7d63c6a2abd247a0bd5c0ac5f3c1d"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -391,7 +391,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#004c6eb48ad0381fd7f05c4fbf6a2fae81ceb5e3"
+source = "git+https://github.com/linebender/druid.git?branch=master#ab6af4eba3d7d63c6a2abd247a0bd5c0ac5f3c1d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -401,7 +401,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#004c6eb48ad0381fd7f05c4fbf6a2fae81ceb5e3"
+source = "git+https://github.com/linebender/druid.git?branch=master#ab6af4eba3d7d63c6a2abd247a0bd5c0ac5f3c1d"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -1423,6 +1423,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28988d872ab76095a6e6ac88d99b54fd267702734fd7ffe610ca27f533ddb95a"
 
 [[package]]
+name = "ordered-float"
+version = "2.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97c9d06878b3a851e8026ef94bf7fef9ba93062cd412601da4d9cf369b1cc62d"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "pango"
 version = "0.14.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1739,15 +1748,16 @@ dependencies = [
 
 [[package]]
 name = "prost-reflect"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45fc58fc6136ca06a53a65c496bc6d59a58107bf3dfb903a58867a3a8f3faa53"
+checksum = "0c400facad9431e26ebe3e7e441901b653a05f89f333ce7376b5ab2f67b5d4da"
 dependencies = [
  "base64",
  "chrono",
  "prost",
  "prost-types",
  "serde",
+ "serde-value",
 ]
 
 [[package]]
@@ -2068,6 +2078,16 @@ version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "590c0e25c2a5bb6e85bf5c1bce768ceb86b316e7a01bdf07d2cb4ec2271990e2"
 dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde-value"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3a1a3341211875ef120e117ea7fd5228530ae7e7036a779fdc9117be6b3282c"
+dependencies = [
+ "ordered-float",
  "serde",
 ]
 
