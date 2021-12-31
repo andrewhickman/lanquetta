@@ -3,6 +3,7 @@
 mod app;
 mod grpc;
 mod json;
+mod protoc;
 mod theme;
 mod widget;
 

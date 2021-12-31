@@ -8,7 +8,7 @@ mod sidebar;
 
 use druid::{
     widget::Painter,
-    widget::{Either, Flex, Label, Split},
+    widget::{Either, Flex, Label, LineBreaking, Split},
     AppLauncher, Data, Lens, PlatformError, RenderContext, UnitPoint, Widget, WidgetExt as _,
     WindowDesc,
 };
@@ -58,6 +58,7 @@ fn build() -> impl Widget<State> {
                     Label::dynamic(|data: &Option<String>, _| {
                         data.as_ref().cloned().unwrap_or_default()
                     })
+                    .with_line_break_mode(LineBreaking::WordWrap)
                     .align_horizontal(UnitPoint::CENTER),
                     1.0,
                 )

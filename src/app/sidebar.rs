@@ -11,7 +11,7 @@ use druid::{
 };
 use prost_reflect::ServiceDescriptor;
 
-use crate::theme;
+use crate::{protoc, theme};
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -56,9 +56,7 @@ impl State {
 
 impl ServiceListState {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
-        let bytes = fs_err::read(path)?;
-
-        let file_set = prost_reflect::FileDescriptor::decode(bytes.as_ref())?;
+        let file_set = protoc::load_file(path)?;
 
         self.services
             .extend(file_set.services().map(service::ServiceState::from));
