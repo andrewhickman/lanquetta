@@ -273,7 +273,7 @@ impl Response {
                 &mut s,
                 &SerializeOptions::new()
                     .stringify_64_bit_integers(false)
-                    .emit_unpopulated_fields(true),
+                    .skip_default_fields(false),
             )
             .unwrap();
 

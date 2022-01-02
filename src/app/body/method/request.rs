@@ -113,22 +113,18 @@ fn make_template_message(desc: MessageDescriptor) -> DynamicMessage {
     let mut message = DynamicMessage::new(desc);
 
     for field in message.descriptor().fields() {
-        if field.is_list() {
-            let value = make_template_field(field.kind());
-            message.set_field(field.number(), prost_reflect::Value::List(vec![value]));
-        } else if field.is_map() {
-            let map_entry = field.kind();
-            let map_entry = map_entry.as_message().unwrap();
-
-            let key = prost_reflect::MapKey::default_value(&map_entry.get_field(1).unwrap().kind());
-            let value = make_template_field(map_entry.get_field(2).unwrap().kind());
-
-            message.set_field(
-                field.number(),
-                prost_reflect::Value::Map([(key, value)].into()),
-            );
-        } else {
-            message.set_field(field.number(), make_template_field(field.kind()));
+        match message.get_field_mut(&field) {
+            prost_reflect::Value::List(ref mut list) => {
+                list.push(make_template_field(field.kind()));
+            }
+            prost_reflect::Value::Map(ref mut map) => {
+                let kind = field.kind();
+                let entry = kind.as_message().unwrap();
+                let key = prost_reflect::MapKey::default_value(&entry.map_entry_key_field().kind());
+                let value = make_template_field(entry.map_entry_value_field().kind());
+                map.insert(key, value);
+            }
+            _ => (),
         }
     }
 
