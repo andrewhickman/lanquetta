@@ -107,24 +107,24 @@ fn can_select_prev_tab(data: &app::State) -> bool {
 
 fn can_connect(data: &app::State) -> bool {
     data.body
-        .with_selected_address(|address| address.can_connect())
+        .with_selected_method(|_, tab| tab.can_connect())
         .unwrap_or(false)
 }
 
 fn can_send(data: &app::State) -> bool {
     data.body
-        .with_selected_address(|address| address.can_send())
+        .with_selected_method(|_, tab| tab.can_send())
         .unwrap_or(false)
 }
 
 fn can_finish(data: &app::State) -> bool {
     data.body
-        .with_selected_address(|address| address.can_finish())
+        .with_selected_method(|_, tab| tab.can_finish())
         .unwrap_or(false)
 }
 
 fn can_disconnect(data: &app::State) -> bool {
     data.body
-        .with_selected_address(|address| address.can_disconnect())
+        .with_selected_method(|_, tab| tab.can_disconnect())
         .unwrap_or(false)
 }

@@ -307,13 +307,6 @@ impl MethodKind {
             (true, true) => MethodKind::Streaming,
         }
     }
-
-    pub(crate) fn client_streaming(&self) -> bool {
-        match self {
-            MethodKind::Unary | MethodKind::ServerStreaming => false,
-            MethodKind::ClientStreaming | MethodKind::Streaming => true,
-        }
-    }
 }
 
 fn arc_err(err: impl Into<anyhow::Error>) -> Error {

@@ -1,19 +1,21 @@
-mod address_bar;
 mod controller;
 mod request;
 mod stream;
 
-pub(in crate::app) use self::{address_bar::State as AddressState, stream::State as StreamState};
+pub(in crate::app) use self::stream::State as StreamState;
 
 use druid::{
-    widget::{Flex, Split},
-    Data, Lens, Widget, WidgetExt, WidgetId,
+    widget::{prelude::*, Button, CrossAxisAlignment, Flex, Split},
+    Data, Lens, WidgetExt,
 };
 
 use self::controller::MethodTabController;
 use crate::{
-    app::{body::address, sidebar::service::ServiceOptions},
-    grpc::MethodKind,
+    app::{
+        body::{address, RequestState},
+        command,
+        sidebar::service::ServiceOptions,
+    },
     json::JsonText,
     theme,
 };
@@ -23,7 +25,7 @@ pub struct MethodTabState {
     #[lens(ignore)]
     #[data(same_fn = "PartialEq::eq")]
     method: prost_reflect::MethodDescriptor,
-    #[lens(ignore)]
+    #[lens(name = "address_lens")]
     address: address::AddressState,
     #[lens(name = "request_lens")]
     request: request::State,
@@ -36,7 +38,7 @@ pub fn build_body() -> impl Widget<MethodTabState> {
 
     Split::rows(
         Flex::column()
-            .with_child(address_bar::build(id).lens(MethodTabState::address_lens()))
+            .with_child(build_address_bar(id))
             .with_spacer(theme::BODY_SPACER)
             .with_child(request::build_header().lens(MethodTabState::request_lens))
             .with_spacer(theme::BODY_SPACER)
@@ -54,6 +56,73 @@ pub fn build_body() -> impl Widget<MethodTabState> {
     .draggable(true)
     .controller(MethodTabController::new())
     .with_id(id)
+}
+
+fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
+    let address_form_field = address::build(body_id);
+
+    let send_button = theme::button_scope(
+        Button::dynamic(
+            |data: &MethodTabState, _| match data.address.request_state() {
+                RequestState::NotStarted | RequestState::ConnectFailed => "Connect".to_owned(),
+                RequestState::ConnectInProgress => "Connecting...".to_owned(),
+                RequestState::Connected => "Send".to_owned(),
+                RequestState::Active if data.method.is_client_streaming() => "Send".to_owned(),
+                RequestState::Active => "Sending...".to_owned(),
+            },
+        )
+        .on_click(
+            move |ctx: &mut EventCtx, data: &mut MethodTabState, _: &Env| {
+                debug_assert!(data.can_send() || data.can_connect());
+                match data.address.request_state() {
+                    RequestState::NotStarted | RequestState::ConnectFailed => {
+                        debug_assert!(data.can_connect());
+                        ctx.submit_command(command::CONNECT.to(body_id));
+                    }
+                    RequestState::ConnectInProgress => unreachable!(),
+                    RequestState::Connected | RequestState::Active => {
+                        debug_assert!(data.can_send());
+                        ctx.submit_command(command::SEND.to(body_id));
+                    }
+                }
+            },
+        ),
+    )
+    .disabled_if(|data: &MethodTabState, _| !data.can_send() && !data.can_connect());
+
+    let finish_button = theme::button_scope(
+        Button::dynamic(
+            |data: &MethodTabState, _| match data.address.request_state() {
+                RequestState::Active if data.method.is_client_streaming() => "Finish".to_owned(),
+                _ => "Disconnect".to_owned(),
+            },
+        )
+        .on_click(
+            move |ctx: &mut EventCtx, data: &mut MethodTabState, _: &Env| {
+                debug_assert!(data.can_finish() || data.can_disconnect());
+                match data.address.request_state() {
+                    RequestState::NotStarted | RequestState::ConnectFailed => unreachable!(),
+                    RequestState::Active if data.method.is_client_streaming() => {
+                        ctx.submit_command(command::FINISH.to(body_id));
+                    }
+                    RequestState::ConnectInProgress
+                    | RequestState::Connected
+                    | RequestState::Active => {
+                        ctx.submit_command(command::DISCONNECT.to(body_id));
+                    }
+                }
+            },
+        ),
+    )
+    .disabled_if(|data: &MethodTabState, _| !data.can_finish() && !data.can_disconnect());
+
+    Flex::row()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_flex_child(address_form_field.lens(MethodTabState::address_lens), 1.0)
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(send_button.fix_width(100.0))
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(finish_button.fix_width(100.0))
 }
 
 impl MethodTabState {
@@ -100,42 +169,27 @@ impl MethodTabState {
         self.stream.clear();
     }
 
-    pub(in crate::app) fn address_lens() -> impl Lens<MethodTabState, address_bar::State> {
-        struct AddressLens;
+    pub fn can_send(&self) -> bool {
+        (self.address.request_state() != RequestState::Active || self.method.is_client_streaming())
+            && self.address.request_state() != RequestState::NotStarted
+            && self.address.request_state() != RequestState::ConnectInProgress
+            && self.address.is_valid()
+            && self.request.is_valid()
+    }
 
-        impl Lens<MethodTabState, address_bar::State> for AddressLens {
-            fn with<V, F: FnOnce(&address_bar::State) -> V>(
-                &self,
-                data: &MethodTabState,
-                f: F,
-            ) -> V {
-                f(&address_bar::State::new(
-                    data.address.clone(),
-                    MethodKind::for_method(&data.method),
-                    data.request.is_valid(),
-                ))
-            }
+    pub fn can_connect(&self) -> bool {
+        self.address.request_state() != RequestState::Active
+            && self.address.request_state() != RequestState::ConnectInProgress
+            && self.address.is_valid()
+    }
 
-            fn with_mut<V, F: FnOnce(&mut address_bar::State) -> V>(
-                &self,
-                data: &mut MethodTabState,
-                f: F,
-            ) -> V {
-                let mut address_data = address_bar::State::new(
-                    data.address.clone(),
-                    MethodKind::for_method(&data.method),
-                    data.request.is_valid(),
-                );
-                let result = f(&mut address_data);
+    pub fn can_finish(&self) -> bool {
+        self.address.request_state() == RequestState::Active && self.method.is_client_streaming()
+    }
 
-                if !data.address.same(address_data.address_state()) {
-                    data.address = address_data.into_address_state();
-                }
-
-                result
-            }
-        }
-
-        AddressLens
+    pub fn can_disconnect(&self) -> bool {
+        self.address.request_state() == RequestState::ConnectInProgress
+            || self.address.request_state() == RequestState::Connected
+            || self.address.request_state() == RequestState::Active
     }
 }

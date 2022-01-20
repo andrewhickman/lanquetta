@@ -216,13 +216,6 @@ impl State {
         self.tabs.iter().map(|(&id, tab)| (id, tab))
     }
 
-    pub fn with_selected_address<V>(
-        &self,
-        f: impl FnOnce(&method::AddressState) -> V,
-    ) -> Option<V> {
-        self.with_selected_method(|_, tab| MethodTabState::address_lens().with(tab, f))
-    }
-
     fn try_with_selected<V>(&self, f: impl FnOnce(TabId, &TabState) -> Option<V>) -> Option<V> {
         self.selected
             .and_then(|tab_id| f(tab_id, self.tabs.get(&tab_id).unwrap()))

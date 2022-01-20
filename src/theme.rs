@@ -133,7 +133,9 @@ pub(crate) fn error_label_scope<T: Data>(child: impl Widget<T> + 'static) -> imp
         .rounded(2.0)
 }
 
-pub(crate) fn hot_or_active_painter<T>(border_radius: impl Into<KeyOrValue<RoundedRectRadii>>) -> Painter<T> {
+pub(crate) fn hot_or_active_painter<T>(
+    border_radius: impl Into<KeyOrValue<RoundedRectRadii>>,
+) -> Painter<T> {
     let border_radius = border_radius.into();
     Painter::new(move |ctx, _: &T, env: &Env| {
         let mut color = env.get(druid::theme::BACKGROUND_LIGHT);
