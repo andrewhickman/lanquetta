@@ -45,7 +45,7 @@ features = ["im", "svg", "serde"]
 [dependencies.tonic]
 version = "0.6.2"
 default-features = false
-features = ["transport", "tls", "tls-roots", "prost"]
+features = ["transport", "tls", "tls-roots", "compression"]
 
 [dependencies.tokio]
 version = "1.15.0"

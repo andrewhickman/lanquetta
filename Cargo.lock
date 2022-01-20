@@ -2425,8 +2425,6 @@ dependencies = [
  "hyper-timeout",
  "percent-encoding",
  "pin-project",
- "prost",
- "prost-derive",
  "rustls-native-certs",
  "tokio",
  "tokio-rustls",
