@@ -1,9 +1,9 @@
-mod address;
+mod address_bar;
 mod controller;
 mod request;
 mod stream;
 
-pub(in crate::app) use self::{address::State as AddressState, stream::State as StreamState};
+pub(in crate::app) use self::{address_bar::State as AddressState, stream::State as StreamState};
 
 use druid::{
     widget::{Flex, Split},
@@ -19,7 +19,7 @@ pub struct MethodTabState {
     #[data(same_fn = "PartialEq::eq")]
     method: prost_reflect::MethodDescriptor,
     #[lens(ignore)]
-    address: address::AddressState,
+    address: address_bar::AddressState,
     #[lens(name = "request_lens")]
     request: request::State,
     #[lens(name = "stream_lens")]
@@ -31,7 +31,7 @@ pub fn build_body() -> impl Widget<MethodTabState> {
 
     Split::rows(
         Flex::column()
-            .with_child(address::build(id).lens(MethodTabState::address_lens()))
+            .with_child(address_bar::build(id).lens(MethodTabState::address_lens()))
             .with_spacer(theme::BODY_SPACER)
             .with_child(request::build_header().lens(MethodTabState::request_lens))
             .with_spacer(theme::BODY_SPACER)
@@ -54,7 +54,7 @@ pub fn build_body() -> impl Widget<MethodTabState> {
 impl MethodTabState {
     pub fn empty(method: prost_reflect::MethodDescriptor, options: &ServiceOptions) -> Self {
         MethodTabState {
-            address: address::AddressState::with_options(options),
+            address: address_bar::AddressState::with_options(options),
             stream: stream::State::new(),
             request: request::State::empty(method.input()),
             method,
@@ -68,7 +68,7 @@ impl MethodTabState {
         stream: stream::State,
     ) -> Self {
         MethodTabState {
-            address: address::AddressState::new(address),
+            address: address_bar::AddressState::new(address),
             request: request::State::with_text(method.input(), request),
             method,
             stream,
@@ -79,7 +79,7 @@ impl MethodTabState {
         &self.method
     }
 
-    pub(in crate::app) fn address(&self) -> &address::AddressState {
+    pub(in crate::app) fn address(&self) -> &address_bar::AddressState {
         &self.address
     }
 
@@ -95,24 +95,28 @@ impl MethodTabState {
         self.stream.clear();
     }
 
-    pub(in crate::app) fn address_lens() -> impl Lens<MethodTabState, address::State> {
+    pub(in crate::app) fn address_lens() -> impl Lens<MethodTabState, address_bar::State> {
         struct AddressLens;
 
-        impl Lens<MethodTabState, address::State> for AddressLens {
-            fn with<V, F: FnOnce(&address::State) -> V>(&self, data: &MethodTabState, f: F) -> V {
-                f(&address::State::new(
+        impl Lens<MethodTabState, address_bar::State> for AddressLens {
+            fn with<V, F: FnOnce(&address_bar::State) -> V>(
+                &self,
+                data: &MethodTabState,
+                f: F,
+            ) -> V {
+                f(&address_bar::State::new(
                     data.address.clone(),
                     MethodKind::for_method(&data.method),
                     data.request.is_valid(),
                 ))
             }
 
-            fn with_mut<V, F: FnOnce(&mut address::State) -> V>(
+            fn with_mut<V, F: FnOnce(&mut address_bar::State) -> V>(
                 &self,
                 data: &mut MethodTabState,
                 f: F,
             ) -> V {
-                let mut address_data = address::State::new(
+                let mut address_data = address_bar::State::new(
                     data.address.clone(),
                     MethodKind::for_method(&data.method),
                     data.request.is_valid(),
