@@ -56,21 +56,6 @@ where
             _ => child.event(ctx, event, data, env),
         }
     }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut UpdateCtx,
-        old_data: &MethodTabState,
-        data: &MethodTabState,
-        env: &Env,
-    ) {
-        if old_data.address.uri() != data.address.uri() {
-            ctx.submit_command(command::DISCONNECT.to(ctx.widget_id()));
-        }
-
-        child.update(ctx, old_data, data, env)
-    }
 }
 
 const UPDATE_STATE: Selector = Selector::new("app.body.update-state");
@@ -105,9 +90,7 @@ impl MethodTabController {
             Handled::No
         }
     }
-}
 
-impl MethodTabController {
     fn get_update_writer(&self, ctx: &mut EventCtx) -> UpdateWriter {
         UpdateWriter {
             target: ctx.widget_id(),
@@ -126,7 +109,6 @@ impl MethodTabController {
         };
 
         if self.is_connected() {
-            tracing::error!("Connect called when already connected");
             return;
         }
 

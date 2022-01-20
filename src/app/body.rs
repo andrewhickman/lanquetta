@@ -1,21 +1,20 @@
+mod address;
 mod method;
 mod options;
 
 pub(in crate::app) use self::method::StreamState;
 
-use std::{collections::BTreeMap, mem, ops::Bound, str::FromStr, sync::Arc};
+use std::{collections::BTreeMap, mem, ops::Bound, sync::Arc};
 
 use druid::{widget::ViewSwitcher, ArcStr, Data, Lens, Widget, WidgetExt as _};
-use http::Uri;
 use iter_set::Inclusion;
-use once_cell::sync::Lazy;
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use self::{method::MethodTabState, options::OptionsTabState};
 use crate::{
     app::sidebar::service::ServiceOptions,
     json::JsonText,
-    widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange, ValidationFn},
+    widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
 
 #[derive(Debug, Default, Clone, Data)]
@@ -443,14 +442,4 @@ impl TabsData for State {
         Arc::make_mut(&mut self.tabs).remove(&id);
         self.update_selected_after_remove();
     }
-}
-
-static VALIDATE_URI: Lazy<ValidationFn<Uri, String>> = Lazy::new(|| Arc::new(validate_uri));
-
-fn validate_uri(s: &str) -> Result<Uri, String> {
-    let uri = Uri::from_str(s).map_err(|err| err.to_string())?;
-    if uri.scheme().is_none() {
-        return Err("URI must have scheme".to_owned());
-    }
-    Ok(uri)
 }

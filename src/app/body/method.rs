@@ -11,7 +11,12 @@ use druid::{
 };
 
 use self::controller::MethodTabController;
-use crate::{app::sidebar::service::ServiceOptions, grpc::MethodKind, json::JsonText, theme};
+use crate::{
+    app::{body::address, sidebar::service::ServiceOptions},
+    grpc::MethodKind,
+    json::JsonText,
+    theme,
+};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct MethodTabState {
@@ -19,7 +24,7 @@ pub struct MethodTabState {
     #[data(same_fn = "PartialEq::eq")]
     method: prost_reflect::MethodDescriptor,
     #[lens(ignore)]
-    address: address_bar::AddressState,
+    address: address::AddressState,
     #[lens(name = "request_lens")]
     request: request::State,
     #[lens(name = "stream_lens")]
@@ -54,7 +59,7 @@ pub fn build_body() -> impl Widget<MethodTabState> {
 impl MethodTabState {
     pub fn empty(method: prost_reflect::MethodDescriptor, options: &ServiceOptions) -> Self {
         MethodTabState {
-            address: address_bar::AddressState::with_options(options),
+            address: address::AddressState::with_options(options),
             stream: stream::State::new(),
             request: request::State::empty(method.input()),
             method,
@@ -68,7 +73,7 @@ impl MethodTabState {
         stream: stream::State,
     ) -> Self {
         MethodTabState {
-            address: address_bar::AddressState::new(address),
+            address: address::AddressState::new(address),
             request: request::State::with_text(method.input(), request),
             method,
             stream,
@@ -79,7 +84,7 @@ impl MethodTabState {
         &self.method
     }
 
-    pub(in crate::app) fn address(&self) -> &address_bar::AddressState {
+    pub(in crate::app) fn address(&self) -> &address::AddressState {
         &self.address
     }
 

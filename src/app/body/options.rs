@@ -1,45 +1,31 @@
 use druid::{
-    widget::{Controller, Either, Flex, Label, TextBox},
-    Data, Env, Lens, UpdateCtx, Widget, WidgetExt,
+    widget::{prelude::*, Controller, Flex, Label},
+    Data, Lens, WidgetExt,
 };
-use http::Uri;
 use prost_reflect::ServiceDescriptor;
 
 use crate::{
-    app::{body::VALIDATE_URI, command::SET_SERVICE_OPTIONS, sidebar::service::ServiceOptions},
+    app::{
+        body::address::{self, AddressState},
+        command::{self, SET_SERVICE_OPTIONS},
+        sidebar::service::ServiceOptions,
+    },
     theme,
-    widget::{Empty, FormField, ValidationState},
 };
-
-type AddressValidationState = ValidationState<String, Uri, String>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct OptionsTabState {
     #[data(same_fn = "PartialEq::eq")]
     #[lens(ignore)]
     service: ServiceDescriptor,
-    default_address: AddressValidationState,
+    default_address: AddressState,
 }
 
 pub struct OptionsTabController;
 
 pub fn build_body() -> impl Widget<OptionsTabState> {
-    let address_textbox = FormField::new(theme::text_box_scope(
-        TextBox::new()
-            .with_placeholder("http://localhost:80")
-            .expand_width(),
-    ));
-
-    let error_label =
-        theme::error_label_scope(Label::dynamic(|data: &AddressValidationState, _| {
-            data.result().err().cloned().unwrap_or_default()
-        }));
-    let error = Either::new(
-        |data: &AddressValidationState, _| !data.is_pristine_or_valid(),
-        error_label,
-        Empty,
-    )
-    .expand_width();
+    let id = WidgetId::next();
+    let address = address::build(id);
 
     Flex::column()
         .with_child(
@@ -48,26 +34,23 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
                 .align_left(),
         )
         .with_spacer(theme::BODY_SPACER)
-        .with_child(address_textbox)
-        .with_child(error)
+        .with_child(address)
         .must_fill_main_axis(true)
         .lens(OptionsTabState::default_address)
         .padding(theme::BODY_PADDING)
         .expand_height()
         .controller(OptionsTabController)
+        .with_id(id)
 }
 
 impl OptionsTabState {
     pub fn new(service: ServiceDescriptor, options: ServiceOptions) -> Self {
         OptionsTabState {
             service,
-            default_address: ValidationState::new(
-                options
-                    .default_address
-                    .map(|s| s.to_string())
-                    .unwrap_or_default(),
-                VALIDATE_URI.clone(),
-            ),
+            default_address: match options.default_address {
+                Some(uri) => AddressState::new(uri.to_string()),
+                None => AddressState::default(),
+            },
         }
     }
 
@@ -81,8 +64,7 @@ impl OptionsTabState {
 
     pub fn service_options(&self) -> Option<ServiceOptions> {
         self.default_address
-            .result()
-            .ok()
+            .uri()
             .map(|default_address| ServiceOptions {
                 default_address: Some(default_address.clone()),
             })
@@ -93,6 +75,27 @@ impl<W> Controller<OptionsTabState, W> for OptionsTabController
 where
     W: Widget<OptionsTabState>,
 {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut OptionsTabState,
+        env: &Env,
+    ) {
+        if let Event::Command(command) = event {
+            if command.is(command::CONNECT) {
+                tracing::info!("connect!");
+                // TODO connect
+            } else if command.is(command::DISCONNECT) {
+                tracing::info!("disconnect!");
+                // TODO disconnect
+            }
+        }
+
+        child.event(ctx, event, data, env)
+    }
+
     fn update(
         &mut self,
         child: &mut W,
