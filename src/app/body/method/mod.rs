@@ -121,7 +121,6 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_flex_child(address_form_field.lens(MethodTabState::address_lens), 1.0)
-        .with_spacer(theme::BODY_SPACER)
         .with_child(send_button.fix_width(100.0))
         .with_spacer(theme::BODY_SPACER)
         .with_child(finish_button.fix_width(100.0))

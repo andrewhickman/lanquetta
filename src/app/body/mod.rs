@@ -12,7 +12,7 @@ use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use self::{method::MethodTabState, options::OptionsTabState};
 use crate::{
-    app::sidebar::service::ServiceOptions,
+    app::{command, sidebar::service::ServiceOptions},
     grpc,
     json::JsonText,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
@@ -264,6 +264,38 @@ impl State {
             }
         })
     }
+
+    pub fn can_connect(&self) -> bool {
+        self.with_selected(|_, tab| match tab {
+            TabState::Method(tab) => tab.can_connect(),
+            TabState::Options(tab) => tab.can_connect(),
+        })
+        .unwrap_or(false)
+    }
+
+    pub fn can_send(&self) -> bool {
+        self.with_selected(|_, tab| match tab {
+            TabState::Method(tab) => tab.can_send(),
+            TabState::Options(_) => false,
+        })
+        .unwrap_or(false)
+    }
+
+    pub fn can_finish(&self) -> bool {
+        self.with_selected(|_, tab| match tab {
+            TabState::Method(tab) => tab.can_finish(),
+            TabState::Options(_) => false,
+        })
+        .unwrap_or(false)
+    }
+
+    pub fn can_disconnect(&self) -> bool {
+        self.with_selected(|_, tab| match tab {
+            TabState::Method(tab) => tab.can_disconnect(),
+            TabState::Options(tab) => tab.can_disconnect(),
+        })
+        .unwrap_or(false)
+    }
 }
 
 impl TabState {
@@ -457,5 +489,12 @@ impl TabsData for State {
     fn remove(&mut self, id: TabId) {
         Arc::make_mut(&mut self.tabs).remove(&id);
         self.update_selected_after_remove();
+    }
+
+    fn route_command_to_hidden(&self, cmd: &druid::Command) -> bool {
+        !cmd.is(command::CONNECT)
+            && !cmd.is(command::DISCONNECT)
+            && !cmd.is(command::SEND)
+            && !cmd.is(command::FINISH)
     }
 }

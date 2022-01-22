@@ -52,16 +52,13 @@ where
         data: &OptionsTabState,
         env: &Env,
     ) {
-        if !old_data.same(data) {
+        if old_data.default_address.uri() != data.default_address.uri()
+            || old_data.verify_certs != data.verify_certs
+        {
             ctx.submit_command(
                 command::SET_SERVICE_OPTIONS.with((data.service.clone(), data.service_options())),
             );
-
-            if old_data.default_address.uri() != data.default_address.uri()
-                || old_data.verify_certs != data.verify_certs
-            {
-                ctx.submit_command(command::DISCONNECT.to(ctx.widget_id()));
-            }
+            ctx.submit_command(command::DISCONNECT.to(ctx.widget_id()));
         }
 
         child.update(ctx, old_data, data, env);

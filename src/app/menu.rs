@@ -106,25 +106,17 @@ fn can_select_prev_tab(data: &app::State) -> bool {
 }
 
 fn can_connect(data: &app::State) -> bool {
-    data.body
-        .with_selected_method(|_, tab| tab.can_connect())
-        .unwrap_or(false)
+    data.body.can_connect()
 }
 
 fn can_send(data: &app::State) -> bool {
-    data.body
-        .with_selected_method(|_, tab| tab.can_send())
-        .unwrap_or(false)
+    data.body.can_send()
 }
 
 fn can_finish(data: &app::State) -> bool {
-    data.body
-        .with_selected_method(|_, tab| tab.can_finish())
-        .unwrap_or(false)
+    data.body.can_finish()
 }
 
 fn can_disconnect(data: &app::State) -> bool {
-    data.body
-        .with_selected_method(|_, tab| tab.can_disconnect())
-        .unwrap_or(false)
+    data.body.can_disconnect()
 }

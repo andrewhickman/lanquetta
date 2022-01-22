@@ -26,7 +26,12 @@ where
     W: Widget<T::Item>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        if event.should_propagate_to_hidden() {
+        let should_propagate_to_hidden = match event {
+            Event::Command(command) => data.route_command_to_hidden(command),
+            event => event.should_propagate_to_hidden(),
+        };
+
+        if should_propagate_to_hidden {
             self.for_each_mut(data, |_, tab, tab_data| {
                 tab.event(ctx, event, tab_data, env)
             })

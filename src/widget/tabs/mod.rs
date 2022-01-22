@@ -6,7 +6,7 @@ pub use label::State as TabLabelState;
 
 use druid::{
     widget::{CrossAxisAlignment, Flex},
-    Data, Selector, Widget, WidgetExt,
+    Command, Data, Selector, Widget, WidgetExt,
 };
 
 use self::body::TabsBody;
@@ -44,6 +44,10 @@ pub trait TabsData: Data {
     );
 
     fn remove(&mut self, id: TabId);
+
+    fn route_command_to_hidden(&self, _: &Command) -> bool {
+        true
+    }
 }
 
 const CLOSE_TAB: Selector<TabId> = Selector::new("app.tabs.close-tab");
