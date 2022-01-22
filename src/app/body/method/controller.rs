@@ -108,8 +108,9 @@ impl MethodTabController {
                 self.client = Some(client);
                 self.set_request_state(data);
             }
-            Err(_) => {
-                data.address.set_request_state(RequestState::ConnectFailed);
+            Err(err) => {
+                data.address
+                    .set_request_state(RequestState::ConnectFailed(err));
             }
         }
     }

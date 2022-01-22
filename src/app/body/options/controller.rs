@@ -117,9 +117,9 @@ impl OptionsTabController {
                 self.client = Some(client);
                 self.set_request_state(data);
             }
-            Err(_) => {
+            Err(err) => {
                 data.default_address
-                    .set_request_state(RequestState::ConnectFailed);
+                    .set_request_state(RequestState::ConnectFailed(err));
             }
         }
     }

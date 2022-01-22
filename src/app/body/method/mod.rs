@@ -64,7 +64,7 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
     let send_button = theme::button_scope(
         Button::dynamic(
             |data: &MethodTabState, _| match data.address.request_state() {
-                RequestState::NotStarted | RequestState::ConnectFailed => "Connect".to_owned(),
+                RequestState::NotStarted | RequestState::ConnectFailed(_) => "Connect".to_owned(),
                 RequestState::ConnectInProgress => "Connecting...".to_owned(),
                 RequestState::Connected => "Send".to_owned(),
                 RequestState::Active if data.method.is_client_streaming() => "Send".to_owned(),
@@ -75,7 +75,7 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
             move |ctx: &mut EventCtx, data: &mut MethodTabState, _: &Env| {
                 debug_assert!(data.can_send() || data.can_connect());
                 match data.address.request_state() {
-                    RequestState::NotStarted | RequestState::ConnectFailed => {
+                    RequestState::NotStarted | RequestState::ConnectFailed(_) => {
                         debug_assert!(data.can_connect());
                         ctx.submit_command(command::CONNECT.to(body_id));
                     }
@@ -101,7 +101,7 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
             move |ctx: &mut EventCtx, data: &mut MethodTabState, _: &Env| {
                 debug_assert!(data.can_finish() || data.can_disconnect());
                 match data.address.request_state() {
-                    RequestState::NotStarted | RequestState::ConnectFailed => unreachable!(),
+                    RequestState::NotStarted | RequestState::ConnectFailed(_) => unreachable!(),
                     RequestState::Active if data.method.is_client_streaming() => {
                         ctx.submit_command(command::FINISH.to(body_id));
                     }
@@ -170,26 +170,36 @@ impl MethodTabState {
     }
 
     pub fn can_send(&self) -> bool {
-        (self.address.request_state() != RequestState::Active || self.method.is_client_streaming())
-            && self.address.request_state() != RequestState::NotStarted
-            && self.address.request_state() != RequestState::ConnectInProgress
-            && self.address.is_valid()
+        self.address.is_valid()
             && self.request.is_valid()
+            && match self.address.request_state() {
+                RequestState::NotStarted
+                | RequestState::ConnectInProgress
+                | RequestState::ConnectFailed(_) => false,
+                RequestState::Connected => true,
+                RequestState::Active => self.method.is_client_streaming(),
+            }
     }
 
     pub fn can_connect(&self) -> bool {
-        self.address.request_state() != RequestState::Active
-            && self.address.request_state() != RequestState::ConnectInProgress
-            && self.address.is_valid()
+        self.address.is_valid()
+            && match self.address.request_state() {
+                RequestState::NotStarted | RequestState::ConnectFailed(_) => true,
+                RequestState::Connected
+                | RequestState::ConnectInProgress
+                | RequestState::Active => false,
+            }
     }
 
     pub fn can_finish(&self) -> bool {
-        self.address.request_state() == RequestState::Active && self.method.is_client_streaming()
+        matches!(self.address.request_state(), RequestState::Active)
+            && self.method.is_client_streaming()
     }
 
     pub fn can_disconnect(&self) -> bool {
-        self.address.request_state() == RequestState::ConnectInProgress
-            || self.address.request_state() == RequestState::Connected
-            || self.address.request_state() == RequestState::Active
+        matches!(
+            self.address.request_state(),
+            RequestState::ConnectInProgress | RequestState::Connected | RequestState::Active
+        )
     }
 }

@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::{mem, str::FromStr, sync::Arc};
 
 use druid::{
     widget::{
@@ -35,27 +35,30 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
             .with_placeholder("http://localhost:80")
             .expand_width(),
     ))
-    .controller(AddressController { parent });
+    .controller(AddressController { parent })
+    .lens(AddressState::uri_lens);
 
-    let error_label =
-        theme::error_label_scope(Label::dynamic(|data: &AddressValidationState, _| {
-            data.result().err().cloned().unwrap_or_default()
-        }));
+    let error_label = theme::error_label_scope(Label::dynamic(|data: &AddressState, _| {
+        if let Err(err) = data.uri.result() {
+            err.clone()
+        } else if let RequestState::ConnectFailed(err) = data.request_state() {
+            format!("failed to connect: {:?}", err)
+        } else {
+            String::default()
+        }
+    }));
     let error = Either::new(
-        |data: &AddressValidationState, _| !data.is_pristine_or_valid(),
+        |data: &AddressState, _| !data.uri.is_pristine_or_valid() || matches!(data.request_state(), RequestState::ConnectFailed(_)),
         error_label,
         Empty,
     )
     .expand_width();
 
-    let address_form_field = Flex::column()
-        .with_child(address_textbox)
-        .with_child(error)
-        .lens(AddressState::uri_lens);
+    let address_form_field = Flex::column().with_child(address_textbox).with_child(error);
 
     let spinner = ViewSwitcher::new(
-        |&request_state: &RequestState, _| request_state,
-        |&request_state, _, _| match request_state {
+        |request_state: &RequestState, _| mem::discriminant(request_state),
+        |_, request_state, _| match request_state {
             RequestState::NotStarted => Empty.boxed(),
             RequestState::ConnectInProgress | RequestState::Active => {
                 layout_spinner(Spinner::new(), 2.0)
@@ -63,7 +66,7 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
             RequestState::Connected => {
                 layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0)
             }
-            RequestState::ConnectFailed => {
+            RequestState::ConnectFailed(_) => {
                 layout_spinner(Icon::close().with_color(theme::color::ERROR), 0.0)
             }
         },
@@ -109,8 +112,8 @@ impl AddressState {
         self.uri.result().ok()
     }
 
-    pub fn request_state(&self) -> RequestState {
-        self.request_state
+    pub fn request_state(&self) -> &RequestState {
+        &self.request_state
     }
 
     pub fn set_request_state(&mut self, request_state: RequestState) {

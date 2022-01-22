@@ -13,6 +13,7 @@ use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 use self::{method::MethodTabState, options::OptionsTabState};
 use crate::{
     app::sidebar::service::ServiceOptions,
+    grpc,
     json::JsonText,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
@@ -23,12 +24,12 @@ pub(in crate::app) struct State {
     selected: Option<TabId>,
 }
 
-#[derive(Debug, Clone, Copy, Data, Eq, PartialEq)]
+#[derive(Debug, Clone, Data)]
 pub enum RequestState {
     NotStarted,
     ConnectInProgress,
     Connected,
-    ConnectFailed,
+    ConnectFailed(grpc::Error),
     Active,
 }
 
