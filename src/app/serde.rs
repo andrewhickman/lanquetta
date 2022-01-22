@@ -76,6 +76,7 @@ struct AppBodyTabState {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 enum AppBodyTabKind {
     Method {
         #[serde(flatten)]
@@ -84,6 +85,7 @@ enum AppBodyTabKind {
         address: String,
         request: String,
         stream: app::body::StreamState,
+        options: ServiceOptions,
     },
     Options {
         #[serde(flatten)]
@@ -138,6 +140,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                                 address: method.address().text().to_owned(),
                                 request: method.request().text().as_str().to_owned(),
                                 stream: method.stream().clone(),
+                                options: method.service_options().clone(),
                             }
                         }
                         app::body::TabState::Options(options) => {
@@ -231,6 +234,7 @@ impl AppBodyState {
                     address,
                     request,
                     stream,
+                    options,
                 } => {
                     let method = get_service(file_sets, &idx)?
                         .methods()
@@ -243,6 +247,7 @@ impl AppBodyState {
                             address,
                             JsonText::pretty(request),
                             stream,
+                            options,
                         ),
                     ))
                 }

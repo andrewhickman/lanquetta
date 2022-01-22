@@ -65,7 +65,7 @@ impl State {
     pub fn select_or_create_method_tab(
         &mut self,
         method: &MethodDescriptor,
-        options: &ServiceOptions,
+        options: ServiceOptions,
     ) {
         if self
             .with_selected_method(|_, tab_data| tab_data.method() == method)
@@ -112,7 +112,7 @@ impl State {
         self.create_options_tab(service, options)
     }
 
-    pub fn create_method_tab(&mut self, method: &MethodDescriptor, options: &ServiceOptions) {
+    pub fn create_method_tab(&mut self, method: &MethodDescriptor, options: ServiceOptions) {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_method(method.clone(), options));
@@ -249,10 +249,25 @@ impl State {
                 .map(|(&tab_id, _)| tab_id);
         }
     }
+
+    pub fn set_service_options(&mut self, service: &ServiceDescriptor, options: &ServiceOptions) {
+        self.for_each_mut(|_, tab| match tab {
+            TabState::Method(tab) => {
+                if tab.method().parent_service() == service {
+                    tab.set_service_options(options.clone());
+                }
+            }
+            TabState::Options(tab) => {
+                if tab.service() == service {
+                    tab.set_service_options(options.clone());
+                }
+            }
+        })
+    }
 }
 
 impl TabState {
-    fn empty_method(method: prost_reflect::MethodDescriptor, options: &ServiceOptions) -> TabState {
+    fn empty_method(method: prost_reflect::MethodDescriptor, options: ServiceOptions) -> TabState {
         TabState::Method(MethodTabState::empty(method, options))
     }
 
@@ -261,8 +276,15 @@ impl TabState {
         address: String,
         request: JsonText,
         stream: StreamState,
+        service_options: ServiceOptions,
     ) -> Self {
-        TabState::Method(MethodTabState::new(method, address, request, stream))
+        TabState::Method(MethodTabState::new(
+            method,
+            address,
+            request,
+            stream,
+            service_options,
+        ))
     }
 
     pub fn new_options(service: ServiceDescriptor, options: ServiceOptions) -> TabState {

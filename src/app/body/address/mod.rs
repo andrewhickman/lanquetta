@@ -48,7 +48,10 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
         }
     }));
     let error = Either::new(
-        |data: &AddressState, _| !data.uri.is_pristine_or_valid() || matches!(data.request_state(), RequestState::ConnectFailed(_)),
+        |data: &AddressState, _| {
+            !data.uri.is_pristine_or_valid()
+                || matches!(data.request_state(), RequestState::ConnectFailed(_))
+        },
         error_label,
         Empty,
     )
@@ -110,6 +113,10 @@ impl AddressState {
 
     pub fn uri(&self) -> Option<&Uri> {
         self.uri.result().ok()
+    }
+
+    pub fn set_uri(&mut self, uri: &Uri) {
+        self.uri.with_text_mut(|t| *t = uri.to_string())
     }
 
     pub fn request_state(&self) -> &RequestState {

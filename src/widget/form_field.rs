@@ -190,10 +190,6 @@ where
     pub fn text(&self) -> &T {
         &self.raw
     }
-
-    pub fn text_mut(&mut self) -> &mut T {
-        &mut self.raw
-    }
 }
 
 impl<T, O, E> ValidationState<T, O, E> {
@@ -214,7 +210,7 @@ impl<T, O, E> ValidationState<T, O, E>
 where
     T: TextStorage + Data,
 {
-    fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
+    pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
         let old = self.raw.clone();
         let value = f(&mut self.raw);
         if !self.raw.same(&old) {

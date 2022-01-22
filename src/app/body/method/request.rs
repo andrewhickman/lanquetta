@@ -96,7 +96,7 @@ impl Controller<RequestValidationState, FormField<JsonText>> for RequestControll
     ) {
         if let Event::Command(command) = event {
             if command.is(FINISH_EDIT) {
-                data.text_mut().prettify();
+                data.with_text_mut(|t| t.prettify())
             }
         }
         child.event(ctx, event, data, env)

@@ -1,9 +1,6 @@
-use druid::{AppDelegate, Command, DelegateCtx, Env, Event, Handled, Target, WindowId};
+use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 
-use crate::{
-    app::{self, command},
-    widget::FINISH_EDIT,
-};
+use crate::app::{self, command};
 
 pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
     Delegate
@@ -12,21 +9,6 @@ pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
 struct Delegate;
 
 impl AppDelegate<app::State> for Delegate {
-    fn event(
-        &mut self,
-        ctx: &mut DelegateCtx,
-        window_id: WindowId,
-        event: Event,
-        _: &mut app::State,
-        _: &Env,
-    ) -> Option<Event> {
-        if let Event::MouseDown(_) = event {
-            ctx.submit_command(Command::new(FINISH_EDIT, (), window_id));
-        }
-
-        Some(event)
-    }
-
     fn command(
         &mut self,
         _ctx: &mut DelegateCtx,
@@ -62,6 +44,7 @@ impl AppDelegate<app::State> for Delegate {
             data.body.clear_request_history();
             Handled::Yes
         } else if let Some((service, options)) = cmd.get(command::SET_SERVICE_OPTIONS) {
+            data.body.set_service_options(service, options);
             data.sidebar.set_service_options(service, options);
             Handled::Yes
         } else if let Some((service, options)) = cmd.get(command::SELECT_OR_CREATE_OPTIONS_TAB) {
@@ -69,7 +52,8 @@ impl AppDelegate<app::State> for Delegate {
             Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_METHOD_TAB) {
             if let Some(options) = data.sidebar.get_service_options(method.parent_service()) {
-                data.body.select_or_create_method_tab(method, options);
+                data.body
+                    .select_or_create_method_tab(method, options.clone());
             }
             Handled::Yes
         } else if let Some(service_index) = cmd.get(command::REMOVE_SERVICE) {
@@ -78,7 +62,7 @@ impl AppDelegate<app::State> for Delegate {
             Handled::Yes
         } else if let Some(method) = cmd.get(command::CREATE_TAB) {
             if let Some(options) = data.sidebar.get_service_options(method.parent_service()) {
-                data.body.create_method_tab(method, options);
+                data.body.create_method_tab(method, options.clone());
             }
             Handled::Yes
         } else {

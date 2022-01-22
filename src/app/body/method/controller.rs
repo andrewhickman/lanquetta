@@ -46,6 +46,23 @@ where
             _ => child.event(ctx, event, data, env),
         }
     }
+
+    fn update(
+        &mut self,
+        child: &mut W,
+        ctx: &mut UpdateCtx,
+        old_data: &MethodTabState,
+        data: &MethodTabState,
+        env: &Env,
+    ) {
+        if old_data.address.uri() != data.address.uri()
+            || old_data.service_options.verify_certs != data.service_options.verify_certs
+        {
+            ctx.submit_command(command::DISCONNECT.to(ctx.widget_id()));
+        }
+
+        child.update(ctx, old_data, data, env)
+    }
 }
 
 impl MethodTabController {
@@ -93,8 +110,9 @@ impl MethodTabController {
         }
 
         let update_writer = self.updates.writer(ctx);
+        let verify_certs = data.service_options.verify_certs;
         tokio::spawn(async move {
-            let result = grpc::Client::new(&uri).await;
+            let result = grpc::Client::new(&uri, verify_certs).await;
             update_writer.write(|controller, data| controller.finish_connect(data, result));
         });
 

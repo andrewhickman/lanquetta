@@ -31,6 +31,8 @@ pub struct MethodTabState {
     request: request::State,
     #[lens(name = "stream_lens")]
     stream: stream::State,
+    #[lens(ignore)]
+    service_options: ServiceOptions,
 }
 
 pub fn build_body() -> impl Widget<MethodTabState> {
@@ -126,11 +128,12 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
 }
 
 impl MethodTabState {
-    pub fn empty(method: prost_reflect::MethodDescriptor, options: &ServiceOptions) -> Self {
+    pub fn empty(method: prost_reflect::MethodDescriptor, service_options: ServiceOptions) -> Self {
         MethodTabState {
-            address: address::AddressState::with_options(options),
+            address: address::AddressState::with_options(&service_options),
             stream: stream::State::new(),
             request: request::State::empty(method.input()),
+            service_options,
             method,
         }
     }
@@ -140,12 +143,14 @@ impl MethodTabState {
         address: String,
         request: impl Into<JsonText>,
         stream: stream::State,
+        service_options: ServiceOptions,
     ) -> Self {
         MethodTabState {
             address: address::AddressState::new(address),
             request: request::State::with_text(method.input(), request),
             method,
             stream,
+            service_options,
         }
     }
 
@@ -201,5 +206,13 @@ impl MethodTabState {
             self.address.request_state(),
             RequestState::ConnectInProgress | RequestState::Connected | RequestState::Active
         )
+    }
+
+    pub fn service_options(&self) -> &ServiceOptions {
+        &self.service_options
+    }
+
+    pub fn set_service_options(&mut self, options: ServiceOptions) {
+        self.service_options = options;
     }
 }

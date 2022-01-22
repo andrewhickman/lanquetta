@@ -51,8 +51,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new(uri: &Uri) -> ConnectResult {
-        let channel = channel::get(uri).await?;
+    pub async fn new(uri: &Uri, verify_certs: bool) -> ConnectResult {
+        let channel = channel::get(uri, verify_certs).await?;
         Ok(Client {
             grpc: Grpc::new(channel),
         })

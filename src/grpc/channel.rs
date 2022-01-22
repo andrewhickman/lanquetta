@@ -9,7 +9,13 @@ use tonic::transport::Channel;
 
 use crate::grpc;
 
-static CHANNELS: Lazy<DashMap<Uri, Arc<Mutex<ChannelState>>>> = Lazy::new(Default::default);
+static CHANNELS: Lazy<DashMap<ChannelKey, Arc<Mutex<ChannelState>>>> = Lazy::new(Default::default);
+
+#[derive(Clone, Hash, PartialEq, Eq)]
+struct ChannelKey {
+    uri: Uri,
+    verify_certs: bool,
+}
 
 enum ChannelState {
     Pending(BoxFuture<'static, Result<Channel, grpc::Error>>),
@@ -17,8 +23,12 @@ enum ChannelState {
     Error,
 }
 
-pub async fn get(uri: &Uri) -> Result<Channel, grpc::Error> {
-    let state = match CHANNELS.entry(uri.clone()) {
+pub async fn get(uri: &Uri, verify_certs: bool) -> Result<Channel, grpc::Error> {
+    let key = ChannelKey {
+        uri: uri.clone(),
+        verify_certs,
+    };
+    let state = match CHANNELS.entry(key) {
         Entry::Occupied(entry) => entry.get().clone(),
         Entry::Vacant(entry) => {
             let state = Arc::new(Mutex::new(ChannelState::new(uri.clone())));

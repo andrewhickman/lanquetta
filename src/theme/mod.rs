@@ -3,7 +3,7 @@ pub mod font;
 mod scope;
 
 use druid::{
-    widget::{Container, Painter},
+    widget::{Checkbox, Container, Painter},
     Color, Data, Env, FontDescriptor, Key, KeyOrValue, RenderContext, RoundedRectRadii, Widget,
 };
 
@@ -120,6 +120,17 @@ pub(crate) fn text_box_scope<T>(child: impl Widget<T>) -> impl Widget<T> {
                 env.set(druid::theme::PRIMARY_LIGHT, color::ERROR);
             }
 
+            scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
+            scope::set_hot(env, state, druid::theme::BORDER_DARK);
+        }
+    })
+}
+
+pub(crate) fn check_box_scope(child: Checkbox) -> impl Widget<bool> {
+    scope::new(child, |env, state| {
+        env.set(druid::theme::BACKGROUND_LIGHT, color::BACKGROUND);
+
+        if !state.is_disabled() {
             scope::set_hot(env, state, druid::theme::BORDER_LIGHT);
             scope::set_hot(env, state, druid::theme::BORDER_DARK);
         }

@@ -39,11 +39,21 @@ pub(in crate::app) struct ServiceState {
     options: ServiceOptions,
 }
 
-#[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
+#[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
 pub struct ServiceOptions {
     #[data(same_fn = "PartialEq::eq")]
     #[serde(with = "serde_opt_uri")]
     pub default_address: Option<Uri>,
+    pub verify_certs: bool,
+}
+
+impl Default for ServiceOptions {
+    fn default() -> Self {
+        Self {
+            default_address: Default::default(),
+            verify_certs: true,
+        }
+    }
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
