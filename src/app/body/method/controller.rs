@@ -55,7 +55,7 @@ impl MethodTabController {
         command: &Command,
         data: &mut MethodTabState,
     ) -> Handled {
-        tracing::debug!("Body received command: {:?}", command);
+        tracing::debug!("Method tab received command: {:?}", command);
 
         if command.is(command::CONNECT) {
             self.start_connect(ctx, data);

@@ -1,5 +1,7 @@
+mod controller;
+
 use druid::{
-    widget::{prelude::*, Controller, Flex, Label},
+    widget::{prelude::*, Flex, Label},
     Data, Lens, WidgetExt,
 };
 use prost_reflect::ServiceDescriptor;
@@ -7,11 +9,12 @@ use prost_reflect::ServiceDescriptor;
 use crate::{
     app::{
         body::address::{self, AddressState},
-        command::{self, SET_SERVICE_OPTIONS},
         sidebar::service::ServiceOptions,
     },
     theme,
 };
+
+use self::controller::OptionsTabController;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct OptionsTabState {
@@ -20,8 +23,6 @@ pub struct OptionsTabState {
     service: ServiceDescriptor,
     default_address: AddressState,
 }
-
-pub struct OptionsTabController;
 
 pub fn build_body() -> impl Widget<OptionsTabState> {
     let id = WidgetId::next();
@@ -39,7 +40,7 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
         .lens(OptionsTabState::default_address)
         .padding(theme::BODY_PADDING)
         .expand_height()
-        .controller(OptionsTabController)
+        .controller(OptionsTabController::new())
         .with_id(id)
 }
 
@@ -68,49 +69,5 @@ impl OptionsTabState {
             .map(|default_address| ServiceOptions {
                 default_address: Some(default_address.clone()),
             })
-    }
-}
-
-impl<W> Controller<OptionsTabState, W> for OptionsTabController
-where
-    W: Widget<OptionsTabState>,
-{
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut OptionsTabState,
-        env: &Env,
-    ) {
-        if let Event::Command(command) = event {
-            if command.is(command::CONNECT) {
-                tracing::info!("connect!");
-                // TODO connect
-            } else if command.is(command::DISCONNECT) {
-                tracing::info!("disconnect!");
-                // TODO disconnect
-            }
-        }
-
-        child.event(ctx, event, data, env)
-    }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut UpdateCtx,
-        old_data: &OptionsTabState,
-        data: &OptionsTabState,
-        env: &Env,
-    ) {
-        if !old_data.same(data) {
-            if let Some(service_options) = data.service_options() {
-                ctx.submit_command(
-                    SET_SERVICE_OPTIONS.with((data.service.clone(), service_options)),
-                );
-            }
-            child.update(ctx, old_data, data, env);
-        }
     }
 }
