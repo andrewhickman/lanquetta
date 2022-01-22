@@ -1,5 +1,6 @@
 pub mod expander;
 pub mod tabs;
+pub mod update_queue;
 
 mod empty;
 mod form_field;

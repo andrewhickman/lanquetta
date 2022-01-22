@@ -1,9 +1,6 @@
-use std::sync::{Arc, Weak};
-
-use crossbeam_queue::SegQueue;
 use druid::{
     widget::{prelude::*, Controller},
-    Command, ExtEventSink, Handled, Selector,
+    Command, Handled,
 };
 
 use crate::{
@@ -13,26 +10,19 @@ use crate::{
     },
     grpc,
     json::JsonText,
+    widget::update_queue::{self, UpdateQueue},
 };
 
-type UpdateQueue = SegQueue<Box<dyn FnOnce(&mut MethodTabController, &mut MethodTabState) + Send>>;
-
 pub struct MethodTabController {
-    updates: Arc<UpdateQueue>,
+    updates: UpdateQueue<MethodTabController, MethodTabState>,
     client: Option<grpc::Client>,
     call: Option<grpc::Call>,
-}
-
-struct UpdateWriter {
-    target: WidgetId,
-    event_sink: ExtEventSink,
-    updates: Weak<UpdateQueue>,
 }
 
 impl MethodTabController {
     pub fn new() -> MethodTabController {
         MethodTabController {
-            updates: Arc::default(),
+            updates: UpdateQueue::new(),
             client: None,
             call: None,
         }
@@ -58,8 +48,6 @@ where
     }
 }
 
-const UPDATE_STATE: Selector = Selector::new("app.body.update-state");
-
 impl MethodTabController {
     fn command(
         &mut self,
@@ -81,21 +69,13 @@ impl MethodTabController {
         } else if command.is(command::DISCONNECT) {
             self.disconnect(ctx, data);
             Handled::Yes
-        } else if command.is(UPDATE_STATE) {
+        } else if command.is(update_queue::UPDATE) {
             while let Some(update) = self.updates.pop() {
-                (update)(self, data);
+                (update)(self, data)
             }
             Handled::Yes
         } else {
             Handled::No
-        }
-    }
-
-    fn get_update_writer(&self, ctx: &mut EventCtx) -> UpdateWriter {
-        UpdateWriter {
-            target: ctx.widget_id(),
-            event_sink: ctx.get_external_handle(),
-            updates: Arc::downgrade(&self.updates),
         }
     }
 
@@ -112,10 +92,10 @@ impl MethodTabController {
             return;
         }
 
-        let update_writer = self.get_update_writer(ctx);
+        let update_writer = self.updates.writer(ctx);
         tokio::spawn(async move {
             let result = grpc::Client::new(&uri).await;
-            update_writer.update(|controller, data| controller.finish_connect(data, result));
+            update_writer.write(|controller, data| controller.finish_connect(data, result));
         });
 
         data.address
@@ -161,9 +141,9 @@ impl MethodTabController {
                 }
             };
 
-            let update_writer = self.get_update_writer(ctx);
+            let update_writer = self.updates.writer(ctx);
             self.call = Some(client.call(data.method.clone(), request, move |response| {
-                update_writer.update(|controller, data| controller.finish_send(data, response));
+                update_writer.write(|controller, data| controller.finish_send(data, response));
             }));
 
             data.address.set_request_state(RequestState::Active);
@@ -198,7 +178,7 @@ impl MethodTabController {
 
         self.set_request_state(data);
 
-        self.updates = Arc::new(SegQueue::new());
+        self.updates.disconnect();
     }
 
     fn is_connected(&self) -> bool {
@@ -216,21 +196,5 @@ impl MethodTabController {
             (true, _) => RequestState::Active,
         };
         data.address.set_request_state(request_state);
-    }
-}
-
-impl UpdateWriter {
-    fn update(
-        &self,
-        f: impl FnOnce(&mut MethodTabController, &mut MethodTabState) + Send + 'static,
-    ) -> bool {
-        if let Some(updates) = self.updates.upgrade() {
-            updates.push(Box::new(f));
-            self.event_sink
-                .submit_command(UPDATE_STATE, (), self.target)
-                .is_ok()
-        } else {
-            false
-        }
     }
 }
