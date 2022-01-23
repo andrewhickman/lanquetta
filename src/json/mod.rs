@@ -11,25 +11,17 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use druid::{
-    piet::{
-        self, FontStyle, FontWeight, PietTextLayoutBuilder, TextAttribute, TextLayoutBuilder,
-        TextStorage as _,
-    },
+    piet::{self, PietTextLayoutBuilder, TextAttribute, TextLayoutBuilder, TextStorage as _},
     text::{EditableText, StringCursor, TextStorage},
     Data,
 };
-use syntect::highlighting;
 
 #[derive(Debug, Clone)]
 pub struct JsonText {
     // Original data, present if this JSON has been shortened.
     original_data: Option<Arc<String>>,
     data: Arc<String>,
-    styles: Arc<[(highlighting::Style, Range<usize>)]>,
-}
-
-fn color(c: highlighting::Color) -> druid::Color {
-    druid::Color::rgba8(c.r, c.g, c.b, c.a)
+    styles: Arc<[(TextAttribute, Range<usize>)]>,
 }
 
 fn prettify(s: &str) -> Option<String> {
@@ -139,28 +131,8 @@ impl TextStorage for JsonText {
         mut builder: PietTextLayoutBuilder,
         _env: &druid::Env,
     ) -> PietTextLayoutBuilder {
-        for (ref style, ref range) in self.styles.iter() {
-            builder = builder.range_attribute(
-                range.clone(),
-                TextAttribute::TextColor(color(style.foreground)),
-            );
-
-            if style.font_style.contains(highlighting::FontStyle::BOLD) {
-                builder =
-                    builder.range_attribute(range.clone(), TextAttribute::Weight(FontWeight::BOLD));
-            }
-
-            if style.font_style.contains(highlighting::FontStyle::ITALIC) {
-                builder =
-                    builder.range_attribute(range.clone(), TextAttribute::Style(FontStyle::Italic));
-            }
-
-            if style
-                .font_style
-                .contains(highlighting::FontStyle::UNDERLINE)
-            {
-                builder = builder.range_attribute(range.clone(), TextAttribute::Underline(true));
-            }
+        for (ref attribute, ref range) in self.styles.iter() {
+            builder = builder.range_attribute(range.clone(), attribute.clone());
         }
         builder
     }
