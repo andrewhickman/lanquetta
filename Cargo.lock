@@ -870,6 +870,7 @@ dependencies = [
  "prost",
  "prost-reflect",
  "rand",
+ "rustls",
  "serde",
  "serde-transcode",
  "serde_json",
@@ -880,6 +881,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "vergen",
+ "webpki",
  "which",
 ]
 
