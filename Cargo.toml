@@ -42,7 +42,8 @@ which = "4.2.2"
 [dependencies.druid]
 git = "https://github.com/linebender/druid.git"
 branch = "master"
-features = ["im", "svg", "serde"]
+default-features = false
+features = ["im", "svg", "serde", "x11"]
 
 [dependencies.tonic]
 version = "0.6.2"
