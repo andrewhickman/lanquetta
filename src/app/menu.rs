@@ -1,7 +1,4 @@
-use druid::{
-    keyboard_types::Key, menu, Env, FileDialogOptions, LocalizedString, Menu, MenuItem, SysMods,
-    WindowId,
-};
+use druid::{keyboard_types::Key, menu, Env, LocalizedString, Menu, MenuItem, SysMods, WindowId};
 
 use crate::app;
 
@@ -22,7 +19,7 @@ fn file_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-file-menu"))
         .entry(
             MenuItem::new(LocalizedString::new("common-menu-file-open"))
-                .command(druid::commands::SHOW_OPEN_PANEL.with(FileDialogOptions::new()))
+                .command(app::command::add_file())
                 .hotkey(SysMods::Cmd, "o"),
         )
         .separator()

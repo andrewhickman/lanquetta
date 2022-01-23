@@ -1,4 +1,4 @@
-use druid::Selector;
+use druid::{Command, FileDialogOptions, Selector};
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use crate::app::sidebar::service::ServiceOptions;
@@ -47,3 +47,8 @@ pub const DISCONNECT: Selector = Selector::new("app.disconnect");
 
 /// Clear request history
 pub const CLEAR: Selector = Selector::new("app.clear");
+
+/// Add services from a file
+pub fn add_file() -> Command {
+    druid::commands::SHOW_OPEN_PANEL.with(FileDialogOptions::new())
+}

@@ -6,12 +6,12 @@ use std::{iter::FromIterator, path::Path};
 use anyhow::Result;
 use druid::{
     widget::Scroll,
-    widget::{List, ListIter},
+    widget::{Flex, Label, LineBreaking, List, ListIter, MainAxisAlignment},
     Data, Lens, Widget, WidgetExt as _,
 };
 use prost_reflect::ServiceDescriptor;
 
-use crate::{protoc, theme};
+use crate::{app::command, protoc, theme, widget::Icon};
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -26,11 +26,31 @@ pub(in crate::app) struct ServiceListState {
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    Scroll::new(List::new(service::build))
-        .vertical()
-        .expand_height()
-        .background(druid::theme::BACKGROUND_LIGHT)
-        .env_scope(|env, _| theme::set_contrast(env))
+    let add_button = Flex::row()
+        .with_child(Icon::add().padding(8.0))
+        .with_child(
+            Label::new("Add file")
+                .with_font(theme::font::HEADER_ONE)
+                .with_line_break_mode(LineBreaking::Clip),
+        )
+        .must_fill_main_axis(true)
+        .main_axis_alignment(MainAxisAlignment::Start)
+        .on_click(|ctx, _: &mut State, _| {
+            ctx.submit_command(command::add_file());
+        })
+        .background(theme::hot_or_active_painter(0.0));
+
+    Scroll::new(
+        Flex::column()
+            .with_child(List::new(service::build))
+            .with_child(add_button)
+            .main_axis_alignment(MainAxisAlignment::SpaceBetween),
+    )
+    .vertical()
+    .content_must_fill(true)
+    .expand_height()
+    .background(druid::theme::BACKGROUND_LIGHT)
+    .env_scope(|env, _| theme::set_contrast(env))
 }
 
 impl State {

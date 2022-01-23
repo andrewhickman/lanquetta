@@ -2,8 +2,8 @@ use std::{mem, str::FromStr, sync::Arc};
 
 use druid::{
     widget::{
-        prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, Spinner, TextBox,
-        ViewSwitcher,
+        prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking, Spinner,
+        TextBox, ViewSwitcher,
     },
     Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
 };
@@ -38,15 +38,18 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
     .controller(AddressController { parent })
     .lens(AddressState::uri_lens);
 
-    let error_label = theme::error_label_scope(Label::dynamic(|data: &AddressState, _| {
-        if let Err(err) = data.uri.result() {
-            err.clone()
-        } else if let RequestState::ConnectFailed(err) = data.request_state() {
-            format!("failed to connect: {:?}", err)
-        } else {
-            String::default()
-        }
-    }));
+    let error_label = theme::error_label_scope(
+        Label::dynamic(|data: &AddressState, _| {
+            if let Err(err) = data.uri.result() {
+                err.clone()
+            } else if let RequestState::ConnectFailed(err) = data.request_state() {
+                format!("failed to connect: {:?}", err)
+            } else {
+                String::default()
+            }
+        })
+        .with_line_break_mode(LineBreaking::WordWrap),
+    );
     let error = Either::new(
         |data: &AddressState, _| {
             !data.uri.is_pristine_or_valid()
