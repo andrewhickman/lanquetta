@@ -172,7 +172,8 @@ impl<'a> Highlighter<'a> {
 
     fn skip_pattern(&mut self, pattern: &Regex) -> Option<Range<usize>> {
         if let Some(m) = pattern.find(self.text.as_str()) {
-            Some(self.advance(m.range().len()))
+            debug_assert_eq!(m.start(), 0);
+            Some(self.advance(m.end()))
         } else {
             self.highlight_invalid();
             None
