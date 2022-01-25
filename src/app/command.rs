@@ -1,4 +1,4 @@
-use druid::{Command, FileDialogOptions, Selector};
+use druid::{Command, FileDialogOptions, FileSpec, Selector};
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use crate::app::sidebar::service::ServiceOptions;
@@ -50,5 +50,20 @@ pub const CLEAR: Selector = Selector::new("app.clear");
 
 /// Add services from a file
 pub fn add_file() -> Command {
-    druid::commands::SHOW_OPEN_PANEL.with(FileDialogOptions::new())
+    const PROTO_DEFINITION_FILE: FileSpec = FileSpec {
+        name: "Protobuf definition file",
+        extensions: &["proto"],
+    };
+    const FDSET_FILE: FileSpec = FileSpec {
+        name: "File descriptor set",
+        extensions: &["bin", "*.*"],
+    };
+
+    druid::commands::SHOW_OPEN_PANEL.with(
+        FileDialogOptions::new()
+            .allowed_types(vec![PROTO_DEFINITION_FILE, FDSET_FILE])
+            .default_type(PROTO_DEFINITION_FILE)
+            .title("Import services")
+            .button_text("Load"),
+    )
 }
