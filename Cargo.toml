@@ -55,7 +55,7 @@ version = "1.15.0"
 features = ["rt-multi-thread", "sync", "fs"]
 
 [dependencies.serde]
-version = "1.0.133"
+version = "1.0.136"
 features = ["derive", "rc"]
 
 [dependencies.kurbo]
