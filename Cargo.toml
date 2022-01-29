@@ -51,7 +51,7 @@ default-features = false
 features = ["transport", "tls", "tls-roots", "compression"]
 
 [dependencies.tokio]
-version = "1.15.0"
+version = "1.16.1"
 features = ["rt-multi-thread", "sync", "fs"]
 
 [dependencies.serde]
