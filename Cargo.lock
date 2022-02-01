@@ -1679,16 +1679,16 @@ dependencies = [
 
 [[package]]
 name = "prost-reflect"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3deba7b331019d2f629de4ec8240f0d3aa230f981c850b5d77eaf913eaf7466"
+checksum = "c1cb6fb6065dc954cf7c9e9d160cdb42db21259ed74310124ce6e74bac10e355"
 dependencies = [
  "base64",
- "chrono",
  "prost",
  "prost-types",
  "serde",
  "serde-value",
+ "time 0.3.6",
 ]
 
 [[package]]
@@ -2198,6 +2198,7 @@ version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d54b9298e05179c335de2b9645d061255bcd5155f843b3e328d2cfe0a5b413"
 dependencies = [
+ "itoa 1.0.1",
  "libc",
  "num_threads",
 ]
