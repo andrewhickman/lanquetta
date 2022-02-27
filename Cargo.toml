@@ -14,7 +14,7 @@ build = "build.rs"
 lto = true
 
 [dependencies]
-anyhow = "1.0.54"
+anyhow = "1.0.55"
 base64 = "0.13.0"
 bytes = "1.1.0"
 crossbeam-queue = "0.3.4"
@@ -34,7 +34,7 @@ rustls = { version = "0.19.1", features = ["dangerous_configuration"] }
 serde-transcode = "1.1.1"
 serde_json = "1.0.79"
 tokio-stream = "0.1.8"
-tracing = "0.1.30"
+tracing = "0.1.31"
 tracing-subscriber = { version = "0.3.8", features = ["env-filter"] }
 webpki = "0.21.4"
 which = "4.2.4"
@@ -67,7 +67,7 @@ version = "15.0.0"
 features = ["serde"]
 
 [build-dependencies]
-anyhow = "1.0.54"
+anyhow = "1.0.55"
 
 [build-dependencies.vergen]
 version = "6.0.2"
