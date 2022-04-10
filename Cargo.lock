@@ -419,7 +419,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#a92eaa48574b14dc93746dfa12a6058d0ffcda6e"
+source = "git+https://github.com/linebender/druid.git?branch=master#aa4b36658be4164f2a30ffebeef434638dbfc4f8"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -442,7 +442,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#a92eaa48574b14dc93746dfa12a6058d0ffcda6e"
+source = "git+https://github.com/linebender/druid.git?branch=master#aa4b36658be4164f2a30ffebeef434638dbfc4f8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -452,7 +452,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#a92eaa48574b14dc93746dfa12a6058d0ffcda6e"
+source = "git+https://github.com/linebender/druid.git?branch=master#aa4b36658be4164f2a30ffebeef434638dbfc4f8"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -2360,9 +2360,9 @@ checksum = "360dfd1d6d30e05fda32ace2c8c70e9c0a9da713275777f5a4dbb8a1893930c6"
 
 [[package]]
 name = "tracing"
-version = "0.1.32"
+version = "0.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a1bdf54a7c28a2bbf701e1d2233f6c77f473486b94bee4f9678da5a148dca7f"
+checksum = "80b9fa4360528139bc96100c160b7ae879f5567f49f1782b0b02035b0358ebf3"
 dependencies = [
  "cfg-if 1.0.0",
  "log",

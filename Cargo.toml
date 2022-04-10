@@ -34,7 +34,7 @@ rustls = { version = "0.19.1", features = ["dangerous_configuration"] }
 serde-transcode = "1.1.1"
 serde_json = "1.0.79"
 tokio-stream = "0.1.8"
-tracing = "0.1.32"
+tracing = "0.1.33"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 webpki = "0.21.4"
 which = "4.2.4"
