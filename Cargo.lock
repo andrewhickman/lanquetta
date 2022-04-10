@@ -419,7 +419,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#a92eaa48574b14dc93746dfa12a6058d0ffcda6e"
+source = "git+https://github.com/linebender/druid.git?branch=master#aa4b36658be4164f2a30ffebeef434638dbfc4f8"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -442,7 +442,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#a92eaa48574b14dc93746dfa12a6058d0ffcda6e"
+source = "git+https://github.com/linebender/druid.git?branch=master#aa4b36658be4164f2a30ffebeef434638dbfc4f8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -452,7 +452,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#a92eaa48574b14dc93746dfa12a6058d0ffcda6e"
+source = "git+https://github.com/linebender/druid.git?branch=master#aa4b36658be4164f2a30ffebeef434638dbfc4f8"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -849,7 +849,7 @@ dependencies = [
  "kurbo",
  "once_cell",
  "open",
- "prost",
+ "prost 0.10.0",
  "prost-reflect",
  "rand",
  "regex",
@@ -1659,7 +1659,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "444879275cb4fd84958b1a1d5420d15e6fcf7c235fe47f053c9c2a80aceb6001"
 dependencies = [
  "bytes",
- "prost-derive",
+ "prost-derive 0.9.0",
+]
+
+[[package]]
+name = "prost"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bd5316aa8f5c82add416dfbc25116b84b748a21153f512917e8143640a71bbd"
+dependencies = [
+ "bytes",
+ "prost-derive 0.10.0",
 ]
 
 [[package]]
@@ -1676,13 +1686,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df35198f0777b75e9ff669737c6da5136b59dba33cf5a010a6d1cc4d56defc6f"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "prost-reflect"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7499dea83d4246378e031fe2406ecefd0c20b2cbb6b1908672ba679ea20d0e69"
 dependencies = [
  "base64",
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "serde",
  "serde-value",
@@ -1696,7 +1719,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "534b7a0e836e3c482d2693070f982e39e7611da9695d4d1f5a4b186b51faef0a"
 dependencies = [
  "bytes",
- "prost",
+ "prost 0.9.0",
 ]
 
 [[package]]
