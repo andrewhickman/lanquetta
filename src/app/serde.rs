@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Context, Error, Result};
 use druid::piet::TextStorage;
-use prost::Message;
+use prost_reflect::prost::Message;
 use prost_reflect::FileDescriptor;
 use serde::{
     de::{self, Deserializer},
