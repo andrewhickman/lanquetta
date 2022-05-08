@@ -61,7 +61,7 @@ version = "0.8.3"
 features = ["serde"]
 
 [dependencies.im]
-version = "15.0.0"
+version = "15.1.0"
 features = ["serde"]
 
 [build-dependencies]
