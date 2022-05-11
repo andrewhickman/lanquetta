@@ -7,9 +7,9 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use prost_reflect::FileDescriptor;
+use prost_reflect::DescriptorPool;
 
-pub fn load_file(path: &Path) -> Result<FileDescriptor> {
+pub fn load_file(path: &Path) -> Result<DescriptorPool> {
     match try_decode(path) {
         Ok(file) => return Ok(file),
         Err(err) => {
@@ -56,13 +56,13 @@ pub fn load_file(path: &Path) -> Result<FileDescriptor> {
         if let Err(err) = fs_err::remove_file(out_path) {
             tracing::error!("failed to delete temporary file: {:?}", err);
         }
-        FileDescriptor::decode(bytes.as_ref()).context("failed to decode protobuf output")
+        DescriptorPool::decode(bytes.as_ref()).context("failed to decode protobuf output")
     }
 }
 
-fn try_decode(path: &Path) -> Result<FileDescriptor> {
+fn try_decode(path: &Path) -> Result<DescriptorPool> {
     let bytes = fs_err::read(path)?;
-    Ok(FileDescriptor::decode(bytes.as_ref())?)
+    Ok(DescriptorPool::decode(bytes.as_ref())?)
 }
 
 fn protoc_path() -> Result<PathBuf> {

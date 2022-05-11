@@ -5,8 +5,8 @@ use std::{
 
 use anyhow::{Context, Error, Result};
 use druid::piet::TextStorage;
-use prost_reflect::prost::Message;
-use prost_reflect::FileDescriptor;
+use prost_reflect::DescriptorPool;
+use prost_reflect::{prost::Message, prost_types::FileDescriptorSet};
 use serde::{
     de::{self, Deserializer},
     ser::{self, Serializer},
@@ -106,7 +106,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
             .map(|service| {
                 let file_set = get_or_insert_file_set(
                     &mut file_descriptor_sets,
-                    service.service().parent_file(),
+                    service.service().parent_pool(),
                 )?;
                 Ok(AppServiceState {
                     idx: AppServiceRef {
@@ -128,7 +128,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                         app::body::TabState::Method(method) => {
                             let file_set = get_or_insert_file_set(
                                 &mut file_descriptor_sets,
-                                method.method().parent_file(),
+                                method.method().parent_pool(),
                             )?;
 
                             AppBodyTabKind::Method {
@@ -146,7 +146,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                         app::body::TabState::Options(options) => {
                             let file_set = get_or_insert_file_set(
                                 &mut file_descriptor_sets,
-                                options.service().parent_file(),
+                                options.service().parent_pool(),
                             )?;
 
                             AppBodyTabKind::Options {
@@ -170,8 +170,10 @@ impl<'a> TryFrom<&'a app::State> for AppState {
         let file_descriptor_sets = file_descriptor_sets
             .into_iter()
             .map(|f| {
-                let bytes = f.file_descriptor_set().encode_to_vec();
-                base64::encode(bytes)
+                let file_set = FileDescriptorSet {
+                    file: f.file_descriptor_protos().cloned().collect(),
+                };
+                base64::encode(&file_set.encode_to_vec())
             })
             .collect();
 
@@ -197,7 +199,7 @@ impl TryInto<app::State> for AppState {
             .into_iter()
             .map(|b64| {
                 let bytes = base64::decode(b64)?;
-                anyhow::Ok(FileDescriptor::decode(bytes.as_ref())?)
+                anyhow::Ok(DescriptorPool::decode(bytes.as_ref())?)
             })
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -221,7 +223,7 @@ impl TryInto<app::State> for AppState {
 impl AppBodyState {
     fn into_state(
         self,
-        file_sets: &[prost_reflect::FileDescriptor],
+        file_sets: &[prost_reflect::DescriptorPool],
         services: &[AppServiceState],
     ) -> Result<app::body::State> {
         let tabs = self
@@ -278,8 +280,8 @@ impl AppBodyState {
 }
 
 fn get_or_insert_file_set(
-    vec: &mut Vec<prost_reflect::FileDescriptor>,
-    files: &prost_reflect::FileDescriptor,
+    vec: &mut Vec<prost_reflect::DescriptorPool>,
+    files: &prost_reflect::DescriptorPool,
 ) -> Result<usize> {
     match vec.iter().position(|data| data == files) {
         Some(index) => Ok(index),
@@ -292,7 +294,7 @@ fn get_or_insert_file_set(
 }
 
 fn get_service(
-    vec: &[prost_reflect::FileDescriptor],
+    vec: &[prost_reflect::DescriptorPool],
     idx: &AppServiceRef,
 ) -> Result<prost_reflect::ServiceDescriptor> {
     vec.get(idx.file_set)
