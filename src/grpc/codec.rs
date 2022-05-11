@@ -58,10 +58,3 @@ impl Decoder for DynamicCodec {
         Ok(Some(grpc::Response::new(message)))
     }
 }
-
-// tonic requires this impl but never uses it
-impl Default for DynamicCodec {
-    fn default() -> Self {
-        unimplemented!()
-    }
-}

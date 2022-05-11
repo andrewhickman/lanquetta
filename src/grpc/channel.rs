@@ -1,11 +1,13 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime};
 
 use dashmap::{mapref::entry::Entry, DashMap};
 use futures::future::BoxFuture;
 use http::{uri::Scheme, Uri};
+use hyper::client::HttpConnector;
+use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
-use tonic::transport::{Channel, ClientTlsConfig};
+use tonic::transport::Channel;
 
 use crate::grpc;
 
@@ -65,47 +67,58 @@ impl ChannelState {
     }
 }
 
-const ALPN_H2: &[u8] = b"h2";
-
 async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel, grpc::Error> {
     let is_https = uri.scheme() == Some(&Scheme::HTTPS);
-    let mut builder = Channel::builder(uri);
+    let builder = Channel::builder(uri);
 
-    if is_https {
-        let mut tls_config = ClientTlsConfig::new();
-        if !verify_certs {
-            let mut rustls_config = rustls::ClientConfig::new();
-            rustls_config.set_protocols(&[ALPN_H2.to_vec()]);
-            rustls_config
-                .dangerous()
-                .set_certificate_verifier(Arc::new(DangerousCertificateVerifier));
-            tls_config = tls_config.rustls_client_config(rustls_config);
-        }
+    if is_https && !verify_certs {
+        static HTTPS_NO_VERIFY_CONNECTOR: Lazy<HttpsConnector<HttpConnector>> = Lazy::new(|| {
+            let mut http = HttpConnector::new();
+            http.enforce_http(false);
+            http.set_nodelay(true);
 
-        builder = builder
-            .tls_config(tls_config)
+            let rustls_config = rustls::ClientConfig::builder()
+                .with_safe_default_cipher_suites()
+                .with_safe_default_kx_groups()
+                .with_safe_default_protocol_versions()
+                .unwrap()
+                .with_custom_certificate_verifier(Arc::new(DangerousCertificateVerifier))
+                .with_no_client_auth();
+
+            HttpsConnectorBuilder::new()
+                .with_tls_config(rustls_config)
+                .https_only()
+                .enable_http2()
+                .wrap_connector(http)
+        });
+
+        builder
+            .connect_with_connector(HTTPS_NO_VERIFY_CONNECTOR.clone())
+            .await
             .map_err(anyhow::Error::from)
-            .map_err(grpc::Error::from)?;
+            .map_err(grpc::Error::from)
+    } else {
+        builder
+            .connect()
+            .await
+            .map_err(anyhow::Error::from)
+            .map_err(grpc::Error::from)
     }
-
-    builder
-        .connect()
-        .await
-        .map_err(anyhow::Error::from)
-        .map_err(grpc::Error::from)
 }
 
 struct DangerousCertificateVerifier;
 
-impl rustls::ServerCertVerifier for DangerousCertificateVerifier {
+impl rustls::client::ServerCertVerifier for DangerousCertificateVerifier {
     fn verify_server_cert(
         &self,
-        _roots: &rustls::RootCertStore,
-        _presented_certs: &[rustls::Certificate],
-        _dns_name: webpki::DNSNameRef,
+        _end_entity: &rustls::Certificate,
+        _intermediates: &[rustls::Certificate],
+        _server_name: &rustls::ServerName,
+        _scts: &mut dyn Iterator<Item = &[u8]>,
         _ocsp_response: &[u8],
-    ) -> Result<rustls::ServerCertVerified, rustls::TLSError> {
-        Ok(rustls::ServerCertVerified::assertion())
+        _now: SystemTime,
+    ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::ServerCertVerified::assertion())
     }
 
     fn verify_tls12_signature(
@@ -113,8 +126,8 @@ impl rustls::ServerCertVerifier for DangerousCertificateVerifier {
         _message: &[u8],
         _cert: &rustls::Certificate,
         _dss: &rustls::internal::msgs::handshake::DigitallySignedStruct,
-    ) -> Result<rustls::HandshakeSignatureValid, rustls::TLSError> {
-        Ok(rustls::HandshakeSignatureValid::assertion())
+    ) -> Result<rustls::client::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::HandshakeSignatureValid::assertion())
     }
 
     fn verify_tls13_signature(
@@ -122,7 +135,7 @@ impl rustls::ServerCertVerifier for DangerousCertificateVerifier {
         _message: &[u8],
         _cert: &rustls::Certificate,
         _dss: &rustls::internal::msgs::handshake::DigitallySignedStruct,
-    ) -> Result<rustls::HandshakeSignatureValid, rustls::TLSError> {
-        Ok(rustls::HandshakeSignatureValid::assertion())
+    ) -> Result<rustls::client::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::HandshakeSignatureValid::assertion())
     }
 }
