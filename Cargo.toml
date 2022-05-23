@@ -71,7 +71,7 @@ features = ["serde"]
 anyhow = "1.0.57"
 
 [build-dependencies.vergen]
-version = "7.0.0"
+version = "7.1.0"
 default-features = false
 features = ["git"]
 
