@@ -535,13 +535,14 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "5.3.3"
+version = "5.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "391b56fbd302e585b7a9494fb70e40949567b1cf9003a8e4a6041a1687c26573"
+checksum = "3495912c9c1ccf2e18976439f4443f3fee0fd61f424ff99fde6a66b15ecb448f"
 dependencies = [
  "cfg-if 1.0.0",
  "hashbrown 0.12.1",
  "lock_api",
+ "parking_lot_core 0.9.3",
 ]
 
 [[package]]
@@ -588,7 +589,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#f63ab1061d925d1156f082638455f0b25965e20e"
+source = "git+https://github.com/linebender/druid.git?branch=master#06564976ee01fae73e94888744ba1ba5465fda73"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -611,7 +612,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#f63ab1061d925d1156f082638455f0b25965e20e"
+source = "git+https://github.com/linebender/druid.git?branch=master#06564976ee01fae73e94888744ba1ba5465fda73"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -621,7 +622,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#f63ab1061d925d1156f082638455f0b25965e20e"
+source = "git+https://github.com/linebender/druid.git?branch=master#06564976ee01fae73e94888744ba1ba5465fda73"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -1618,9 +1619,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.10.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87f3e037eac156d1775da914196f0f37741a274155e34a0b7e427c35d2a2ecb9"
+checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
 
 [[package]]
 name = "open"
@@ -1723,7 +1724,7 @@ checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
 dependencies = [
  "instant",
  "lock_api",
- "parking_lot_core",
+ "parking_lot_core 0.8.5",
 ]
 
 [[package]]
@@ -1738,6 +1739,19 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "winapi",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09a279cbf25cb0757810394fbc1e359949b59e348145c643a939a525692e6929"
+dependencies = [
+ "cfg-if 1.0.0",
+ "libc",
+ "redox_syscall",
+ "smallvec",
+ "windows-sys",
 ]
 
 [[package]]
