@@ -14,7 +14,7 @@ build = "build.rs"
 lto = true
 
 [dependencies]
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 base64 = "0.13.0"
 crossbeam-queue = "0.3.5"
 dashmap = "5.3.4"
@@ -68,7 +68,7 @@ version = "15.1.0"
 features = ["serde"]
 
 [build-dependencies]
-anyhow = "1.0.57"
+anyhow = "1.0.58"
 
 [build-dependencies.vergen]
 version = "7.2.0"
