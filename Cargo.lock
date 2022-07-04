@@ -609,7 +609,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#afbe73b92e7f54a8c9e0800a1c440252b80ae0ba"
+source = "git+https://github.com/linebender/druid.git?branch=master#6ed1ae3456ea6d3310779f8ccc9d3ec03b9889be"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -632,7 +632,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#afbe73b92e7f54a8c9e0800a1c440252b80ae0ba"
+source = "git+https://github.com/linebender/druid.git?branch=master#6ed1ae3456ea6d3310779f8ccc9d3ec03b9889be"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -642,7 +642,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#afbe73b92e7f54a8c9e0800a1c440252b80ae0ba"
+source = "git+https://github.com/linebender/druid.git?branch=master#6ed1ae3456ea6d3310779f8ccc9d3ec03b9889be"
 dependencies = [
  "anyhow",
  "ashpd",
