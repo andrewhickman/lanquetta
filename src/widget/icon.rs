@@ -83,7 +83,7 @@ impl<T: Data> Widget<T> for Icon {
             let offset = self.fill.affine_to_fill(ctx.size(), DEFAULT_SIZE);
             ctx.transform(offset);
 
-            ctx.fill(&self.path, &self.color.resolve(env))
+            ctx.fill(self.path, &self.color.resolve(env))
         });
     }
 }

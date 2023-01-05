@@ -150,8 +150,6 @@ impl Widget<State> for TabLabel {
 
         self.label.set_origin(
             ctx,
-            data,
-            env,
             Point::new(
                 PADDING,
                 PADDING + (total_size.height - label_size.height) / 2.0,
@@ -159,8 +157,6 @@ impl Widget<State> for TabLabel {
         );
         self.close.set_origin(
             ctx,
-            data,
-            env,
             Point::new(
                 PADDING + total_size.width - close_size.width,
                 PADDING + (total_size.height - close_size.height) / 2.0,

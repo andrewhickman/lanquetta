@@ -171,14 +171,10 @@ where
 
         self.expanded.set_origin(
             ctx,
-            data,
-            env,
             origin + Vec2::new(0.0, (total_size.height - expanded_icon_size.height) / 2.0),
         );
         self.label.set_origin(
             ctx,
-            data,
-            env,
             origin
                 + Vec2::new(
                     expanded_icon_size.width + padding,
@@ -191,8 +187,6 @@ where
             button_origin_x += padding;
             button.set_origin(
                 ctx,
-                data,
-                env,
                 Point::new(
                     button_origin_x,
                     origin.y + (total_size.height - sz.height) / 2.0,

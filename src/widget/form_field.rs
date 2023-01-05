@@ -143,7 +143,7 @@ where
 
         let env = self.env.as_ref().unwrap_or(env);
         let size = self.child.layout(ctx, bc, &data.raw, env);
-        self.child.set_origin(ctx, &data.raw, env, Point::ORIGIN);
+        self.child.set_origin(ctx, Point::ORIGIN);
         size
     }
 

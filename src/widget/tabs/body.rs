@@ -99,7 +99,7 @@ where
         data.with_selected(|id, tab_data| {
             let body = self.children.get_mut(&id).unwrap();
             let size = body.layout(ctx, bc, tab_data, env);
-            body.set_origin(ctx, tab_data, env, Point::ORIGIN);
+            body.set_origin(ctx, Point::ORIGIN);
             size
         })
         .unwrap_or_else(|| bc.min())

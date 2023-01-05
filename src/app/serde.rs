@@ -173,7 +173,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 let file_set = FileDescriptorSet {
                     file: f.file_descriptor_protos().cloned().collect(),
                 };
-                base64::encode(&file_set.encode_to_vec())
+                base64::encode(file_set.encode_to_vec())
             })
             .collect();
 

@@ -95,7 +95,7 @@ where
             );
 
             let child_size = label.layout(ctx, &label_bc, label_data, env);
-            label.set_origin(ctx, label_data, env, Point::new(x, 0.0));
+            label.set_origin(ctx, Point::new(x, 0.0));
 
             paint_rect = paint_rect.union(label.layout_rect());
             height = height.max(child_size.height);
