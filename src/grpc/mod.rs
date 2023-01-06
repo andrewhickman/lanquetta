@@ -21,11 +21,13 @@ pub type ResponseResult = Result<Response, Error>;
 #[derive(Debug, Clone)]
 pub struct Request {
     pub message: DynamicMessage,
+    pub metadata: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Response {
     pub message: DynamicMessage,
+    pub metadata: Vec<(String, String)>,
     pub timestamp: Instant,
 }
 
@@ -254,7 +256,10 @@ impl Request {
         let message =
             DynamicMessage::deserialize_with_options(desc, &mut de, &DeserializeOptions::new())?;
         de.end()?;
-        Ok(Request { message })
+        Ok(Request {
+            message,
+            metadata: Vec::new(),
+        })
     }
 }
 
@@ -262,6 +267,7 @@ impl Response {
     pub fn new(message: DynamicMessage) -> Self {
         Response {
             message,
+            metadata: Vec::new(),
             timestamp: Instant::now(),
         }
     }

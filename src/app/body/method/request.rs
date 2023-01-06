@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use druid::{
-    widget::{prelude::*, Controller, Either, Flex, Label, TextBox},
+    widget::{prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, TextBox},
     Data, Lens, Widget, WidgetExt as _,
 };
 use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
 
 use crate::{
+    app::metadata,
     grpc,
     json::JsonText,
     theme,
@@ -17,6 +18,7 @@ type RequestValidationState = ValidationState<JsonText, grpc::Request, String>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
+    metadata: metadata::State,
     body: RequestValidationState,
 }
 
@@ -28,21 +30,22 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     ))
     .controller(RequestController)
     .expand();
-    let error_label =
-        theme::error_label_scope(Label::dynamic(|data: &RequestValidationState, _| {
-            data.result().err().cloned().unwrap_or_default()
-        }));
+    let error_label = theme::error_label_scope(Label::dynamic(|data: &State, _| {
+        data.body.result().err().cloned().unwrap_or_default()
+    }));
     let error = Either::new(
-        |data: &RequestValidationState, _| !data.is_pristine_or_valid(),
+        |data: &State, _| !data.body.is_pristine_or_valid(),
         error_label,
         Empty,
     )
     .expand_width();
 
     Flex::column()
-        .with_flex_child(textbox, 1.0)
+        .cross_axis_alignment(CrossAxisAlignment::Fill)
+        .with_flex_child(textbox.lens(State::body), 1.0)
         .with_child(error)
-        .lens(State::body)
+        .with_default_spacer()
+        .with_child(metadata::build_editable().lens(State::metadata))
 }
 
 pub(in crate::app) fn build_header() -> impl Widget<State> {
@@ -59,6 +62,7 @@ impl State {
 
     pub fn with_text(request: prost_reflect::MessageDescriptor, json: impl Into<JsonText>) -> Self {
         State {
+            metadata: metadata::State::default(),
             body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| {

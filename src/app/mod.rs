@@ -3,6 +3,7 @@ mod command;
 mod config;
 mod delegate;
 mod menu;
+mod metadata;
 mod serde;
 mod sidebar;
 

@@ -1,7 +1,7 @@
 use druid::{
     widget::LineBreaking,
     widget::{Flex, Label, ViewSwitcher},
-    ArcStr, Data, Lens, RoundedRectRadii, Widget, WidgetExt as _,
+    ArcStr, Data, Lens, Widget, WidgetExt as _,
 };
 
 use crate::{app::command, grpc::MethodKind, theme, widget::Icon};
@@ -42,7 +42,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .with_child(kind)
         .with_flex_child(label, 1.0)
         .lens(State::method)
-        .background(theme::hot_or_active_painter(RoundedRectRadii::from(0.0)))
+        .background(theme::hot_or_active_painter(0.0))
         .on_click(|ctx, data: &mut State, _| {
             ctx.submit_command(
                 command::SELECT_OR_CREATE_METHOD_TAB.with(data.method.method.clone()),
