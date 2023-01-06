@@ -39,6 +39,7 @@ tracing-subscriber = { version = "0.3.14", features = ["env-filter"] }
 webpki = "0.22.0"
 which = "4.2.5"
 hyper = "0.14.19"
+protox = "0.2.0"
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid.git"
