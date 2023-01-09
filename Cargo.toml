@@ -15,7 +15,7 @@ lto = true
 
 [dependencies]
 anyhow = "1.0.58"
-base64 = "0.20.0"
+base64 = "0.21.0"
 crossbeam-queue = "0.3.5"
 dashmap = "5.3.4"
 dirs-next = "2.0.0"
