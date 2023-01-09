@@ -52,7 +52,6 @@ pub fn build() -> impl Widget<State> {
 
 pub fn build_header() -> impl Widget<State> {
     Flex::row()
-        .must_fill_main_axis(true)
         .cross_axis_alignment(CrossAxisAlignment::Center)
         .with_flex_child(
             Label::new("History")

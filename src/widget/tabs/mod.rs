@@ -59,7 +59,6 @@ where
     W: Widget<T::Item> + 'static,
 {
     Flex::column()
-        .must_fill_main_axis(true)
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(TabsHeader::new())
         .with_flex_child(
