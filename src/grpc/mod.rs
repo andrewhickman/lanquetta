@@ -21,7 +21,6 @@ pub type ResponseResult = Result<Response, Error>;
 #[derive(Debug, Clone)]
 pub struct Request {
     pub message: DynamicMessage,
-    pub metadata: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone)]
@@ -256,10 +255,7 @@ impl Request {
         let message =
             DynamicMessage::deserialize_with_options(desc, &mut de, &DeserializeOptions::new())?;
         de.end()?;
-        Ok(Request {
-            message,
-            metadata: Vec::new(),
-        })
+        Ok(Request { message })
     }
 }
 

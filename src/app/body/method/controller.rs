@@ -6,7 +6,7 @@ use druid::{
 use crate::{
     app::{
         body::{method::MethodTabState, RequestState},
-        command,
+        command, metadata,
     },
     grpc,
     json::JsonText,
@@ -143,7 +143,7 @@ impl MethodTabController {
         };
 
         let json = data.request().get_json().clone();
-        data.stream.add_request(json);
+        data.stream.add_request(json, metadata::State::default()); // TODO request metadata
 
         if let Some(call) = &mut self.call {
             if data.method.is_client_streaming() {
@@ -181,7 +181,9 @@ impl MethodTabController {
                     .map(|response| response.to_json())
                     .map(JsonText::short);
 
-                data.stream.add_response(json_result, duration);
+                data.stream
+                    .add_response(json_result, metadata::State::default(), duration);
+                // TODO response metadata
             }
             None => {
                 self.call = None;

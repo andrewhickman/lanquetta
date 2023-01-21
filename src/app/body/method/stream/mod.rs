@@ -12,6 +12,7 @@ use druid::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    app::metadata,
     json::JsonText,
     theme,
     widget::{expander, ExpanderData, Icon},
@@ -111,7 +112,7 @@ impl State {
         }
     }
 
-    pub fn add_request(&mut self, request: JsonText) {
+    pub fn add_request(&mut self, request: JsonText, metadata: metadata::State) {
         for item in self.items.iter_mut() {
             item.expanded = false;
         }
@@ -121,7 +122,7 @@ impl State {
         self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
-            data: item::State::from_request(request),
+            data: item::State::from_request(request, metadata),
             kind: ItemKind::Request,
             duration: ArcStr::from(""),
         });
@@ -130,6 +131,7 @@ impl State {
     pub fn add_response(
         &mut self,
         result: Result<JsonText, Arc<Error>>,
+        metadata: metadata::State,
         duration: Option<Duration>,
     ) {
         for item in self.items.iter_mut() {
@@ -141,7 +143,7 @@ impl State {
         self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
-            data: item::State::from_response(result),
+            data: item::State::from_response(result, metadata),
             kind: ItemKind::Response,
             duration: duration.map(format_duration).unwrap_or_default().into(),
         });

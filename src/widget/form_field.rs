@@ -2,7 +2,6 @@ use std::fmt;
 use std::sync::Arc;
 
 use druid::{
-    piet::TextStorage,
     widget::{prelude::*, Controller},
     LifeCycle, Point, Selector, WidgetExt, WidgetPod,
 };
@@ -13,7 +12,7 @@ use crate::theme;
 pub const START_EDIT: Selector = Selector::new("app.start-edit");
 pub const FINISH_EDIT: Selector = Selector::new("app.finish-edit");
 
-pub type ValidationFn<O, E> = Arc<dyn Fn(&str) -> Result<O, E> + Send + Sync>;
+pub type ValidationFn<T, O, E> = Arc<dyn Fn(&T) -> Result<O, E> + Send + Sync>;
 
 pub struct FormField<T> {
     child: WidgetPod<T, Box<dyn Widget<T>>>,
@@ -24,32 +23,36 @@ pub struct FormField<T> {
 #[derive(Clone)]
 pub struct ValidationState<T, O, E> {
     raw: T,
-    validate: ValidationFn<O, E>,
+    validate: ValidationFn<T, O, E>,
     result: Result<O, E>,
     pristine: bool,
     editing: bool,
 }
 
-struct FinishEditController {
+pub struct FinishEditController {
     field_id: WidgetId,
 }
 
-impl<T: TextStorage> FormField<T> {
-    pub fn new<W>(child: W) -> Self
+impl<T> FormField<T> {
+    pub fn new<W>(id: WidgetId, child: W) -> Self
+    where
+        T: Data,
+        W: Widget<T> + 'static,
+    {
+        FormField {
+            child: WidgetPod::new(child).boxed(),
+            env: None,
+            id,
+        }
+    }
+
+    pub fn text_box<W>(child: W) -> Self
     where
         T: Data,
         W: Widget<T> + 'static,
     {
         let id = WidgetId::next();
-        FormField {
-            child: WidgetPod::new(
-                child
-                    .controller(FinishEditController { field_id: id })
-                    .boxed(),
-            ),
-            env: None,
-            id,
-        }
+        FormField::new(id, child.controller(FinishEditController::new(id)))
     }
 
     fn update_env<O, E>(&mut self, data: &ValidationState<T, O, E>, env: &Env) -> bool {
@@ -68,7 +71,7 @@ impl<T: TextStorage> FormField<T> {
 
 impl<T, O, E> Widget<ValidationState<T, O, E>> for FormField<T>
 where
-    T: Data + TextStorage,
+    T: Data,
     ValidationState<T, O, E>: Clone + 'static,
 {
     fn event(
@@ -157,12 +160,9 @@ where
     }
 }
 
-impl<T, O, E> ValidationState<T, O, E>
-where
-    T: TextStorage,
-{
-    pub fn new(raw: T, validate: ValidationFn<O, E>) -> Self {
-        let result = validate(raw.as_str());
+impl<T, O, E> ValidationState<T, O, E> {
+    pub fn new(raw: T, validate: ValidationFn<T, O, E>) -> Self {
+        let result = validate(&raw);
         ValidationState {
             raw,
             result,
@@ -172,8 +172,8 @@ where
         }
     }
 
-    pub fn dirty(raw: T, validate: ValidationFn<O, E>) -> Self {
-        let result = validate(raw.as_str());
+    pub fn dirty(raw: T, validate: ValidationFn<T, O, E>) -> Self {
+        let result = validate(&raw);
         ValidationState {
             raw,
             result,
@@ -208,13 +208,13 @@ impl<T, O, E> ValidationState<T, O, E> {
 
 impl<T, O, E> ValidationState<T, O, E>
 where
-    T: TextStorage + Data,
+    T: Data,
 {
     pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {
         let old = self.raw.clone();
         let value = f(&mut self.raw);
         if !self.raw.same(&old) {
-            self.result = (self.validate)(self.raw.as_str());
+            self.result = (self.validate)(&self.raw);
         }
         value
     }
@@ -242,7 +242,15 @@ where
         f.debug_struct("ValidationState")
             .field("raw", &self.raw)
             .field("result", &self.result)
+            .field("pristine", &self.pristine)
+            .field("editing", &self.editing)
             .finish()
+    }
+}
+
+impl FinishEditController {
+    pub fn new(parent: WidgetId) -> Self {
+        FinishEditController { field_id: parent }
     }
 }
 

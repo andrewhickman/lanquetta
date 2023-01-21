@@ -54,6 +54,11 @@ impl Icon {
         self.color = color.into();
         self
     }
+
+    pub fn with_fill(mut self, fill: FillStrat) -> Self {
+        self.fill = fill;
+        self
+    }
 }
 
 impl<T: Data> Widget<T> for Icon {

@@ -4,6 +4,11 @@ use std::{
 };
 
 use anyhow::{Context, Error, Result};
+use base64::{
+    alphabet,
+    engine::{GeneralPurpose, GeneralPurposeConfig},
+    Engine,
+};
 use druid::piet::TextStorage;
 use prost_reflect::DescriptorPool;
 use prost_reflect::{prost::Message, prost_types::FileDescriptorSet};
@@ -18,6 +23,9 @@ use crate::{
     json::JsonText,
     widget::{TabId, TabsData},
 };
+
+const STANDARD: GeneralPurpose =
+    GeneralPurpose::new(&alphabet::STANDARD, GeneralPurposeConfig::new());
 
 impl Serialize for app::State {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -173,7 +181,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 let file_set = FileDescriptorSet {
                     file: f.file_descriptor_protos().cloned().collect(),
                 };
-                base64::encode(file_set.encode_to_vec())
+                STANDARD.encode(file_set.encode_to_vec())
             })
             .collect();
 
@@ -198,7 +206,7 @@ impl TryInto<app::State> for AppState {
         let file_descriptor_sets = file_descriptor_sets
             .into_iter()
             .map(|b64| {
-                let bytes = base64::decode(b64)?;
+                let bytes = STANDARD.decode(b64)?;
                 anyhow::Ok(DescriptorPool::decode(bytes.as_ref())?)
             })
             .collect::<Result<Vec<_>, _>>()?;

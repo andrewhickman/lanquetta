@@ -1,4 +1,4 @@
-use std::{mem, str::FromStr, sync::Arc};
+use std::{fmt::Write, io, mem, str::FromStr, sync::Arc};
 
 use druid::{
     widget::{
@@ -30,7 +30,7 @@ struct AddressController {
 }
 
 pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
-    let address_textbox = FormField::new(theme::text_box_scope(
+    let address_textbox = FormField::text_box(theme::text_box_scope(
         TextBox::new()
             .with_placeholder("http://localhost:80")
             .expand_width(),
@@ -43,7 +43,7 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
             if let Err(err) = data.uri.result() {
                 err.clone()
             } else if let RequestState::ConnectFailed(err) = data.request_state() {
-                format!("failed to connect: {:?}", err)
+                fmt_connect_err(err)
             } else {
                 String::default()
             }
@@ -197,12 +197,33 @@ where
         .boxed()
 }
 
-static VALIDATE_URI: Lazy<ValidationFn<Uri, String>> = Lazy::new(|| Arc::new(validate_uri));
+static VALIDATE_URI: Lazy<ValidationFn<String, Uri, String>> = Lazy::new(|| Arc::new(validate_uri));
 
-fn validate_uri(s: &str) -> Result<Uri, String> {
+#[allow(clippy::ptr_arg)]
+fn validate_uri(s: &String) -> Result<Uri, String> {
     let uri = Uri::from_str(s).map_err(|err| err.to_string())?;
     if uri.scheme().is_none() {
         return Err("URI must have scheme".to_owned());
     }
     Ok(uri)
+}
+
+fn fmt_connect_err(err: &anyhow::Error) -> String {
+    if let Some(err) = err.root_cause().downcast_ref::<io::Error>() {
+        format!("failed to connect: {}", err)
+    } else {
+        let mut s = String::new();
+        for cause in err.chain() {
+            if !s.is_empty() {
+                s.push_str(": ");
+            }
+            let len = s.len();
+            write!(s, "{}", cause).unwrap();
+            if s[..len].contains(&s[len..]) {
+                s.truncate(len.saturating_sub(2));
+                break;
+            }
+        }
+        s
+    }
 }

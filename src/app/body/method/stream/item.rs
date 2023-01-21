@@ -5,6 +5,7 @@ use druid::{widget::TextBox, Application};
 use druid::{Data, Lens, Widget, WidgetExt as _};
 use serde::{Deserialize, Serialize};
 
+use crate::app::metadata;
 use crate::json::{self, JsonText};
 use crate::theme;
 
@@ -12,6 +13,8 @@ use crate::theme;
 pub(in crate::app) struct State {
     #[serde(deserialize_with = "json::serde::deserialize_short")]
     body: JsonText,
+    #[serde(skip)] // todo
+    metadata: metadata::State,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -19,14 +22,17 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 }
 
 impl State {
-    pub fn from_request(json: JsonText) -> Self {
-        State { body: json }
+    pub fn from_request(json: JsonText, metadata: metadata::State) -> Self {
+        State {
+            body: json,
+            metadata,
+        }
     }
 
-    pub fn from_response(result: Result<JsonText, Arc<Error>>) -> Self {
+    pub fn from_response(result: Result<JsonText, Arc<Error>>, metadata: metadata::State) -> Self {
         let body = result.unwrap_or_else(|err| JsonText::plain_text(format!("{:?}", err)));
 
-        State { body }
+        State { body, metadata }
     }
 
     pub fn set_clipboard(&self) {

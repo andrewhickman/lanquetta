@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use druid::{
+    piet::TextStorage,
     widget::{prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, TextBox},
     Data, Lens, Point, Widget, WidgetExt as _, WidgetPod,
 };
@@ -18,14 +19,14 @@ type RequestValidationState = ValidationState<JsonText, grpc::Request, String>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
-    metadata: metadata::State,
+    metadata: metadata::EditableState,
     body: RequestValidationState,
 }
 
 struct RequestController;
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    let textbox = FormField::new(theme::text_box_scope(
+    let textbox = FormField::text_box(theme::text_box_scope(
         TextBox::multiline().with_font(theme::EDITOR_FONT),
     ))
     .controller(RequestController)
@@ -61,7 +62,7 @@ pub(in crate::app) fn build_header() -> impl Widget<State> {
 
 struct RequestLayout {
     body: WidgetPod<RequestValidationState, Box<dyn Widget<RequestValidationState>>>,
-    metadata: WidgetPod<metadata::State, Box<dyn Widget<metadata::State>>>,
+    metadata: WidgetPod<metadata::EditableState, Box<dyn Widget<metadata::EditableState>>>,
 }
 
 impl State {
@@ -72,11 +73,11 @@ impl State {
 
     pub fn with_text(request: prost_reflect::MessageDescriptor, json: impl Into<JsonText>) -> Self {
         State {
-            metadata: metadata::State::default(),
+            metadata: metadata::EditableState::default(),
             body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| {
-                    grpc::Request::from_json(request.clone(), s).map_err(|e| e.to_string())
+                    grpc::Request::from_json(request.clone(), s.as_str()).map_err(|e| e.to_string())
                 }),
             ),
         }
