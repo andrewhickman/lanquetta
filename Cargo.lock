@@ -603,8 +603,8 @@ dependencies = [
 
 [[package]]
 name = "druid"
-version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#16e340b66541bda7a90139274310fb3c54251543"
+version = "0.8.2"
+source = "git+https://github.com/linebender/druid.git?branch=master#115e46c5fcb9f6f08aeae406bc60f4493aff716e"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -628,8 +628,8 @@ dependencies = [
 
 [[package]]
 name = "druid-derive"
-version = "0.4.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#16e340b66541bda7a90139274310fb3c54251543"
+version = "0.5.0"
+source = "git+https://github.com/linebender/druid.git?branch=master#115e46c5fcb9f6f08aeae406bc60f4493aff716e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -638,8 +638,8 @@ dependencies = [
 
 [[package]]
 name = "druid-shell"
-version = "0.7.0"
-source = "git+https://github.com/linebender/druid.git?branch=master#16e340b66541bda7a90139274310fb3c54251543"
+version = "0.8.0"
+source = "git+https://github.com/linebender/druid.git?branch=master#115e46c5fcb9f6f08aeae406bc60f4493aff716e"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -656,7 +656,6 @@ dependencies = [
  "instant",
  "js-sys",
  "keyboard-types",
- "kurbo 0.9.0",
  "nix 0.24.3",
  "objc",
  "once_cell",
@@ -813,9 +812,9 @@ dependencies = [
 
 [[package]]
 name = "fontdb"
-version = "0.10.0"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8131752b3f3b876a20f42b3d08233ad177d6e7ec6d18aaa6954489a201071be5"
+checksum = "d52186a39c335aa6f79fc0bf1c3cf854870b6ad4e50a7bb8a59b4ba1331f478a"
 dependencies = [
  "fontconfig-parser",
  "log",
@@ -1310,12 +1309,6 @@ dependencies = [
  "typenum",
  "version_check",
 ]
-
-[[package]]
-name = "imagesize"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df19da1e92fbfec043ca97d622955381b1f3ee72a180ec999912df31b1ccd951"
 
 [[package]]
 name = "indexmap"
@@ -1872,9 +1865,9 @@ checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
 
 [[package]]
 name = "piet"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddd2a0027c9ea84b51f42ea3148864e6fc58970ad927e78390d5f9cf7cfa2c78"
+checksum = "e381186490a3e2017a506d62b759ea8eaf4be14666b13ed53973e8ae193451b1"
 dependencies = [
  "kurbo 0.9.0",
  "unic-bidi",
@@ -1882,9 +1875,9 @@ dependencies = [
 
 [[package]]
 name = "piet-cairo"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b98e21ec69eefb09d34e34050beb700749547dfc5da7a6cff27089dd59af1b3"
+checksum = "12dc0b38ac300c79deb9bfc8c7f91a08f2b080338648f7202981094b22321bb9"
 dependencies = [
  "cairo-rs",
  "pango",
@@ -1896,9 +1889,9 @@ dependencies = [
 
 [[package]]
 name = "piet-common"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b7285cc595907be29db4d7f3fb331ae273250365cebf536a4a7b1dafc62978e"
+checksum = "9dd8497cc0bcfecb1e14e027428c5e3eaf9af6e14761176e1212006d8bdba387"
 dependencies = [
  "cairo-rs",
  "cairo-sys-rs",
@@ -1915,9 +1908,9 @@ dependencies = [
 
 [[package]]
 name = "piet-coregraphics"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32553fa0566ed2f23dadec1078a1e6a5930672f350db54d4267e9358f578ab4f"
+checksum = "a819b41d2ddb1d8abf3e45e49422f866cba281b4abb5e2fb948bba06e2c3d3f7"
 dependencies = [
  "associative-cache",
  "core-foundation",
@@ -1930,9 +1923,9 @@ dependencies = [
 
 [[package]]
 name = "piet-direct2d"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d65edc9fa5d1710daa2e55e9cc7b65e65794304ffa870a565fb7128f3110ac5"
+checksum = "dd00e91df4f987be40eb13042afe6ee9e54468466bdb7486390b40d4fef0993e"
 dependencies = [
  "associative-cache",
  "dwrote",
@@ -1944,9 +1937,9 @@ dependencies = [
 
 [[package]]
 name = "piet-web"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "303452b9813560d4e4ea37b5792b18578b12f1e47111f1aea1a4cb9392f6fa95"
+checksum = "3a560232a94e535979923d49062d1c6d5407b3804bcd0d0b4cb9e25a9b41db1e"
 dependencies = [
  "js-sys",
  "piet",
@@ -2257,9 +2250,9 @@ dependencies = [
 
 [[package]]
 name = "resvg"
-version = "0.28.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c115863f2d3621999cf187e318bc92b16402dfeff6a48c74df700d77381394c1"
+checksum = "8ea0337740f86c70141e7596d81c2e76c0cd3726dbcee053ac18d0ec45101f8e"
 dependencies = [
  "gif",
  "jpeg-decoder",
@@ -2271,7 +2264,6 @@ dependencies = [
  "svgtypes",
  "tiny-skia",
  "usvg",
- "usvg-text-layout",
 ]
 
 [[package]]
@@ -3185,38 +3177,28 @@ dependencies = [
 
 [[package]]
 name = "usvg"
-version = "0.28.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b5b7c2b30845b3348c067ca3d09e20cc6e327c288f0ca4c48698712abf432e9"
+checksum = "585bb2d87c8fd6041a479dea01479dcf9094e61b5f9af221606927e61a2bd939"
 dependencies = [
  "base64 0.13.1",
  "data-url",
  "flate2",
- "imagesize",
+ "fontdb",
  "kurbo 0.8.3",
  "log",
+ "pico-args",
  "rctree",
  "roxmltree",
+ "rustybuzz",
  "simplecss",
  "siphasher",
  "strict-num",
  "svgtypes",
-]
-
-[[package]]
-name = "usvg-text-layout"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c9550670848028641bf976b06f5c520ffdcd6f00ee7ee7eb0853f78e2c249d7"
-dependencies = [
- "fontdb",
- "kurbo 0.8.3",
- "log",
- "rustybuzz",
  "unicode-bidi",
  "unicode-script",
  "unicode-vo",
- "usvg",
+ "xmlwriter",
 ]
 
 [[package]]
@@ -3518,6 +3500,12 @@ name = "xmlparser"
 version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d25c75bf9ea12c4040a97f829154768bbbce366287e2dc044af160cd79a13fd"
+
+[[package]]
+name = "xmlwriter"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "zbus"
