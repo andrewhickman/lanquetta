@@ -20,7 +20,7 @@ crossbeam-queue = "0.3.5"
 dashmap = "5.3.4"
 dirs-next = "2.0.0"
 fs-err = "2.7.0"
-futures = "0.3.21"
+futures = "0.3.27"
 http = "0.2.8"
 hyper-rustls = { version = "0.23.0", features = ["http2"] }
 iter-set = "2.0.2"
