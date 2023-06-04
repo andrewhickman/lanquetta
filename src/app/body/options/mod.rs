@@ -9,7 +9,7 @@ use prost_reflect::ServiceDescriptor;
 use crate::{
     app::{
         body::address::{self, AddressState},
-        command,
+        command, metadata,
         sidebar::service::ServiceOptions,
     },
     theme,
@@ -26,12 +26,15 @@ pub struct OptionsTabState {
     service: ServiceDescriptor,
     default_address: AddressState,
     verify_certs: bool,
+    default_metadata: metadata::EditableState,
 }
 
 pub fn build_body() -> impl Widget<OptionsTabState> {
     let id = WidgetId::next();
 
     let tls_checkbox = theme::check_box_scope(Checkbox::new("Enable certificate verification"));
+
+    let default_metadata = metadata::build_editable();
 
     Flex::column()
         .with_child(
@@ -43,6 +46,14 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
         .with_child(build_address_bar(id))
         .with_spacer(theme::BODY_SPACER)
         .with_child(tls_checkbox.lens(OptionsTabState::verify_certs))
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(
+            Label::new("Default metadata")
+                .with_font(theme::font::HEADER_TWO)
+                .align_left(),
+        )
+        .with_spacer(theme::BODY_SPACER)
+        .with_child(default_metadata.lens(OptionsTabState::default_metadata))
         .must_fill_main_axis(true)
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .padding(theme::BODY_PADDING)
@@ -88,6 +99,7 @@ impl OptionsTabState {
                 None => AddressState::default(),
             },
             verify_certs: options.verify_certs,
+            default_metadata: metadata::EditableState::new(options.default_metadata),
         }
     }
 
@@ -103,6 +115,7 @@ impl OptionsTabState {
         ServiceOptions {
             default_address: self.default_address.uri().cloned(),
             verify_certs: self.verify_certs,
+            default_metadata: self.default_metadata.to_state(),
         }
     }
 

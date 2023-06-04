@@ -54,6 +54,7 @@ where
     ) {
         if old_data.default_address.uri() != data.default_address.uri()
             || old_data.verify_certs != data.verify_certs
+            || !old_data.default_metadata.same(&data.default_metadata)
         {
             ctx.submit_command(
                 command::SET_SERVICE_OPTIONS.with((data.service.clone(), data.service_options())),

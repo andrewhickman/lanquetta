@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app::{
         command::{REMOVE_SERVICE, SELECT_OR_CREATE_OPTIONS_TAB},
+        metadata,
         sidebar::method,
     },
     theme,
@@ -45,6 +46,7 @@ pub struct ServiceOptions {
     #[serde(with = "serde_opt_uri")]
     pub default_address: Option<Uri>,
     pub verify_certs: bool,
+    pub default_metadata: metadata::State,
 }
 
 impl Default for ServiceOptions {
@@ -52,6 +54,7 @@ impl Default for ServiceOptions {
         Self {
             default_address: Default::default(),
             verify_certs: true,
+            default_metadata: metadata::State::default(),
         }
     }
 }

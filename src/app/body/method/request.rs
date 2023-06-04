@@ -67,9 +67,9 @@ struct RequestLayout {
 }
 
 impl State {
-    pub fn empty(request: prost_reflect::MessageDescriptor) -> Self {
+    pub fn empty(request: prost_reflect::MessageDescriptor, metadata: metadata::State) -> Self {
         let json = make_template_message_json(request.clone());
-        State::with_text(request, json, metadata::State::default())
+        State::with_text(request, json, metadata)
     }
 
     pub fn with_text(

@@ -131,7 +131,10 @@ impl MethodTabState {
         MethodTabState {
             address: address::AddressState::with_options(&service_options),
             stream: stream::State::new(),
-            request: request::State::empty(method.input()),
+            request: request::State::empty(
+                method.input(),
+                service_options.default_metadata.clone(),
+            ),
             service_options,
             method,
         }
