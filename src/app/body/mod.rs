@@ -12,7 +12,7 @@ use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use self::{method::MethodTabState, options::OptionsTabState};
 use crate::{
-    app::{command, sidebar::service::ServiceOptions},
+    app::{command, metadata, sidebar::service::ServiceOptions},
     grpc,
     json::JsonText,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
@@ -307,6 +307,7 @@ impl TabState {
         method: MethodDescriptor,
         address: String,
         request: JsonText,
+        request_metadata: metadata::State,
         stream: StreamState,
         service_options: ServiceOptions,
     ) -> Self {
@@ -314,6 +315,7 @@ impl TabState {
             method,
             address,
             request,
+            request_metadata,
             stream,
             service_options,
         ))

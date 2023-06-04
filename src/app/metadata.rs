@@ -37,11 +37,10 @@ pub struct Entry {
     value: String,
 }
 
-#[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Data, Lens)]
 pub struct EditableEntry {
     key: String,
     value: String,
-    #[serde(skip)]
     deleted: bool,
 }
 
@@ -158,6 +157,25 @@ struct DeleteMetadataController;
 pub const DELETE_METADATA: Selector = Selector::new("app.metadata.delete");
 
 impl EditableState {
+    pub fn new(mut metadata: State) -> EditableState {
+        let entries = Arc::new(
+            Arc::make_mut(&mut metadata)
+                .drain(..)
+                .map(|entry| {
+                    ValidationState::new(
+                        EditableEntry {
+                            key: entry.key,
+                            value: entry.value,
+                            deleted: false,
+                        },
+                        VALIDATE_ENTRY.clone(),
+                    )
+                })
+                .collect(),
+        );
+        EditableState { entries }
+    }
+
     pub fn metadata(&self) -> MetadataMap {
         let mut map = MetadataMap::new();
         for entry in self.entries.iter() {
@@ -173,6 +191,18 @@ impl EditableState {
             }
         }
         map
+    }
+
+    pub fn to_state(&self) -> State {
+        Arc::new(
+            self.entries
+                .iter()
+                .map(|e| Entry {
+                    key: e.text().key.clone(),
+                    value: e.text().value.clone(),
+                })
+                .collect(),
+        )
     }
 }
 

@@ -92,6 +92,7 @@ enum AppBodyTabKind {
         method: usize,
         address: String,
         request: String,
+        request_metadata: app::metadata::State,
         stream: app::body::StreamState,
         options: ServiceOptions,
     },
@@ -147,6 +148,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                                 method: method.method().index(),
                                 address: method.address().text().to_owned(),
                                 request: method.request().text().as_str().to_owned(),
+                                request_metadata: method.request().serde_metadata(),
                                 stream: method.stream().clone(),
                                 options: method.service_options().clone(),
                             }
@@ -243,6 +245,7 @@ impl AppBodyState {
                     method,
                     address,
                     request,
+                    request_metadata,
                     stream,
                     options,
                 } => {
@@ -256,6 +259,7 @@ impl AppBodyState {
                             method,
                             address,
                             JsonText::pretty(request),
+                            request_metadata,
                             stream,
                             options,
                         ),

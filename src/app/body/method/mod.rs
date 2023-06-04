@@ -13,7 +13,7 @@ use self::controller::MethodTabController;
 use crate::{
     app::{
         body::{address, RequestState},
-        command,
+        command, metadata,
         sidebar::service::ServiceOptions,
     },
     json::JsonText,
@@ -141,12 +141,13 @@ impl MethodTabState {
         method: prost_reflect::MethodDescriptor,
         address: String,
         request: impl Into<JsonText>,
+        request_metadata: metadata::State,
         stream: stream::State,
         service_options: ServiceOptions,
     ) -> Self {
         MethodTabState {
             address: address::AddressState::new(address),
-            request: request::State::with_text(method.input(), request),
+            request: request::State::with_text(method.input(), request, request_metadata),
             method,
             stream,
             service_options,

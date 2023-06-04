@@ -13,7 +13,7 @@ use http::{uri::PathAndQuery, Uri};
 use prost_reflect::{DeserializeOptions, DynamicMessage, MessageDescriptor, SerializeOptions};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{client::Grpc, transport::Channel, metadata::MetadataMap, Extensions};
+use tonic::{client::Grpc, metadata::MetadataMap, transport::Channel, Extensions};
 
 pub type ConnectResult = Result<Client, Error>;
 pub type ResponseResult = Result<Response, Error>;
@@ -26,7 +26,6 @@ pub struct Request {
 #[derive(Debug, Clone)]
 pub struct Response {
     pub message: DynamicMessage,
-    pub metadata: Vec<(String, String)>,
     pub timestamp: Instant,
 }
 
@@ -115,7 +114,10 @@ impl Client {
             }
             MethodKind::ServerStreaming => {
                 tokio::spawn(async move {
-                    match self.server_streaming(&method, request, metadata, path).await {
+                    match self
+                        .server_streaming(&method, request, metadata, path)
+                        .await
+                    {
                         Ok(stream) => {
                             let mut stream = stream.map_err(arc_err);
                             while let Some(result) = stream.next().await {
@@ -270,7 +272,6 @@ impl Response {
     pub fn new(message: DynamicMessage) -> Self {
         Response {
             message,
-            metadata: Vec::new(),
             timestamp: Instant::now(),
         }
     }

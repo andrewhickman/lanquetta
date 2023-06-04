@@ -69,12 +69,16 @@ struct RequestLayout {
 impl State {
     pub fn empty(request: prost_reflect::MessageDescriptor) -> Self {
         let json = make_template_message_json(request.clone());
-        State::with_text(request, json)
+        State::with_text(request, json, metadata::State::default())
     }
 
-    pub fn with_text(request: prost_reflect::MessageDescriptor, json: impl Into<JsonText>) -> Self {
+    pub fn with_text(
+        request: prost_reflect::MessageDescriptor,
+        json: impl Into<JsonText>,
+        metadata: metadata::State,
+    ) -> Self {
         State {
-            metadata: metadata::EditableState::default(),
+            metadata: metadata::EditableState::new(metadata),
             body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| {
@@ -94,6 +98,10 @@ impl State {
 
     pub(in crate::app) fn tonic_metadata(&self) -> MetadataMap {
         self.metadata.metadata()
+    }
+
+    pub(in crate::app) fn serde_metadata(&self) -> metadata::State {
+        self.metadata.to_state()
     }
 
     pub(in crate::app) fn get_json(&self) -> &JsonText {

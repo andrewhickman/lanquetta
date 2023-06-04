@@ -19,13 +19,10 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
-#[serde(from = "im::Vector<ItemExpanderState>")]
-#[serde(into = "im::Vector<ItemExpanderState>")]
 pub struct State {
+    metadata: metadata::State,
     items: im::Vector<ItemExpanderState>,
-    #[data(ignore)]
     response_count: usize,
-    #[data(ignore)]
     request_count: usize,
 }
 
@@ -106,6 +103,7 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
 impl State {
     pub fn new() -> Self {
         State {
+            metadata: metadata::State::default(),
             items: im::Vector::new(),
             response_count: 0,
             request_count: 0,
@@ -172,21 +170,22 @@ impl ExpanderData for ItemExpanderState {
     }
 }
 
-impl From<im::Vector<ItemExpanderState>> for State {
-    fn from(items: im::Vector<ItemExpanderState>) -> Self {
-        let request_count = items
-            .iter()
-            .filter(|item| item.kind == ItemKind::Request)
-            .count();
-        let response_count = items.len() - request_count;
+// impl From<im::Vector<ItemExpanderState>> for State {
+//     fn from(items: im::Vector<ItemExpanderState>) -> Self {
+//         let request_count = items
+//             .iter()
+//             .filter(|item| item.kind == ItemKind::Request)
+//             .count();
+//         let response_count = items.len() - request_count;
 
-        State {
-            items,
-            request_count,
-            response_count,
-        }
-    }
-}
+//         State {
+//             metadata::State::default(),
+//             items,
+//             request_count,
+//             response_count,
+//         }
+//     }
+// }
 
 impl From<State> for im::Vector<ItemExpanderState> {
     fn from(state: State) -> im::Vector<ItemExpanderState> {
