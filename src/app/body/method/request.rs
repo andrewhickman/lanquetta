@@ -165,7 +165,7 @@ impl Widget<State> for RequestLayout {
 
         Size::new(
             metadata_size.width.max(body_size.width),
-            metadata_size.height + body_size.height,
+            metadata_size.height + body_size.height + body_spacer,
         )
     }
 
