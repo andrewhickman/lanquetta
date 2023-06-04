@@ -125,7 +125,7 @@ impl rustls::client::ServerCertVerifier for DangerousCertificateVerifier {
         &self,
         _message: &[u8],
         _cert: &rustls::Certificate,
-        _dss: &rustls::internal::msgs::handshake::DigitallySignedStruct,
+        _dss: &rustls::DigitallySignedStruct,
     ) -> Result<rustls::client::HandshakeSignatureValid, rustls::Error> {
         Ok(rustls::client::HandshakeSignatureValid::assertion())
     }
@@ -134,7 +134,7 @@ impl rustls::client::ServerCertVerifier for DangerousCertificateVerifier {
         &self,
         _message: &[u8],
         _cert: &rustls::Certificate,
-        _dss: &rustls::internal::msgs::handshake::DigitallySignedStruct,
+        _dss: &rustls::DigitallySignedStruct,
     ) -> Result<rustls::client::HandshakeSignatureValid, rustls::Error> {
         Ok(rustls::client::HandshakeSignatureValid::assertion())
     }
