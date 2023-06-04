@@ -13,7 +13,7 @@ use http::{uri::PathAndQuery, Uri};
 use prost_reflect::{DeserializeOptions, DynamicMessage, MessageDescriptor, SerializeOptions};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{client::Grpc, transport::Channel, IntoRequest};
+use tonic::{client::Grpc, transport::Channel, metadata::MetadataMap, Extensions};
 
 pub type ConnectResult = Result<Client, Error>;
 pub type ResponseResult = Result<Response, Error>;
@@ -63,6 +63,7 @@ impl Client {
         self,
         method: prost_reflect::MethodDescriptor,
         request: Request,
+        metadata: MetadataMap,
         mut on_response: F,
     ) -> Call
     where
@@ -80,7 +81,7 @@ impl Client {
         let request_sender = match MethodKind::for_method(&method) {
             MethodKind::Unary => {
                 tokio::spawn(async move {
-                    match self.unary(&method, request, path).await {
+                    match self.unary(&method, request, metadata, path).await {
                         Ok(response) => on_response(Some(Ok(response))),
                         Err(err) => on_response(Some(Err(err.into()))),
                     }
@@ -99,6 +100,7 @@ impl Client {
                         .client_streaming(
                             &method,
                             UnboundedReceiverStream::new(request_receiver),
+                            metadata,
                             path,
                         )
                         .await
@@ -113,7 +115,7 @@ impl Client {
             }
             MethodKind::ServerStreaming => {
                 tokio::spawn(async move {
-                    match self.server_streaming(&method, request, path).await {
+                    match self.server_streaming(&method, request, metadata, path).await {
                         Ok(stream) => {
                             let mut stream = stream.map_err(arc_err);
                             while let Some(result) = stream.next().await {
@@ -144,6 +146,7 @@ impl Client {
                         .streaming(
                             &method,
                             UnboundedReceiverStream::new(request_receiver),
+                            metadata,
                             path,
                         )
                         .await
@@ -180,13 +183,14 @@ impl Client {
         mut self,
         method: &prost_reflect::MethodDescriptor,
         request: Request,
+        metadata: MetadataMap,
         path: PathAndQuery,
     ) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
             .unary(
-                request.into_request(),
+                tonic::Request::from_parts(metadata, Extensions::default(), request),
                 path,
                 codec::DynamicCodec::new(method.clone()),
             )
@@ -198,13 +202,14 @@ impl Client {
         mut self,
         method: &prost_reflect::MethodDescriptor,
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
+        metadata: MetadataMap,
         path: PathAndQuery,
     ) -> anyhow::Result<Response> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
             .client_streaming(
-                requests.into_request(),
+                tonic::Request::from_parts(metadata, Extensions::default(), requests),
                 path,
                 codec::DynamicCodec::new(method.clone()),
             )
@@ -216,13 +221,14 @@ impl Client {
         mut self,
         method: &prost_reflect::MethodDescriptor,
         request: Request,
+        metadata: MetadataMap,
         path: PathAndQuery,
     ) -> anyhow::Result<tonic::Streaming<Response>> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
             .server_streaming(
-                request.into_request(),
+                tonic::Request::from_parts(metadata, Extensions::default(), request),
                 path,
                 codec::DynamicCodec::new(method.clone()),
             )
@@ -234,13 +240,14 @@ impl Client {
         mut self,
         method: &prost_reflect::MethodDescriptor,
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
+        metadata: MetadataMap,
         path: PathAndQuery,
     ) -> anyhow::Result<tonic::Streaming<Response>> {
         self.grpc.ready().await?;
         Ok(self
             .grpc
             .streaming(
-                requests.into_request(),
+                tonic::Request::from_parts(metadata, Extensions::default(), requests),
                 path,
                 codec::DynamicCodec::new(method.clone()),
             )

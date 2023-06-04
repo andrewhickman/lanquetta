@@ -6,6 +6,7 @@ use druid::{
     Data, Lens, Point, Widget, WidgetExt as _, WidgetPod,
 };
 use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
+use tonic::metadata::MetadataMap;
 
 use crate::{
     app::metadata,
@@ -89,6 +90,10 @@ impl State {
 
     pub(in crate::app) fn get(&self) -> Option<&grpc::Request> {
         self.body.result().ok()
+    }
+
+    pub(in crate::app) fn tonic_metadata(&self) -> MetadataMap {
+        self.metadata.metadata()
     }
 
     pub(in crate::app) fn get_json(&self) -> &JsonText {

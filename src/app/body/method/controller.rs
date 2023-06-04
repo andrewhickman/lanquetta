@@ -160,8 +160,10 @@ impl MethodTabController {
                 }
             };
 
+            let metadata = data.request().tonic_metadata();
+
             let update_writer = self.updates.writer(ctx);
-            self.call = Some(client.call(data.method.clone(), request, move |response| {
+            self.call = Some(client.call(data.method.clone(), request, metadata, move |response| {
                 update_writer.write(|controller, data| controller.finish_send(data, response));
             }));
 

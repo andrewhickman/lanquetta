@@ -14,7 +14,7 @@ use druid::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tonic::metadata::{
-    AsciiMetadataKey, AsciiMetadataValue, BinaryMetadataKey, BinaryMetadataValue,
+    AsciiMetadataKey, AsciiMetadataValue, BinaryMetadataKey, BinaryMetadataValue, MetadataMap,
 };
 
 use crate::{
@@ -156,6 +156,25 @@ struct EditableLayout {
 struct DeleteMetadataController;
 
 pub const DELETE_METADATA: Selector = Selector::new("app.metadata.delete");
+
+impl EditableState {
+    pub fn metadata(&self) -> MetadataMap {
+        let mut map = MetadataMap::new();
+        for entry in self.entries.iter() {
+            if let Ok(parsed_entry) = entry.result() {
+                match parsed_entry.clone() {
+                    ParsedEntry::Ascii { key, value } => {
+                        map.append(key, value);
+                    }
+                    ParsedEntry::Binary { key, value } => {
+                        map.append_bin(key, value);
+                    }
+                }
+            }
+        }
+        map
+    }
+}
 
 impl<W> Controller<EditableState, W> for DeleteMetadataController
 where
