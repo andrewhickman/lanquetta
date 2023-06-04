@@ -6,7 +6,7 @@ use druid::{
 use crate::{
     app::{
         body::{method::MethodTabState, RequestState},
-        command, metadata,
+        command,
     },
     grpc,
     json::JsonText,
@@ -81,7 +81,7 @@ impl MethodTabController {
             self.start_send(ctx, data);
             Handled::Yes
         } else if command.is(command::FINISH) {
-            self.finish_send(data, None);
+            self.finish_send();
             Handled::Yes
         } else if command.is(command::DISCONNECT) {
             self.disconnect(ctx, data);
@@ -143,7 +143,7 @@ impl MethodTabController {
         };
 
         let json = data.request().get_json().clone();
-        data.stream.add_request(json, metadata::State::default()); // TODO request metadata
+        data.stream.add_request(json);
 
         if let Some(call) = &mut self.call {
             if data.method.is_client_streaming() {
@@ -167,7 +167,7 @@ impl MethodTabController {
                 Some(
                     client.call(data.method.clone(), request, metadata, move |response| {
                         update_writer
-                            .write(|controller, data| controller.finish_send(data, response));
+                            .write(|controller, data| controller.handle_response(data, response));
                     }),
                 );
 
@@ -175,24 +175,31 @@ impl MethodTabController {
         }
     }
 
-    fn finish_send(&mut self, data: &mut MethodTabState, response: Option<grpc::ResponseResult>) {
+    fn finish_send(&mut self) {
+        if let Some(call) = &mut self.call {
+            call.finish();
+        }
+    }
+
+    fn handle_response(&mut self, data: &mut MethodTabState, response: grpc::ResponseResult) {
         match response {
-            Some(result) => {
-                let duration = match (&mut self.call, &result) {
-                    (Some(call), Ok(response)) => call.duration(response),
+            grpc::ResponseResult::Response(response) => {
+                let duration = match &mut self.call {
+                    Some(call) => call.duration(&response),
                     _ => None,
                 };
 
-                let json_result = result
-                    .map(|response| response.to_json())
-                    .map(JsonText::short);
+                let json_result = JsonText::short(response.to_json());
 
-                data.stream
-                    .add_response(json_result, metadata::State::default(), duration);
-                // TODO response metadata
+                data.stream.add_response(Ok(json_result), duration);
             }
-            None => {
+            grpc::ResponseResult::Error(error, metadata) => {
+                data.stream.add_response(Err(error), None);
+                data.stream.set_metadata(metadata);
                 self.call = None;
+            }
+            grpc::ResponseResult::Finished(metadata) => {
+                data.stream.set_metadata(metadata);
             }
         }
 

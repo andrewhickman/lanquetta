@@ -18,7 +18,7 @@ use tonic::metadata::{
 };
 
 use crate::{
-    theme::{self, BODY_SPACER},
+    theme,
     widget::{FinishEditController, FormField, Icon, ValidationFn, ValidationState},
 };
 
@@ -156,6 +156,24 @@ struct DeleteMetadataController;
 
 pub const DELETE_METADATA: Selector = Selector::new("app.metadata.delete");
 
+pub fn state_from_tonic(metadata: MetadataMap) -> State {
+    Arc::new(
+        metadata
+            .iter()
+            .map(|entry| match entry {
+                tonic::metadata::KeyAndValueRef::Ascii(key, value) => Entry {
+                    key: key.to_string(),
+                    value: String::from_utf8_lossy(value.as_encoded_bytes()).into_owned(),
+                },
+                tonic::metadata::KeyAndValueRef::Binary(key, value) => Entry {
+                    key: key.to_string(),
+                    value: String::from_utf8_lossy(value.as_encoded_bytes()).into_owned(),
+                },
+            })
+            .collect(),
+    )
+}
+
 impl EditableState {
     pub fn new(mut metadata: State) -> EditableState {
         let entries = Arc::new(
@@ -203,6 +221,10 @@ impl EditableState {
                 })
                 .collect(),
         )
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
     }
 }
 
@@ -256,14 +278,8 @@ impl Widget<EditableState> for EditableLayout {
         data: &EditableState,
         env: &Env,
     ) -> Size {
-        let body_spacer = if data.entries.is_empty() {
-            0.0
-        } else {
-            BODY_SPACER
-        };
-
         let width = bc.max().width;
-        let max_height = (bc.max().height - GRID_NARROW_SPACER - body_spacer).max(bc.min().height);
+        let max_height = (bc.max().height - GRID_NARROW_SPACER).max(bc.min().height);
         let tight_bc = BoxConstraints::new(
             Size::new(width, bc.min().height),
             Size::new(width, max_height),
@@ -271,20 +287,19 @@ impl Widget<EditableState> for EditableLayout {
 
         let add_button_size = self.add_button.layout(ctx, &tight_bc, data, env);
 
-        let metadata_bc = tight_bc.shrink_max_height_to(
-            bc.max().height - add_button_size.height - GRID_NARROW_SPACER - body_spacer,
-        );
+        let metadata_bc = tight_bc
+            .shrink_max_height_to(bc.max().height - add_button_size.height - GRID_NARROW_SPACER);
         let metadata_size = self.metadata.layout(ctx, &metadata_bc, data, env);
 
-        self.metadata.set_origin(ctx, Point::new(0.0, body_spacer));
+        self.metadata.set_origin(ctx, Point::ORIGIN);
         self.add_button.set_origin(
             ctx,
-            Point::new(0.0, body_spacer + metadata_size.height + GRID_NARROW_SPACER),
+            Point::new(0.0, metadata_size.height + GRID_NARROW_SPACER),
         );
 
         bc.constrain(Size::new(
             width,
-            body_spacer + add_button_size.height + GRID_NARROW_SPACER + metadata_size.height,
+            add_button_size.height + GRID_NARROW_SPACER + metadata_size.height,
         ))
     }
 

@@ -12,7 +12,7 @@ use crate::{
     app::metadata,
     grpc,
     json::JsonText,
-    theme,
+    theme::{self, BODY_SPACER},
     widget::{Empty, FormField, ValidationState, FINISH_EDIT},
 };
 
@@ -136,13 +136,23 @@ impl Widget<State> for RequestLayout {
         data: &State,
         env: &Env,
     ) -> Size {
+        let body_spacer = if data.metadata.is_empty() {
+            0.0
+        } else {
+            BODY_SPACER
+        };
+
         let metadata_bc = BoxConstraints::new(
             Size::new(bc.min().width, 0.0),
-            Size::new(bc.max().width, bc.max().height / 2.0),
+            Size::new(
+                bc.max().width,
+                (bc.max().height - body_spacer).max(bc.min().height) / 2.0,
+            ),
         );
         let metadata_size = self.metadata.layout(ctx, &metadata_bc, &data.metadata, env);
 
-        let remaining_height = bc.max().height - metadata_size.height;
+        let remaining_height =
+            (bc.max().height - body_spacer - metadata_size.height).max(bc.min().height);
         let body_bc = BoxConstraints::new(
             Size::new(bc.min().width, remaining_height),
             Size::new(bc.max().width, remaining_height),
@@ -151,7 +161,7 @@ impl Widget<State> for RequestLayout {
 
         self.body.set_origin(ctx, Point::ZERO);
         self.metadata
-            .set_origin(ctx, Point::new(0.0, body_size.height));
+            .set_origin(ctx, Point::new(0.0, body_size.height + body_spacer));
 
         Size::new(
             metadata_size.width.max(body_size.width),

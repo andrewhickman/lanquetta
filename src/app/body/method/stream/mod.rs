@@ -5,17 +5,19 @@ use std::{iter, sync::Arc, time::Duration};
 use anyhow::Error;
 use druid::{
     widget::{
-        prelude::*, CrossAxisAlignment, Flex, Label, LineBreaking, List, MainAxisAlignment, Scroll,
+        prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, MainAxisAlignment,
+        Scroll, SizedBox,
     },
     ArcStr, Data, Lens, WidgetExt,
 };
 use serde::{Deserialize, Serialize};
+use tonic::metadata::MetadataMap;
 
 use crate::{
     app::metadata,
     json::JsonText,
-    theme,
-    widget::{expander, ExpanderData, Icon},
+    theme::{self, BODY_SPACER},
+    widget::{expander, Empty, ExpanderData, Icon},
 };
 
 #[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
@@ -42,10 +44,23 @@ enum ItemKind {
 }
 
 pub fn build() -> impl Widget<State> {
-    Scroll::new(List::new(build_list_entry))
-        .vertical()
-        .expand_height()
-        .lens(State::items)
+    let items = List::new(build_list_entry).lens(State::items);
+    let spacer = Either::new(
+        |data: &metadata::State, _: &Env| data.is_empty(),
+        Empty,
+        SizedBox::empty().fix_height(BODY_SPACER),
+    )
+    .lens(State::metadata);
+    let metadata = metadata::build().lens(State::metadata);
+
+    Scroll::new(
+        Flex::column()
+            .with_child(items)
+            .with_child(spacer)
+            .with_child(metadata),
+    )
+    .vertical()
+    .expand_height()
 }
 
 pub fn build_header() -> impl Widget<State> {
@@ -110,7 +125,7 @@ impl State {
         }
     }
 
-    pub fn add_request(&mut self, request: JsonText, metadata: metadata::State) {
+    pub fn add_request(&mut self, request: JsonText) {
         for item in self.items.iter_mut() {
             item.expanded = false;
         }
@@ -120,7 +135,7 @@ impl State {
         self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
-            data: item::State::from_request(request, metadata),
+            data: item::State::from_request(request),
             kind: ItemKind::Request,
             duration: ArcStr::from(""),
         });
@@ -129,7 +144,6 @@ impl State {
     pub fn add_response(
         &mut self,
         result: Result<JsonText, Arc<Error>>,
-        metadata: metadata::State,
         duration: Option<Duration>,
     ) {
         for item in self.items.iter_mut() {
@@ -141,14 +155,19 @@ impl State {
         self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
-            data: item::State::from_response(result, metadata),
+            data: item::State::from_response(result),
             kind: ItemKind::Response,
             duration: duration.map(format_duration).unwrap_or_default().into(),
         });
     }
 
+    pub fn set_metadata(&mut self, metadata: MetadataMap) {
+        self.metadata = metadata::state_from_tonic(metadata);
+    }
+
     pub fn clear(&mut self) {
         self.items.clear();
+        self.metadata = metadata::State::default();
         self.request_count = 0;
         self.response_count = 0;
     }
@@ -167,29 +186,6 @@ impl ExpanderData for ItemExpanderState {
 
     fn toggle_expanded(&mut self, _: &Env) {
         self.expanded = !self.expanded;
-    }
-}
-
-// impl From<im::Vector<ItemExpanderState>> for State {
-//     fn from(items: im::Vector<ItemExpanderState>) -> Self {
-//         let request_count = items
-//             .iter()
-//             .filter(|item| item.kind == ItemKind::Request)
-//             .count();
-//         let response_count = items.len() - request_count;
-
-//         State {
-//             metadata::State::default(),
-//             items,
-//             request_count,
-//             response_count,
-//         }
-//     }
-// }
-
-impl From<State> for im::Vector<ItemExpanderState> {
-    fn from(state: State) -> im::Vector<ItemExpanderState> {
-        state.items
     }
 }
 

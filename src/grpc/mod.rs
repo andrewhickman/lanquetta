@@ -2,21 +2,27 @@ mod channel;
 mod codec;
 
 use std::{
+    mem::take,
     str::FromStr,
     sync::Arc,
     time::{Duration, Instant},
 };
 
 use anyhow::Result;
-use futures::{Stream, StreamExt, TryStreamExt};
+use futures::{Stream, StreamExt};
 use http::{uri::PathAndQuery, Uri};
 use prost_reflect::{DeserializeOptions, DynamicMessage, MessageDescriptor, SerializeOptions};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tonic::{client::Grpc, metadata::MetadataMap, transport::Channel, Extensions};
+use tonic::{client::Grpc, metadata::MetadataMap, transport::Channel, Extensions, Status};
 
 pub type ConnectResult = Result<Client, Error>;
-pub type ResponseResult = Result<Response, Error>;
+
+pub enum ResponseResult {
+    Response(Response),
+    Finished(MetadataMap),
+    Error(Error, MetadataMap),
+}
 
 #[derive(Debug, Clone)]
 pub struct Request {
@@ -66,7 +72,7 @@ impl Client {
         mut on_response: F,
     ) -> Call
     where
-        F: FnMut(Option<ResponseResult>) + Send + 'static,
+        F: FnMut(ResponseResult) + Send + 'static,
     {
         let path = PathAndQuery::from_str(&format!(
             "/{}/{}",
@@ -81,10 +87,13 @@ impl Client {
             MethodKind::Unary => {
                 tokio::spawn(async move {
                     match self.unary(&method, request, metadata, path).await {
-                        Ok(response) => on_response(Some(Ok(response))),
-                        Err(err) => on_response(Some(Err(err.into()))),
+                        Ok(response) => {
+                            let (metadata, message, _) = response.into_parts();
+                            on_response(ResponseResult::Response(message));
+                            on_response(ResponseResult::Finished(metadata));
+                        }
+                        Err(err) => on_response(ResponseResult::from_status(err)),
                     }
-                    on_response(None);
                 });
 
                 None
@@ -104,10 +113,13 @@ impl Client {
                         )
                         .await
                     {
-                        Ok(response) => on_response(Some(Ok(response))),
-                        Err(err) => on_response(Some(Err(err.into()))),
+                        Ok(response) => {
+                            let (metadata, message, _) = response.into_parts();
+                            on_response(ResponseResult::Response(message));
+                            on_response(ResponseResult::Finished(metadata));
+                        }
+                        Err(err) => on_response(ResponseResult::from_status(err)),
                     }
-                    on_response(None);
                 });
 
                 Some(request_sender)
@@ -118,22 +130,34 @@ impl Client {
                         .server_streaming(&method, request, metadata, path)
                         .await
                     {
-                        Ok(stream) => {
-                            let mut stream = stream.map_err(arc_err);
-                            while let Some(result) = stream.next().await {
-                                let is_err = result.is_err();
-                                on_response(Some(result));
-                                if is_err {
+                        Ok(mut stream) => loop {
+                            match stream.next().await {
+                                Some(Ok(response)) => {
+                                    on_response(ResponseResult::Response(response));
+                                }
+                                Some(Err(err)) => {
+                                    on_response(ResponseResult::from_status(err));
+                                    break;
+                                }
+                                None => {
+                                    match stream.trailers().await {
+                                        Ok(metadata) => {
+                                            on_response(ResponseResult::Finished(
+                                                metadata.unwrap_or_default(),
+                                            ));
+                                        }
+                                        Err(err) => {
+                                            on_response(ResponseResult::from_status(err));
+                                        }
+                                    }
                                     break;
                                 }
                             }
-                        }
+                        },
                         Err(err) => {
-                            on_response(Some(Err(err.into())));
+                            on_response(ResponseResult::from_status(err));
                         }
                     }
-
-                    on_response(None);
                 });
 
                 None
@@ -153,22 +177,34 @@ impl Client {
                         )
                         .await
                     {
-                        Ok(stream) => {
-                            let mut stream = stream.map_err(arc_err);
-                            while let Some(result) = stream.next().await {
-                                let is_err = result.is_err();
-                                on_response(Some(result));
-                                if is_err {
+                        Ok(mut stream) => loop {
+                            match stream.next().await {
+                                Some(Ok(response)) => {
+                                    on_response(ResponseResult::Response(response));
+                                }
+                                Some(Err(err)) => {
+                                    on_response(ResponseResult::from_status(err));
+                                    break;
+                                }
+                                None => {
+                                    match stream.trailers().await {
+                                        Ok(metadata) => {
+                                            on_response(ResponseResult::Finished(
+                                                metadata.unwrap_or_default(),
+                                            ));
+                                        }
+                                        Err(err) => {
+                                            on_response(ResponseResult::from_status(err));
+                                        }
+                                    }
                                     break;
                                 }
                             }
-                        }
+                        },
                         Err(err) => {
-                            on_response(Some(Err(err.into())));
+                            on_response(ResponseResult::from_status(err));
                         }
                     }
-
-                    on_response(None);
                 });
 
                 Some(request_sender)
@@ -187,17 +223,18 @@ impl Client {
         request: Request,
         metadata: MetadataMap,
         path: PathAndQuery,
-    ) -> anyhow::Result<Response> {
-        self.grpc.ready().await?;
-        Ok(self
-            .grpc
+    ) -> tonic::Result<tonic::Response<Response>> {
+        self.grpc
+            .ready()
+            .await
+            .map_err(|err| Status::from_error(err.into()))?;
+        self.grpc
             .unary(
                 tonic::Request::from_parts(metadata, Extensions::default(), request),
                 path,
                 codec::DynamicCodec::new(method.clone()),
             )
-            .await?
-            .into_inner())
+            .await
     }
 
     async fn client_streaming(
@@ -206,17 +243,18 @@ impl Client {
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         metadata: MetadataMap,
         path: PathAndQuery,
-    ) -> anyhow::Result<Response> {
-        self.grpc.ready().await?;
-        Ok(self
-            .grpc
+    ) -> tonic::Result<tonic::Response<Response>> {
+        self.grpc
+            .ready()
+            .await
+            .map_err(|err| Status::from_error(err.into()))?;
+        self.grpc
             .client_streaming(
                 tonic::Request::from_parts(metadata, Extensions::default(), requests),
                 path,
                 codec::DynamicCodec::new(method.clone()),
             )
-            .await?
-            .into_inner())
+            .await
     }
 
     async fn server_streaming(
@@ -225,8 +263,11 @@ impl Client {
         request: Request,
         metadata: MetadataMap,
         path: PathAndQuery,
-    ) -> anyhow::Result<tonic::Streaming<Response>> {
-        self.grpc.ready().await?;
+    ) -> tonic::Result<tonic::Streaming<Response>> {
+        self.grpc
+            .ready()
+            .await
+            .map_err(|err| Status::from_error(err.into()))?;
         Ok(self
             .grpc
             .server_streaming(
@@ -244,8 +285,11 @@ impl Client {
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         metadata: MetadataMap,
         path: PathAndQuery,
-    ) -> anyhow::Result<tonic::Streaming<Response>> {
-        self.grpc.ready().await?;
+    ) -> tonic::Result<tonic::Streaming<Response>> {
+        self.grpc
+            .ready()
+            .await
+            .map_err(|err| Status::from_error(err.into()))?;
         Ok(self
             .grpc
             .streaming(
@@ -301,10 +345,21 @@ impl Call {
             .send(request);
     }
 
+    pub fn finish(&mut self) {
+        self.request_sender = None;
+    }
+
     pub fn duration(&mut self, response: &Response) -> Option<Duration> {
         self.last_request.take().and_then(|request_timestamp| {
             response.timestamp.checked_duration_since(request_timestamp)
         })
+    }
+}
+
+impl ResponseResult {
+    fn from_status(mut err: tonic::Status) -> Self {
+        let metadata = take(err.metadata_mut());
+        ResponseResult::Error(Arc::new(err.into()), metadata)
     }
 }
 
@@ -317,8 +372,4 @@ impl MethodKind {
             (true, true) => MethodKind::Streaming,
         }
     }
-}
-
-fn arc_err(err: impl Into<anyhow::Error>) -> Error {
-    Arc::new(err.into())
 }
