@@ -200,6 +200,7 @@ impl MethodTabController {
             }
             grpc::ResponseResult::Finished(metadata) => {
                 data.stream.set_metadata(metadata);
+                self.call = None;
             }
         }
 
