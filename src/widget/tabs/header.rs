@@ -88,7 +88,7 @@ where
         let mut remaining_children = self.children.len();
 
         self.for_each_label(data, |_, label, label_data| {
-            let max_width = remaining_max_width / remaining_children as f64;
+            let max_width = remaining_max_width.max(0.0) / remaining_children as f64;
             let label_bc = BoxConstraints::new(
                 Size::new(MIN_TAB_SIZE.min(max_width), bc.min().height),
                 Size::new(max_width, bc.max().height),
