@@ -2056,7 +2056,6 @@ dependencies = [
  "tracing-subscriber",
  "vergen",
  "webpki",
- "which",
 ]
 
 [[package]]
