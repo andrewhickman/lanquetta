@@ -624,7 +624,8 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.8.3"
-source = "git+https://github.com/linebender/druid.git?branch=master#86b9a92e7a504a7ea7991c19bd02a67bca66dd0c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ece41814b410c87e6379441caa7316539500b2e387b8d691f2ba5c0f4aff631"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -649,7 +650,8 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.5.1"
-source = "git+https://github.com/linebender/druid.git?branch=master#86b9a92e7a504a7ea7991c19bd02a67bca66dd0c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "808d664482b1888a2ccb7f4dc9fa24165174d65ba96726315964064bdbc7d6cb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -659,7 +661,8 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.8.3"
-source = "git+https://github.com/linebender/druid.git?branch=master#86b9a92e7a504a7ea7991c19bd02a67bca66dd0c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7682d9c8fbf934504c30970775bfcfba7858a600f2f6e56bed331989958350fc"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -1677,45 +1680,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grpc-client"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "base64 0.21.2",
- "crossbeam-queue",
- "dashmap",
- "dirs-next",
- "druid",
- "fs-err",
- "futures",
- "http",
- "hyper",
- "hyper-rustls",
- "im",
- "iter-set",
- "kurbo 0.9.5",
- "once_cell",
- "open",
- "prost-reflect",
- "protox",
- "rand",
- "regex",
- "rustls",
- "serde",
- "serde-transcode",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tonic",
- "tower",
- "tracing",
- "tracing-subscriber",
- "vergen",
- "webpki",
- "which",
-]
-
-[[package]]
 name = "h2"
 version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2054,6 +2018,45 @@ checksum = "bd85a5776cd9500c2e2059c8c76c3b01528566b7fcbaf8098b55a33fc298849b"
 dependencies = [
  "arrayvec",
  "serde",
+]
+
+[[package]]
+name = "lanquetta"
+version = "0.6.1"
+dependencies = [
+ "anyhow",
+ "base64 0.21.2",
+ "crossbeam-queue",
+ "dashmap",
+ "dirs-next",
+ "druid",
+ "fs-err",
+ "futures",
+ "http",
+ "hyper",
+ "hyper-rustls",
+ "im",
+ "iter-set",
+ "kurbo 0.9.5",
+ "once_cell",
+ "open",
+ "prost-reflect",
+ "protox",
+ "rand",
+ "regex",
+ "rustls",
+ "serde",
+ "serde-transcode",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tonic",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+ "vergen",
+ "webpki",
+ "which",
 ]
 
 [[package]]
