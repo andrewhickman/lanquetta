@@ -1,4 +1,4 @@
-# grpc-client
+# Lanquetta
 
 A GUI application for testing gRPC services.
 
