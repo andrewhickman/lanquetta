@@ -1,7 +1,7 @@
 mod controller;
 
 use druid::{
-    widget::{prelude::*, Button, Checkbox, CrossAxisAlignment, Flex, Label},
+    widget::{prelude::*, Button, Checkbox, CrossAxisAlignment, Flex, Label, Scroll},
     Data, Lens, WidgetExt,
 };
 use prost_reflect::ServiceDescriptor;
@@ -36,30 +36,33 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
 
     let default_metadata = metadata::build_editable();
 
-    Flex::column()
-        .with_child(
-            Label::new("Default address")
-                .with_font(theme::font::HEADER_TWO)
-                .align_left(),
-        )
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(build_address_bar(id))
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(tls_checkbox.lens(OptionsTabState::verify_certs))
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(
-            Label::new("Default metadata")
-                .with_font(theme::font::HEADER_TWO)
-                .align_left(),
-        )
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(default_metadata.lens(OptionsTabState::default_metadata))
-        .must_fill_main_axis(true)
-        .cross_axis_alignment(CrossAxisAlignment::Start)
-        .padding(theme::BODY_PADDING)
-        .expand_height()
-        .controller(OptionsTabController::new())
-        .with_id(id)
+    Scroll::new(
+        Flex::column()
+            .with_child(
+                Label::new("Default address")
+                    .with_font(theme::font::HEADER_TWO)
+                    .align_left(),
+            )
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(build_address_bar(id))
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(tls_checkbox.lens(OptionsTabState::verify_certs))
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(
+                Label::new("Default metadata")
+                    .with_font(theme::font::HEADER_TWO)
+                    .align_left(),
+            )
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(default_metadata.lens(OptionsTabState::default_metadata))
+            .must_fill_main_axis(true)
+            .cross_axis_alignment(CrossAxisAlignment::Start)
+            .padding(theme::BODY_PADDING)
+            .controller(OptionsTabController::new())
+            .with_id(id),
+    )
+    .vertical()
+    .expand_height()
 }
 
 fn build_address_bar(body_id: WidgetId) -> impl Widget<OptionsTabState> {
