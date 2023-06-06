@@ -2,4 +2,4 @@
 
 A GUI application for testing gRPC services.
 
-![Sample](img/sample.png)
+![Sample](img/method.png)
