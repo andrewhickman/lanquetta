@@ -12,6 +12,7 @@ build = "build.rs"
 include = [
     "LICENSE-APACHE",
     "LICENSE-MIT",
+    "img/*",
     "build.rs",
     "src/**/*.rs",
     "!src/**/tests.rs",
