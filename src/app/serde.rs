@@ -4,14 +4,9 @@ use std::{
 };
 
 use anyhow::{Context, Error, Result};
-use base64::{
-    alphabet,
-    engine::{GeneralPurpose, GeneralPurposeConfig},
-    Engine,
-};
 use druid::piet::TextStorage;
-use prost_reflect::DescriptorPool;
 use prost_reflect::{prost::Message, prost_types::FileDescriptorSet};
+use prost_reflect::{DescriptorPool, DynamicMessage, ReflectMessage};
 use serde::{
     de::{self, Deserializer},
     ser::{self, Serializer},
@@ -23,9 +18,6 @@ use crate::{
     json::JsonText,
     widget::{TabId, TabsData},
 };
-
-const STANDARD: GeneralPurpose =
-    GeneralPurpose::new(&alphabet::STANDARD, GeneralPurposeConfig::new());
 
 impl Serialize for app::State {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -51,7 +43,7 @@ impl<'de> Deserialize<'de> for app::State {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppState {
-    file_descriptor_sets: Vec<String>,
+    file_descriptor_sets: Vec<DescriptorPoolSerde>,
     services: Vec<AppServiceState>,
     body: AppBodyState,
 }
@@ -59,7 +51,7 @@ struct AppState {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct AppServiceRef {
     file_set: usize,
-    service: usize,
+    service: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -102,6 +94,9 @@ enum AppBodyTabKind {
     },
 }
 
+#[derive(Debug)]
+struct DescriptorPoolSerde(DescriptorPool);
+
 impl<'a> TryFrom<&'a app::State> for AppState {
     type Error = Error;
 
@@ -120,7 +115,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                 Ok(AppServiceState {
                     idx: AppServiceRef {
                         file_set,
-                        service: service.service().index(),
+                        service: service.service().full_name().to_owned(),
                     },
                     expanded: service.expanded(),
                     options: service.options().clone(),
@@ -143,7 +138,11 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                             AppBodyTabKind::Method {
                                 idx: AppServiceRef {
                                     file_set,
-                                    service: method.method().parent_service().index(),
+                                    service: method
+                                        .method()
+                                        .parent_service()
+                                        .full_name()
+                                        .to_owned(),
                                 },
                                 method: method.method().index(),
                                 address: method.address().text().to_owned(),
@@ -162,7 +161,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                             AppBodyTabKind::Options {
                                 idx: AppServiceRef {
                                     file_set,
-                                    service: options.service().index(),
+                                    service: options.service().full_name().to_owned(),
                                 },
                             }
                         }
@@ -179,12 +178,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
 
         let file_descriptor_sets = file_descriptor_sets
             .into_iter()
-            .map(|f| {
-                let file_set = FileDescriptorSet {
-                    file: f.file_descriptor_protos().cloned().collect(),
-                };
-                STANDARD.encode(file_set.encode_to_vec())
-            })
+            .map(DescriptorPoolSerde)
             .collect();
 
         Ok(AppState {
@@ -205,13 +199,10 @@ impl TryInto<app::State> for AppState {
             body,
         } = self;
 
-        let file_descriptor_sets = file_descriptor_sets
+        let file_descriptor_sets: Vec<_> = file_descriptor_sets
             .into_iter()
-            .map(|b64| {
-                let bytes = STANDARD.decode(b64)?;
-                anyhow::Ok(DescriptorPool::decode(bytes.as_ref())?)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|serde| serde.0)
+            .collect();
 
         Ok(app::State {
             sidebar: services
@@ -291,6 +282,47 @@ impl AppBodyState {
     }
 }
 
+impl Serialize for DescriptorPoolSerde {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let bytes = self.0.encode_to_vec();
+        let mut dynamic =
+            DynamicMessage::decode(FileDescriptorSet::default().descriptor(), bytes.as_slice())
+                .map_err(<S::Error as serde::ser::Error>::custom)?;
+
+        for file in dynamic
+            .get_field_by_name_mut("file")
+            .unwrap()
+            .as_list_mut()
+            .unwrap()
+        {
+            // We don't use source code info and it bloats the config file.
+            file.as_message_mut()
+                .unwrap()
+                .clear_field_by_name("source_code_info");
+        }
+
+        dynamic.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for DescriptorPoolSerde {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let dynamic =
+            DynamicMessage::deserialize(FileDescriptorSet::default().descriptor(), deserializer)?;
+        let bytes = dynamic.encode_to_vec();
+        Ok(DescriptorPoolSerde(
+            DescriptorPool::decode(bytes.as_slice())
+                .map_err(<D::Error as serde::de::Error>::custom)?,
+        ))
+    }
+}
+
 fn get_or_insert_file_set(
     vec: &mut Vec<prost_reflect::DescriptorPool>,
     files: &prost_reflect::DescriptorPool,
@@ -312,6 +344,6 @@ fn get_service(
     vec.get(idx.file_set)
         .context("invalid file set index")?
         .services()
-        .nth(idx.service)
+        .find(|s| s.full_name() == idx.service)
         .context("invalid service index")
 }
