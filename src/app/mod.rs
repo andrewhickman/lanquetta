@@ -132,3 +132,21 @@ impl State {
         SidebarLens
     }
 }
+
+fn fmt_err(err: &anyhow::Error) -> String {
+    use std::fmt::Write;
+
+    let mut s = String::new();
+    for cause in err.chain() {
+        if !s.is_empty() {
+            s.push_str(": ");
+        }
+        let len = s.len();
+        write!(s, "{}", cause).unwrap();
+        if s[..len].contains(&s[len..]) {
+            s.truncate(len.saturating_sub(2));
+            break;
+        }
+    }
+    s
+}

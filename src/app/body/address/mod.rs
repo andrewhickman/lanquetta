@@ -1,4 +1,4 @@
-use std::{fmt::Write, io, mem, str::FromStr, sync::Arc};
+use std::{mem, str::FromStr, sync::Arc};
 
 use druid::{
     widget::{
@@ -43,7 +43,7 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
             if let Err(err) = data.uri.result() {
                 err.clone()
             } else if let RequestState::ConnectFailed(err) = data.request_state() {
-                fmt_connect_err(err)
+                err.clone()
             } else {
                 String::default()
             }
@@ -206,24 +206,4 @@ fn validate_uri(s: &String) -> Result<Uri, String> {
         return Err("URI must have scheme".to_owned());
     }
     Ok(uri)
-}
-
-fn fmt_connect_err(err: &anyhow::Error) -> String {
-    if let Some(err) = err.root_cause().downcast_ref::<io::Error>() {
-        format!("failed to connect: {}", err)
-    } else {
-        let mut s = String::new();
-        for cause in err.chain() {
-            if !s.is_empty() {
-                s.push_str(": ");
-            }
-            let len = s.len();
-            write!(s, "{}", cause).unwrap();
-            if s[..len].contains(&s[len..]) {
-                s.truncate(len.saturating_sub(2));
-                break;
-            }
-        }
-        s
-    }
 }

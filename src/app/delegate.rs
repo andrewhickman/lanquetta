@@ -1,6 +1,6 @@
 use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target};
 
-use crate::app::{self, command};
+use crate::app::{self, command, fmt_err};
 
 pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
     Delegate
@@ -20,7 +20,7 @@ impl AppDelegate<app::State> for Delegate {
         tracing::debug!("Received command: {:?}", cmd);
         if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
             if let Err(err) = data.sidebar.add_from_path(file.path()) {
-                data.error = Some(format!("Error loading file: {:?}", err));
+                data.error = Some(format!("Error loading file: {}", fmt_err(&err)));
             } else {
                 data.error = None;
             }

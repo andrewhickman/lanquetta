@@ -5,7 +5,7 @@ use druid::{
 
 use crate::{
     app::{
-        body::{options::OptionsTabState, RequestState},
+        body::{fmt_connect_err, options::OptionsTabState, RequestState},
         command,
     },
     grpc,
@@ -123,7 +123,7 @@ impl OptionsTabController {
             }
             Err(err) => {
                 data.default_address
-                    .set_request_state(RequestState::ConnectFailed(err));
+                    .set_request_state(RequestState::ConnectFailed(fmt_connect_err(&err)));
             }
         }
     }

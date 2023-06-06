@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::Error;
 use druid::{widget::TextBox, Application};
 use druid::{Data, Lens, Widget, WidgetExt as _};
@@ -23,7 +21,7 @@ impl State {
         State { body: json }
     }
 
-    pub fn from_response(result: Result<JsonText, Arc<Error>>) -> Self {
+    pub fn from_response(result: Result<JsonText, Error>) -> Self {
         let body = result.unwrap_or_else(|err| JsonText::plain_text(format!("{:?}", err)));
 
         State { body }

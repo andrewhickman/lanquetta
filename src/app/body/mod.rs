@@ -4,7 +4,7 @@ mod options;
 
 pub(in crate::app) use self::method::StreamState;
 
-use std::{collections::BTreeMap, mem, ops::Bound, sync::Arc};
+use std::{collections::BTreeMap, io, mem, ops::Bound, sync::Arc};
 
 use druid::{widget::ViewSwitcher, ArcStr, Data, Lens, Widget, WidgetExt as _};
 use iter_set::Inclusion;
@@ -12,8 +12,7 @@ use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use self::{method::MethodTabState, options::OptionsTabState};
 use crate::{
-    app::{command, metadata, sidebar::service::ServiceOptions},
-    grpc,
+    app::{command, fmt_err, metadata, sidebar::service::ServiceOptions},
     json::JsonText,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
@@ -29,7 +28,7 @@ pub enum RequestState {
     NotStarted,
     ConnectInProgress,
     Connected,
-    ConnectFailed(grpc::Error),
+    ConnectFailed(String),
     Active,
 }
 
@@ -498,5 +497,13 @@ impl TabsData for State {
             && !cmd.is(command::DISCONNECT)
             && !cmd.is(command::SEND)
             && !cmd.is(command::FINISH)
+    }
+}
+
+pub fn fmt_connect_err(err: &anyhow::Error) -> String {
+    if let Some(err) = err.root_cause().downcast_ref::<io::Error>() {
+        format!("failed to connect: {}", err)
+    } else {
+        fmt_err(err)
     }
 }

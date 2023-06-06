@@ -1,6 +1,6 @@
 mod item;
 
-use std::{iter, sync::Arc, time::Duration};
+use std::{iter, time::Duration};
 
 use anyhow::Error;
 use druid::{
@@ -141,11 +141,7 @@ impl State {
         });
     }
 
-    pub fn add_response(
-        &mut self,
-        result: Result<JsonText, Arc<Error>>,
-        duration: Option<Duration>,
-    ) {
+    pub fn add_response(&mut self, result: Result<JsonText, Error>, duration: Option<Duration>) {
         for item in self.items.iter_mut() {
             item.expanded = false;
         }

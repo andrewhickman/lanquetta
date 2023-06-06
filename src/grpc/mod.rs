@@ -4,11 +4,10 @@ mod codec;
 use std::{
     mem::take,
     str::FromStr,
-    sync::Arc,
     time::{Duration, Instant},
 };
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use futures::{Stream, StreamExt};
 use http::{uri::PathAndQuery, Uri};
 use prost_reflect::{DeserializeOptions, DynamicMessage, MessageDescriptor, SerializeOptions};
@@ -16,7 +15,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{client::Grpc, metadata::MetadataMap, transport::Channel, Extensions, Status};
 
-pub type ConnectResult = Result<Client, Error>;
+pub type ConnectResult = Result<Client>;
 
 pub enum ResponseResult {
     Response(Response),
@@ -48,8 +47,6 @@ pub struct Call {
     last_request: Option<Instant>,
     request_sender: Option<mpsc::UnboundedSender<Request>>,
 }
-
-pub type Error = Arc<anyhow::Error>;
 
 #[derive(Clone, Debug)]
 pub struct Client {
@@ -359,7 +356,7 @@ impl Call {
 impl ResponseResult {
     fn from_status(mut err: tonic::Status) -> Self {
         let metadata = take(err.metadata_mut());
-        ResponseResult::Error(Arc::new(err.into()), metadata)
+        ResponseResult::Error(err.into(), metadata)
     }
 }
 

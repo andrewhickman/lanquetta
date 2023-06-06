@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::SystemTime};
 
-use anyhow::{Context, Error};
+use anyhow::{Context, Error, Result};
 use dashmap::{mapref::entry::Entry, DashMap};
 use futures::future::BoxFuture;
 use http::{uri::Scheme, Uri};
@@ -11,8 +11,6 @@ use rustls::RootCertStore;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
-use crate::grpc;
-
 static CHANNELS: Lazy<DashMap<ChannelKey, Arc<Mutex<ChannelState>>>> = Lazy::new(Default::default);
 
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -22,12 +20,12 @@ struct ChannelKey {
 }
 
 enum ChannelState {
-    Pending(BoxFuture<'static, Result<Channel, grpc::Error>>),
+    Pending(BoxFuture<'static, Result<Channel>>),
     Ready(Channel),
     Error,
 }
 
-pub async fn get(uri: &Uri, verify_certs: bool) -> Result<Channel, grpc::Error> {
+pub async fn get(uri: &Uri, verify_certs: bool) -> Result<Channel> {
     let key = ChannelKey {
         uri: uri.clone(),
         verify_certs,
@@ -69,7 +67,7 @@ impl ChannelState {
     }
 }
 
-async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel, grpc::Error> {
+async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel> {
     let is_https = uri.scheme() == Some(&Scheme::HTTPS);
     let builder = Channel::builder(uri);
 
@@ -109,17 +107,9 @@ async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel, grpc::Error> {
             .enable_http2()
             .wrap_connector(http);
 
-        builder
-            .connect_with_connector(https)
-            .await
-            .map_err(anyhow::Error::from)
-            .map_err(grpc::Error::from)
+        Ok(builder.connect_with_connector(https).await?)
     } else {
-        builder
-            .connect()
-            .await
-            .map_err(anyhow::Error::from)
-            .map_err(grpc::Error::from)
+        Ok(builder.connect().await?)
     }
 }
 

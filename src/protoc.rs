@@ -12,7 +12,7 @@ pub fn load_file(path: &Path) -> Result<DescriptorPool> {
                 if path.extension() == Some(OsStr::new("proto")) {
                     bail!("{:?}", err)
                 } else {
-                    bail!("failed to parse '{}' as either a protobuf source file or encoded file descriptor set: {}", path.display(), err)
+                    bail!("failed to parse file as either a protobuf source file or encoded file descriptor set: {}", err)
                 }
             }
         },

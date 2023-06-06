@@ -5,7 +5,7 @@ use druid::{
 
 use crate::{
     app::{
-        body::{method::MethodTabState, RequestState},
+        body::{fmt_connect_err, method::MethodTabState, RequestState},
         command,
     },
     grpc,
@@ -128,7 +128,7 @@ impl MethodTabController {
             }
             Err(err) => {
                 data.address
-                    .set_request_state(RequestState::ConnectFailed(err));
+                    .set_request_state(RequestState::ConnectFailed(fmt_connect_err(&err)));
             }
         }
     }
