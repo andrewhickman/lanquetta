@@ -2045,6 +2045,7 @@ dependencies = [
  "rand",
  "regex",
  "rustls",
+ "rustls-native-certs",
  "serde",
  "serde-transcode",
  "serde_json",

@@ -1,11 +1,13 @@
 use std::{sync::Arc, time::SystemTime};
 
+use anyhow::{Context, Error};
 use dashmap::{mapref::entry::Entry, DashMap};
 use futures::future::BoxFuture;
 use http::{uri::Scheme, Uri};
 use hyper::client::HttpConnector;
-use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
-use once_cell::sync::Lazy;
+use hyper_rustls::HttpsConnectorBuilder;
+use once_cell::sync::{Lazy, OnceCell};
+use rustls::RootCertStore;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
@@ -71,29 +73,44 @@ async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel, grpc::Error> {
     let is_https = uri.scheme() == Some(&Scheme::HTTPS);
     let builder = Channel::builder(uri);
 
-    if is_https && !verify_certs {
-        static HTTPS_NO_VERIFY_CONNECTOR: Lazy<HttpsConnector<HttpConnector>> = Lazy::new(|| {
-            let mut http = HttpConnector::new();
-            http.enforce_http(false);
-            http.set_nodelay(true);
+    if is_https {
+        let mut http = HttpConnector::new();
+        http.enforce_http(false);
+        http.set_nodelay(true);
 
-            let rustls_config = rustls::ClientConfig::builder()
-                .with_safe_default_cipher_suites()
-                .with_safe_default_kx_groups()
-                .with_safe_default_protocol_versions()
-                .unwrap()
+        let rustls_config = if verify_certs {
+            static ROOT_STORE: OnceCell<RootCertStore> = OnceCell::new();
+
+            let root_store = ROOT_STORE
+                .get_or_try_init::<_, Error>(|| {
+                    let mut roots = RootCertStore::empty();
+                    for cert in rustls_native_certs::load_native_certs()? {
+                        roots.add(&rustls::Certificate(cert.0))?;
+                    }
+                    Ok(roots)
+                })
+                .context("failed to load trusted root certificate store")?
+                .clone();
+
+            rustls::ClientConfig::builder()
+                .with_safe_defaults()
+                .with_root_certificates(root_store)
+                .with_no_client_auth()
+        } else {
+            rustls::ClientConfig::builder()
+                .with_safe_defaults()
                 .with_custom_certificate_verifier(Arc::new(DangerousCertificateVerifier))
-                .with_no_client_auth();
+                .with_no_client_auth()
+        };
 
-            HttpsConnectorBuilder::new()
-                .with_tls_config(rustls_config)
-                .https_only()
-                .enable_http2()
-                .wrap_connector(http)
-        });
+        let https = HttpsConnectorBuilder::new()
+            .with_tls_config(rustls_config)
+            .https_only()
+            .enable_http2()
+            .wrap_connector(http);
 
         builder
-            .connect_with_connector(HTTPS_NO_VERIFY_CONNECTOR.clone())
+            .connect_with_connector(https)
             .await
             .map_err(anyhow::Error::from)
             .map_err(grpc::Error::from)
