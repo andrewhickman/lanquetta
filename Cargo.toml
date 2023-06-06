@@ -9,6 +9,13 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2021"
 build = "build.rs"
+include = [
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+    "build.rs",
+    "src/**/*.rs",
+    "!src/**/tests.rs",
+]
 
 [profile.release]
 lto = true
