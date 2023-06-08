@@ -1,3 +1,5 @@
+![logo](img/logo.svg)
+
 # Lanquetta
 
 A GUI application for testing gRPC services.
