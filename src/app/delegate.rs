@@ -126,4 +126,6 @@ fn set_window_icon(handle: &WindowHandle) -> Result<()> {
 }
 
 #[cfg(not(windows))]
-fn set_window_icon(_: &WindowHandle) -> Result<()> {}
+fn set_window_icon(_: &WindowHandle) -> Result<()> {
+    Ok(())
+}
