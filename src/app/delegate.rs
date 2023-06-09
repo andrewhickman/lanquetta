@@ -1,14 +1,7 @@
 use anyhow::Result;
 use druid::{
-    AppDelegate, Command, DelegateCtx, Env, Handled, HasRawWindowHandle, RawWindowHandle, Target,
+    AppDelegate, Command, DelegateCtx, Env, Handled, Target,
     WindowHandle, WindowId,
-};
-use windows::Win32::{
-    Foundation::{HMODULE, HWND, LPARAM, WPARAM},
-    UI::WindowsAndMessaging::{
-        LoadImageW, SendMessageW, ICON_BIG, ICON_SMALL, IDI_APPLICATION, IMAGE_ICON,
-        LR_DEFAULTSIZE, LR_SHARED, LR_VGACOLOR, WM_SETICON,
-    },
 };
 
 use crate::app::{self, command, fmt_err};
@@ -97,6 +90,16 @@ impl AppDelegate<app::State> for Delegate {
 
 #[cfg(windows)]
 fn set_window_icon(handle: &WindowHandle) -> Result<()> {
+    use druid::{HasRawWindowHandle, RawWindowHandle};
+
+    use windows::Win32::{
+        Foundation::{HMODULE, HWND, LPARAM, WPARAM},
+        UI::WindowsAndMessaging::{
+            LoadImageW, SendMessageW, ICON_BIG, ICON_SMALL, IDI_APPLICATION, IMAGE_ICON,
+            LR_DEFAULTSIZE, LR_SHARED, LR_VGACOLOR, WM_SETICON,
+        },
+    };
+
     if let RawWindowHandle::Win32(window) = handle.raw_window_handle() {
         unsafe {
             let hwnd = HWND(window.hwnd as isize);
