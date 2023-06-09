@@ -1,8 +1,5 @@
 use anyhow::Result;
-use druid::{
-    AppDelegate, Command, DelegateCtx, Env, Handled, Target,
-    WindowHandle, WindowId,
-};
+use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target, WindowHandle, WindowId};
 
 use crate::app::{self, command, fmt_err};
 
