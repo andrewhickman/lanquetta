@@ -1,4 +1,15 @@
-use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target};
+use anyhow::Result;
+use druid::{
+    AppDelegate, Command, DelegateCtx, Env, Handled, HasRawWindowHandle, RawWindowHandle, Target,
+    WindowHandle, WindowId,
+};
+use windows::Win32::{
+    Foundation::{HMODULE, HWND, LPARAM, WPARAM},
+    UI::WindowsAndMessaging::{
+        LoadImageW, SendMessageW, ICON_BIG, ICON_SMALL, IDI_APPLICATION, IMAGE_ICON,
+        LR_DEFAULTSIZE, LR_SHARED, LR_VGACOLOR, WM_SETICON,
+    },
+};
 
 use crate::app::{self, command, fmt_err};
 
@@ -9,6 +20,19 @@ pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
 struct Delegate;
 
 impl AppDelegate<app::State> for Delegate {
+    fn window_added(
+        &mut self,
+        _: WindowId,
+        handle: WindowHandle,
+        _: &mut app::State,
+        _: &Env,
+        _: &mut DelegateCtx,
+    ) {
+        if let Err(err) = set_window_icon(&handle) {
+            tracing::error!("failed to set window icon: {:#}", err);
+        }
+    }
+
     fn command(
         &mut self,
         _ctx: &mut DelegateCtx,
@@ -69,4 +93,33 @@ impl AppDelegate<app::State> for Delegate {
             Handled::No
         }
     }
+}
+
+fn set_window_icon(handle: &WindowHandle) -> Result<()> {
+    if let RawWindowHandle::Win32(window) = handle.raw_window_handle() {
+        unsafe {
+            let hwnd = HWND(window.hwnd as isize);
+
+            let image = LoadImageW(
+                HMODULE(window.hinstance as isize),
+                IDI_APPLICATION,
+                IMAGE_ICON,
+                0,
+                0,
+                LR_SHARED | LR_DEFAULTSIZE | LR_VGACOLOR,
+            )?;
+
+            // Shown at the top of the window
+            SendMessageW(
+                hwnd,
+                WM_SETICON,
+                WPARAM(ICON_SMALL as usize),
+                LPARAM(image.0),
+            );
+            // Shown in the alt+tab window
+            SendMessageW(hwnd, WM_SETICON, WPARAM(ICON_BIG as usize), LPARAM(image.0));
+        }
+    }
+
+    Ok(())
 }
