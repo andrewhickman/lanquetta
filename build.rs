@@ -1,3 +1,9 @@
+use winres::WindowsResource;
+
 fn main() -> anyhow::Result<()> {
-    vergen::EmitBuilder::builder().git_sha(true).emit()
+    vergen::EmitBuilder::builder().git_sha(true).emit()?;
+
+    WindowsResource::new().set_icon("img/icon.ico").compile()?;
+
+    Ok(())
 }
