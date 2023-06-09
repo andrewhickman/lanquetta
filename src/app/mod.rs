@@ -45,7 +45,7 @@ struct State {
     error: Option<String>,
 }
 
-const TITLE: &str = "gRPC Client";
+const TITLE: &str = "Lanquetta";
 
 fn build() -> impl Widget<State> {
     let sidebar = sidebar::build().lens(State::sidebar_lens());
