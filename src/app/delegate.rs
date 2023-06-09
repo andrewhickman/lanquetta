@@ -95,6 +95,7 @@ impl AppDelegate<app::State> for Delegate {
     }
 }
 
+#[cfg(windows)]
 fn set_window_icon(handle: &WindowHandle) -> Result<()> {
     if let RawWindowHandle::Win32(window) = handle.raw_window_handle() {
         unsafe {
@@ -123,3 +124,6 @@ fn set_window_icon(handle: &WindowHandle) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(not(windows))]
+fn set_window_icon(_: &WindowHandle) -> Result<()> {}
