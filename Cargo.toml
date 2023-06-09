@@ -1,7 +1,7 @@
 [package]
 name = "lanquetta"
 description = "A GUI application for calling gRPC services."
-version = "0.6.2"
+version = "0.6.3"
 authors = ["Andrew Hickman <andrew.hickman1@sky.com>"]
 repository = "https://github.com/andrewhickman/lanquetta"
 documentation = "https://docs.rs/lanquetta"
