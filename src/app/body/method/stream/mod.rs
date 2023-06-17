@@ -1,12 +1,11 @@
 mod item;
 
-use std::{iter, time::Duration};
+use std::time::Duration;
 
 use anyhow::Error;
 use druid::{
     widget::{
-        prelude::*, CrossAxisAlignment, Either, Flex, Label, LineBreaking, List, MainAxisAlignment,
-        Scroll, SizedBox,
+        prelude::*, CrossAxisAlignment, Flex, Label, LineBreaking, List, MainAxisAlignment, Scroll,
     },
     ArcStr, Data, Lens, WidgetExt,
 };
@@ -14,15 +13,13 @@ use serde::{Deserialize, Serialize};
 use tonic::metadata::MetadataMap;
 
 use crate::{
-    app::metadata,
     json::JsonText,
-    theme::{self, BODY_SPACER},
-    widget::{expander, Empty, ExpanderData, Icon},
+    theme,
+    widget::{expander, ExpanderData, Icon},
 };
 
 #[derive(Debug, Clone, Data, Lens, Serialize, Deserialize)]
 pub struct State {
-    metadata: metadata::State,
     items: im::Vector<ItemExpanderState>,
     response_count: usize,
     request_count: usize,
@@ -41,26 +38,13 @@ struct ItemExpanderState {
 enum ItemKind {
     Request,
     Response,
+    Metadata,
 }
 
 pub fn build() -> impl Widget<State> {
     let items = List::new(build_list_entry).lens(State::items);
-    let spacer = Either::new(
-        |data: &metadata::State, _: &Env| data.is_empty(),
-        Empty,
-        SizedBox::empty().fix_height(BODY_SPACER),
-    )
-    .lens(State::metadata);
-    let metadata = metadata::build().lens(State::metadata);
 
-    Scroll::new(
-        Flex::column()
-            .with_child(items)
-            .with_child(spacer)
-            .with_child(metadata),
-    )
-    .vertical()
-    .expand_height()
+    Scroll::new(items).vertical().expand_height()
 }
 
 pub fn build_header() -> impl Widget<State> {
@@ -96,11 +80,6 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_line_break_mode(LineBreaking::Clip)
         .lens(ItemExpanderState::duration);
 
-    let copy_item: Box<dyn FnMut(&mut EventCtx, &mut ItemExpanderState, &Env)> =
-        Box::new(move |_, data, _| {
-            data.data.set_clipboard();
-        });
-
     let expander_label = Flex::row()
         .must_fill_main_axis(true)
         .main_axis_alignment(MainAxisAlignment::SpaceBetween)
@@ -108,17 +87,12 @@ fn build_list_entry() -> impl Widget<ItemExpanderState> {
         .with_child(label)
         .with_child(duration);
 
-    expander::new(
-        expander_label,
-        entry,
-        iter::once((Icon::copy().with_size((18.0, 18.0)), copy_item)),
-    )
+    expander::new(expander_label, entry)
 }
 
 impl State {
     pub fn new() -> Self {
         State {
-            metadata: metadata::State::default(),
             items: im::Vector::new(),
             response_count: 0,
             request_count: 0,
@@ -157,13 +131,19 @@ impl State {
         });
     }
 
-    pub fn set_metadata(&mut self, metadata: MetadataMap) {
-        self.metadata = metadata::state_from_tonic(metadata);
+    pub fn add_metadata(&mut self, metadata: MetadataMap) {
+        let name = ArcStr::from("Metadata");
+        self.items.push_back(ItemExpanderState {
+            label: name,
+            expanded: true,
+            data: item::State::from_metadata(metadata),
+            kind: ItemKind::Metadata,
+            duration: ArcStr::from(""),
+        });
     }
 
     pub fn clear(&mut self) {
         self.items.clear();
-        self.metadata = metadata::State::default();
         self.request_count = 0;
         self.response_count = 0;
     }
@@ -176,6 +156,19 @@ impl Default for State {
 }
 
 impl ExpanderData for ItemExpanderState {
+    fn buttons(&self) -> Vec<(Icon, Box<dyn FnMut(&mut EventCtx, &mut Self, &Env)>)> {
+        if self.data.can_copy() {
+            let copy_item: Box<dyn FnMut(&mut EventCtx, &mut ItemExpanderState, &Env)> =
+                Box::new(move |_, data, _| {
+                    data.data.set_clipboard();
+                });
+
+            vec![(Icon::copy().with_size((18.0, 18.0)), copy_item)]
+        } else {
+            vec![]
+        }
+    }
+
     fn expanded(&self, _: &Env) -> bool {
         self.expanded
     }

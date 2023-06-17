@@ -195,11 +195,11 @@ impl MethodTabController {
             }
             grpc::ResponseResult::Error(error, metadata) => {
                 data.stream.add_response(Err(error), None);
-                data.stream.set_metadata(metadata);
+                data.stream.add_metadata(metadata);
                 self.call = None;
             }
             grpc::ResponseResult::Finished(metadata) => {
-                data.stream.set_metadata(metadata);
+                data.stream.add_metadata(metadata);
                 self.call = None;
             }
         }

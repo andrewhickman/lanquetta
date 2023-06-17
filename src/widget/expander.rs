@@ -10,6 +10,7 @@ use crate::{
 };
 
 pub trait ExpanderData: Data {
+    fn buttons(&self) -> Vec<(Icon, Box<dyn FnMut(&mut EventCtx, &mut Self, &Env)>)>;
     fn expanded(&self, env: &Env) -> bool;
     fn toggle_expanded(&mut self, env: &Env);
 }
@@ -20,15 +21,11 @@ struct ExpanderHeader<T> {
     buttons: Vec<WidgetPod<T, Box<dyn Widget<T>>>>,
 }
 
-pub fn new<T>(
-    label: impl Widget<T> + 'static,
-    child: impl Widget<T> + 'static,
-    buttons: impl Iterator<Item = (Icon, Box<dyn FnMut(&mut EventCtx, &mut T, &Env)>)>,
-) -> impl Widget<T>
+pub fn new<T>(label: impl Widget<T> + 'static, child: impl Widget<T> + 'static) -> impl Widget<T>
 where
     T: ExpanderData,
 {
-    let header = ExpanderHeader::new(label.boxed(), buttons);
+    let header = ExpanderHeader::new(label.boxed());
 
     let child = Either::new(ExpanderData::expanded, child, Empty);
 
@@ -43,21 +40,7 @@ impl<T> ExpanderHeader<T>
 where
     T: ExpanderData,
 {
-    fn new(
-        label: Box<dyn Widget<T>>,
-        buttons: impl Iterator<Item = (Icon, Box<dyn FnMut(&mut EventCtx, &mut T, &Env)>)>,
-    ) -> Self {
-        let buttons = buttons
-            .map(|(icon, on_close)| {
-                WidgetPod::new(
-                    icon.background(Painter::new(paint_button_background))
-                        .lens::<T, _>(lens::Unit::default())
-                        .controller(CloseButtonController { on_close })
-                        .boxed(),
-                )
-            })
-            .collect();
-
+    fn new(label: Box<dyn Widget<T>>) -> Self {
         ExpanderHeader {
             expanded: WidgetPod::new(
                 Either::new(
@@ -68,7 +51,7 @@ where
                 .boxed(),
             ),
             label: WidgetPod::new(label),
-            buttons,
+            buttons: vec![],
         }
     }
 }
@@ -112,10 +95,28 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        if let LifeCycle::HotChanged(_) = event {
-            ctx.request_paint();
+        match event {
+            LifeCycle::WidgetAdded => {
+                self.buttons = data
+                    .buttons()
+                    .into_iter()
+                    .map(|(icon, on_close)| {
+                        WidgetPod::new(
+                            icon.background(Painter::new(paint_button_background))
+                                .lens::<T, _>(lens::Unit::default())
+                                .controller(CloseButtonController { on_close })
+                                .boxed(),
+                        )
+                    })
+                    .collect();
+            }
+            LifeCycle::HotChanged(_) => {
+                ctx.request_paint();
+            }
+            _ => (),
         }
 
+        if let LifeCycle::HotChanged(_) = event {}
         self.expanded.lifecycle(ctx, event, data, env);
         self.label.lifecycle(ctx, event, data, env);
 

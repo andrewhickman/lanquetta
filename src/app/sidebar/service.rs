@@ -66,29 +66,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         .lens(ServiceState::name)
         .lens(State::service);
 
-    let open_options_tab: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
-        Box::new(move |ctx, data, _| {
-            ctx.submit_command(SELECT_OR_CREATE_OPTIONS_TAB.with((
-                data.service.service().clone(),
-                data.service.options().clone(),
-            )));
-        });
-
-    let close_expander: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
-        Box::new(move |ctx, data, _| {
-            ctx.submit_command(REMOVE_SERVICE.with(data.index));
-        });
-
-    expander::new(
-        expander_label,
-        List::new(method::build),
-        [
-            (Icon::settings(), open_options_tab),
-            (Icon::close(), close_expander),
-        ]
-        .into_iter(),
-    )
-    .env_scope(|env, data: &State| {
+    expander::new(expander_label, List::new(method::build)).env_scope(|env, data: &State| {
         env.set(theme::EXPANDER_PADDING, 8.0);
         env.set(theme::EXPANDER_CORNER_RADIUS, 0.0);
 
@@ -164,6 +142,26 @@ impl From<prost_reflect::ServiceDescriptor> for ServiceState {
 }
 
 impl ExpanderData for State {
+    fn buttons(&self) -> Vec<(Icon, Box<dyn FnMut(&mut EventCtx, &mut Self, &Env)>)> {
+        let open_options_tab: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
+            Box::new(move |ctx, data, _| {
+                ctx.submit_command(SELECT_OR_CREATE_OPTIONS_TAB.with((
+                    data.service.service().clone(),
+                    data.service.options().clone(),
+                )));
+            });
+
+        let close_expander: Box<dyn FnMut(&mut EventCtx, &mut State, &Env)> =
+            Box::new(move |ctx, data, _| {
+                ctx.submit_command(REMOVE_SERVICE.with(data.index));
+            });
+
+        vec![
+            (Icon::settings(), open_options_tab),
+            (Icon::close(), close_expander),
+        ]
+    }
+
     fn expanded(&self, _: &Env) -> bool {
         self.service.expanded
     }

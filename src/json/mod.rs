@@ -96,15 +96,6 @@ impl JsonText {
         }
     }
 
-    pub fn plain_text(data: impl Into<Arc<String>>) -> Self {
-        let data = data.into();
-        JsonText {
-            original_data: None,
-            data,
-            styles: Arc::new([]),
-        }
-    }
-
     pub fn original_data(&self) -> &str {
         match &self.original_data {
             Some(data) => data,
