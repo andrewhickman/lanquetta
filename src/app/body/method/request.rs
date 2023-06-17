@@ -89,7 +89,7 @@ impl State {
     }
 
     pub(in crate::app) fn is_valid(&self) -> bool {
-        self.body.is_valid()
+        self.body.is_valid() && self.metadata.is_valid()
     }
 
     pub(in crate::app) fn get(&self) -> Option<&grpc::Request> {

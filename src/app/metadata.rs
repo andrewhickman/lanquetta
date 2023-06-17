@@ -6,10 +6,10 @@ use base64::{
 };
 use druid::{
     widget::{
-        prelude::*, Controller, CrossAxisAlignment, FillStrat, Flex, Label, LineBreaking, List,
-        TextBox,
+        prelude::*, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Label, LineBreaking,
+        List, TextBox,
     },
-    Lens, Point, Selector, WidgetExt, WidgetPod,
+    Lens, Point, Selector, UnitPoint, WidgetExt, WidgetPod,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -19,12 +19,12 @@ use tonic::metadata::{
 
 use crate::{
     theme,
-    widget::{FinishEditController, FormField, Icon, ValidationFn, ValidationState},
+    widget::{Empty, FinishEditController, FormField, Icon, ValidationFn, ValidationState},
 };
 
 pub type State = Arc<Vec<Entry>>;
 
-type EntryValidation = ValidationState<EditableEntry, ParsedEntry, Arc<String>>;
+type EntryValidation = ValidationState<EditableEntry, ParsedEntry, String>;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub struct EditableState {
@@ -107,7 +107,7 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidation> {
         });
 
     let form_id = WidgetId::next();
-    FormField::new(
+    let form_field = FormField::new(
         form_id,
         Flex::row()
             .cross_axis_alignment(CrossAxisAlignment::Fill)
@@ -126,7 +126,28 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidation> {
             )
             .with_spacer(GRID_NARROW_SPACER)
             .with_child(close),
-    )
+    );
+
+    let error = Either::new(
+        |data: &EntryValidation, _: &Env| data.is_pristine_or_valid(),
+        Empty,
+        theme::error_label_scope(
+            Label::dynamic(|data: &EntryValidation, _| {
+                if let Err(err) = data.result() {
+                    err.clone()
+                } else {
+                    String::default()
+                }
+            })
+            .align_vertical(UnitPoint::CENTER),
+        )
+        .padding((GRID_NARROW_SPACER, 0.0, 0.0, 0.0)),
+    );
+
+    Flex::row()
+        .cross_axis_alignment(CrossAxisAlignment::Fill)
+        .with_flex_child(form_field, 1.0)
+        .with_child(error)
 }
 
 fn build_add_button() -> impl Widget<EditableState> {
@@ -228,6 +249,10 @@ impl EditableState {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.entries.iter().all(|e| e.is_valid())
+    }
 }
 
 impl<W> Controller<EditableState, W> for DeleteMetadataController
@@ -317,10 +342,10 @@ impl Data for ParsedEntry {
     }
 }
 
-static VALIDATE_ENTRY: Lazy<ValidationFn<EditableEntry, ParsedEntry, Arc<String>>> =
+static VALIDATE_ENTRY: Lazy<ValidationFn<EditableEntry, ParsedEntry, String>> =
     Lazy::new(|| Arc::new(validate_entry));
 
-fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, Arc<String>> {
+fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, String> {
     if let Ok(key) = BinaryMetadataKey::from_str(&raw.key) {
         const STANDARD: GeneralPurpose = GeneralPurpose::new(
             &alphabet::STANDARD,
@@ -331,19 +356,15 @@ fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, Arc<String>> {
 
         let bytes = STANDARD
             .decode(&raw.value)
-            .map_err(|_| Arc::new("invalid base64".to_owned()))?;
+            .map_err(|_| "invalid base64".to_owned())?;
 
-        let value =
-            BinaryMetadataValue::try_from(bytes).map_err(|err| Arc::new(err.to_string()))?;
+        let value = BinaryMetadataValue::try_from(bytes).map_err(|err| err.to_string())?;
         Ok(ParsedEntry::Binary { key, value })
+    } else if let Ok(key) = AsciiMetadataKey::from_str(&raw.key) {
+        let value =
+            AsciiMetadataValue::try_from(&raw.value).map_err(|_| "invalid ascii".to_owned())?;
+        Ok(ParsedEntry::Ascii { key, value })
     } else {
-        match AsciiMetadataKey::from_str(&raw.key) {
-            Ok(key) => {
-                let value = AsciiMetadataValue::try_from(&raw.value)
-                    .map_err(|err| Arc::new(err.to_string()))?;
-                Ok(ParsedEntry::Ascii { key, value })
-            }
-            Err(err) => Err(Arc::new(err.to_string())),
-        }
+        Err("invalid key".to_owned())
     }
 }
