@@ -13,7 +13,12 @@ pub(in crate::app) struct State {
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    theme::text_box_scope(TextBox::multiline().with_font(theme::EDITOR_FONT)).lens(State::body)
+    theme::text_box_scope(
+        TextBox::multiline()
+            .readonly()
+            .with_font(theme::EDITOR_FONT),
+    )
+    .lens(State::body)
 }
 
 impl State {

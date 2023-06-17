@@ -83,12 +83,14 @@ fn build_row() -> impl Widget<Entry> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
         .with_flex_child(
-            theme::text_box_scope(TextBox::<String>::new().expand_width()).lens(Entry::key),
+            theme::text_box_scope(TextBox::<String>::new().readonly().expand_width())
+                .lens(Entry::key),
             0.33,
         )
         .with_spacer(GRID_NARROW_SPACER)
         .with_flex_child(
-            theme::text_box_scope(TextBox::<String>::new().expand_width()).lens(Entry::value),
+            theme::text_box_scope(TextBox::<String>::new().readonly().expand_width())
+                .lens(Entry::value),
             0.67,
         )
 }

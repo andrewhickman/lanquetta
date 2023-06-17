@@ -69,4 +69,4 @@ vergen = { version = "8.2.1", features = ["git", "gitoxide"] }
 winres = "0.1.12"
 
 [patch.crates-io]
-druid = { git = "https://github.com/linebender/druid", branch = "master" }
+druid = { git = "https://github.com/andrewhickman/druid", branch = "master" }
