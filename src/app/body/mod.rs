@@ -28,7 +28,7 @@ pub enum RequestState {
     NotStarted,
     ConnectInProgress,
     Connected,
-    ConnectFailed(String),
+    ConnectFailed(ArcStr),
     Active,
 }
 
@@ -500,9 +500,9 @@ impl TabsData for State {
     }
 }
 
-pub fn fmt_connect_err(err: &anyhow::Error) -> String {
+pub fn fmt_connect_err(err: &anyhow::Error) -> ArcStr {
     if let Some(err) = err.root_cause().downcast_ref::<io::Error>() {
-        format!("failed to connect: {}", err)
+        format!("failed to connect: {}", err).into()
     } else {
         fmt_err(err)
     }

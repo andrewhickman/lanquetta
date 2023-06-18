@@ -33,14 +33,14 @@ pub struct EditableState {
 
 #[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
 pub struct Entry {
-    key: String,
-    value: String,
+    key: Arc<String>,
+    value: Arc<String>,
 }
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub struct EditableEntry {
-    key: String,
-    value: String,
+    key: Arc<String>,
+    value: Arc<String>,
     deleted: bool,
 }
 
@@ -83,13 +83,13 @@ fn build_row() -> impl Widget<Entry> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
         .with_flex_child(
-            theme::text_box_scope(TextBox::<String>::new().readonly().expand_width())
+            theme::text_box_scope(TextBox::<Arc<String>>::default().readonly().expand_width())
                 .lens(Entry::key),
             0.33,
         )
         .with_spacer(GRID_NARROW_SPACER)
         .with_flex_child(
-            theme::text_box_scope(TextBox::<String>::new().readonly().expand_width())
+            theme::text_box_scope(TextBox::<Arc<String>>::default().readonly().expand_width())
                 .lens(Entry::value),
             0.67,
         )
@@ -112,14 +112,14 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidation> {
         Flex::row()
             .cross_axis_alignment(CrossAxisAlignment::Fill)
             .with_flex_child(
-                theme::text_box_scope(TextBox::<String>::new().expand_width())
+                theme::text_box_scope(TextBox::<Arc<String>>::new().expand_width())
                     .controller(FinishEditController::new(form_id))
                     .lens(EditableEntry::key),
                 0.33,
             )
             .with_spacer(GRID_NARROW_SPACER)
             .with_flex_child(
-                theme::text_box_scope(TextBox::<String>::new().expand_width())
+                theme::text_box_scope(TextBox::<Arc<String>>::new().expand_width())
                     .controller(FinishEditController::new(form_id))
                     .lens(EditableEntry::value),
                 0.67,
@@ -185,12 +185,12 @@ pub fn state_from_tonic(metadata: MetadataMap) -> State {
             .iter()
             .map(|entry| match entry {
                 tonic::metadata::KeyAndValueRef::Ascii(key, value) => Entry {
-                    key: key.to_string(),
-                    value: String::from_utf8_lossy(value.as_encoded_bytes()).into_owned(),
+                    key: Arc::new(key.to_string()),
+                    value: Arc::new(String::from_utf8_lossy(value.as_encoded_bytes()).into_owned()),
                 },
                 tonic::metadata::KeyAndValueRef::Binary(key, value) => Entry {
-                    key: key.to_string(),
-                    value: String::from_utf8_lossy(value.as_encoded_bytes()).into_owned(),
+                    key: Arc::new(key.to_string()),
+                    value: Arc::new(String::from_utf8_lossy(value.as_encoded_bytes()).into_owned()),
                 },
             })
             .collect(),
@@ -355,14 +355,14 @@ fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, String> {
         );
 
         let bytes = STANDARD
-            .decode(&raw.value)
+            .decode(raw.value.as_ref())
             .map_err(|_| "invalid base64".to_owned())?;
 
         let value = BinaryMetadataValue::try_from(bytes).map_err(|err| err.to_string())?;
         Ok(ParsedEntry::Binary { key, value })
     } else if let Ok(key) = AsciiMetadataKey::from_str(&raw.key) {
-        let value =
-            AsciiMetadataValue::try_from(&raw.value).map_err(|_| "invalid ascii".to_owned())?;
+        let value = AsciiMetadataValue::try_from(raw.value.as_ref())
+            .map_err(|_| "invalid ascii".to_owned())?;
         Ok(ParsedEntry::Ascii { key, value })
     } else {
         Err("invalid key".to_owned())

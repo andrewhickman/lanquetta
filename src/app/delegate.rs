@@ -34,7 +34,7 @@ impl AppDelegate<app::State> for Delegate {
         tracing::debug!("Received command: {:?}", cmd);
         if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
             if let Err(err) = data.sidebar.add_from_path(file.path()) {
-                data.error = Some(format!("Error loading file: {}", fmt_err(&err)));
+                data.error = Some(format!("Error loading file: {}", fmt_err(&err)).into());
             } else {
                 data.error = None;
             }

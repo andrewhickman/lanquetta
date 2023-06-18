@@ -4,7 +4,7 @@ use anyhow::Error;
 use druid::{
     lens::Field,
     widget::{CrossAxisAlignment, Flex, Label, LineBreaking, Maybe, TextBox, ViewSwitcher},
-    Application, Data, Env, Lens, Widget, WidgetExt as _,
+    Application, ArcStr, Data, Env, Lens, Widget, WidgetExt as _,
 };
 use prost_reflect::{DescriptorPool, DynamicMessage, Value};
 use serde::{Deserialize, Serialize};
@@ -31,7 +31,7 @@ pub(in crate::app) enum State {
 
 #[derive(Debug, Clone, Lens, Data, Serialize, Deserialize)]
 pub struct ErrorDetail {
-    message: String,
+    message: ArcStr,
     #[serde(deserialize_with = "json::serde::deserialize_short_opt")]
     details: Option<JsonText>,
 }
@@ -51,7 +51,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                 .cross_axis_alignment(CrossAxisAlignment::Fill)
                 .with_child(
                     theme::error_label_scope(
-                        Label::dynamic(|data: &String, _: &Env| data.clone())
+                        Label::dynamic(|data: &ArcStr, _: &Env| data.to_string())
                             .with_line_break_mode(LineBreaking::WordWrap),
                     )
                     .lens(ErrorDetail::message),
@@ -154,7 +154,7 @@ impl State {
                 if let Some(detail) = &err.details {
                     detail.original_data()
                 } else {
-                    err.message.as_str()
+                    err.message.as_ref()
                 }
             }
             State::Metadata(_) => return,
@@ -206,12 +206,12 @@ fn error_details(pool: &DescriptorPool, err: &anyhow::Error) -> Option<DynamicMe
     Some(payload)
 }
 
-fn fmt_grpc_err(err: &anyhow::Error) -> String {
+fn fmt_grpc_err(err: &anyhow::Error) -> ArcStr {
     if let Some(status) = err.downcast_ref::<Status>() {
         if status.message().is_empty() {
-            fmt_code(status.code()).to_owned()
+            fmt_code(status.code()).into()
         } else {
-            format!("{}: {}", fmt_code(status.code()), status.message())
+            format!("{}: {}", fmt_code(status.code()), status.message()).into()
         }
     } else {
         fmt_connect_err(err)

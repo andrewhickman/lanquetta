@@ -43,7 +43,7 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
             if let Err(err) = data.uri.result() {
                 err.clone()
             } else if let RequestState::ConnectFailed(err) = data.request_state() {
-                err.clone()
+                err.to_string()
             } else {
                 String::default()
             }

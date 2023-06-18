@@ -10,8 +10,8 @@ mod sidebar;
 use druid::{
     widget::Painter,
     widget::{Either, Flex, Label, LineBreaking, Split},
-    AppLauncher, Data, Lens, PlatformError, RenderContext, UnitPoint, Widget, WidgetExt as _,
-    WindowDesc,
+    AppLauncher, ArcStr, Data, Lens, PlatformError, RenderContext, UnitPoint, Widget,
+    WidgetExt as _, WindowDesc,
 };
 
 use self::config::{Config, ConfigController};
@@ -42,7 +42,7 @@ pub fn launch() -> Result<(), PlatformError> {
 struct State {
     sidebar: sidebar::ServiceListState,
     body: body::State,
-    error: Option<String>,
+    error: Option<ArcStr>,
 }
 
 const TITLE: &str = "Lanquetta";
@@ -52,12 +52,13 @@ fn build() -> impl Widget<State> {
     let body = body::build().lens(State::body);
 
     let error = Either::new(
-        |data: &Option<String>, _| data.is_some(),
+        |data: &Option<ArcStr>, _| data.is_some(),
         theme::error_label_scope(
             Flex::row()
                 .with_flex_child(
-                    Label::dynamic(|data: &Option<String>, _| {
-                        data.as_ref().cloned().unwrap_or_default()
+                    Label::dynamic(|data: &Option<ArcStr>, _| match data {
+                        Some(data) => data.to_string(),
+                        None => String::default(),
                     })
                     .with_line_break_mode(LineBreaking::WordWrap)
                     .align_horizontal(UnitPoint::CENTER),
@@ -80,7 +81,7 @@ fn build() -> impl Widget<State> {
                                 ctx.fill(bounds, &color);
                             }
                         }))
-                        .on_click(|_, data: &mut Option<String>, _| {
+                        .on_click(|_, data: &mut Option<ArcStr>, _| {
                             *data = None;
                         }),
                 ),
@@ -133,7 +134,7 @@ impl State {
     }
 }
 
-fn fmt_err(err: &anyhow::Error) -> String {
+fn fmt_err(err: &anyhow::Error) -> ArcStr {
     use std::fmt::Write;
 
     let mut s = String::new();
@@ -148,5 +149,5 @@ fn fmt_err(err: &anyhow::Error) -> String {
             break;
         }
     }
-    s
+    s.into()
 }
