@@ -7,9 +7,9 @@ use druid::{
     Application, Data, Env, Lens, Widget, WidgetExt as _,
 };
 use serde::{Deserialize, Serialize};
-use tonic::metadata::MetadataMap;
+use tonic::{metadata::MetadataMap, Code, Status};
 
-use crate::{app::fmt_err, theme};
+use crate::{app::body::fmt_connect_err, theme};
 use crate::{
     app::metadata,
     json::{self, JsonText},
@@ -119,5 +119,35 @@ impl State {
 }
 
 fn fmt_grpc_err(err: &anyhow::Error) -> String {
-    fmt_err(err)
+    if let Some(status) = err.downcast_ref::<Status>() {
+        if status.message().is_empty() {
+            fmt_code(status.code()).to_owned()
+        } else {
+            format!("{}: {}", fmt_code(status.code()), status.message())
+        }
+    } else {
+        fmt_connect_err(err)
+    }
+}
+
+fn fmt_code(code: Code) -> &'static str {
+    match code {
+        Code::Ok => "OK",
+        Code::Cancelled => "CANCELLED",
+        Code::Unknown => "UNKNOWN",
+        Code::InvalidArgument => "INVALID_ARGUMENT",
+        Code::DeadlineExceeded => "DEADLINE_EXCEEDED",
+        Code::NotFound => "NOT_FOUND",
+        Code::AlreadyExists => "ALREADY_EXISTS",
+        Code::PermissionDenied => "PERMISSION_DENIED",
+        Code::ResourceExhausted => "RESOURCE_EXHAUSTED",
+        Code::FailedPrecondition => "FAILED_PRECONDITION",
+        Code::Aborted => "ABORTED",
+        Code::OutOfRange => "OUT_OF_RANGE",
+        Code::Unimplemented => "UNIMPLEMENTED",
+        Code::Internal => "INTERNAL",
+        Code::Unavailable => "UNAVAILABLE",
+        Code::DataLoss => "DATA_LOSS",
+        Code::Unauthenticated => "UNAUTHENTICATED",
+    }
 }
