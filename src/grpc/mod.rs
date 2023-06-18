@@ -2,14 +2,13 @@ mod channel;
 mod codec;
 
 use std::{
-    mem::take,
     str::FromStr,
     time::{Duration, Instant},
 };
 
 use anyhow::{Error, Result};
 use futures::{Stream, StreamExt};
-use http::{uri::PathAndQuery, Uri};
+use http::{uri::PathAndQuery, HeaderMap, Uri};
 use prost_reflect::{DeserializeOptions, DynamicMessage, MessageDescriptor, SerializeOptions};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -354,9 +353,12 @@ impl Call {
 }
 
 impl ResponseResult {
-    fn from_status(mut err: tonic::Status) -> Self {
-        let metadata = take(err.metadata_mut());
-        ResponseResult::Error(err.into(), metadata)
+    fn from_status(err: tonic::Status) -> Self {
+        let mut metadata = HeaderMap::new();
+        err.add_header(&mut metadata)
+            .expect("headers already validated");
+
+        ResponseResult::Error(err.into(), MetadataMap::from_headers(metadata))
     }
 }
 
