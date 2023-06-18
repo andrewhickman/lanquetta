@@ -81,7 +81,7 @@ impl Config {
 
     fn directory() -> Result<PathBuf> {
         let mut path = config_dir().context("no config directory found")?;
-        path.push(env!("CARGO_BIN_NAME"));
+        path.push(env!("CARGO_CRATE_NAME"));
         Ok(path)
     }
 

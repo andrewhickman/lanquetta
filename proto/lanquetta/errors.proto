@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package lanquetta;
+package lanquetta.errors;
 
 message UnknownAny {
     string type_url = 1 [json_name = "@type"];

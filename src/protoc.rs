@@ -3,22 +3,21 @@ use std::{ffi::OsStr, path::Path};
 use anyhow::{bail, Result};
 use prost_reflect::{DescriptorPool, FileDescriptor};
 
-use crate::PROTOS;
+pub const ERRORS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/errors.bin"));
 
 pub fn load_file(path: &Path) -> Result<FileDescriptor> {
     let mut pool = load_pool(path)?;
+    Ok(add_error_definitions(&mut pool))
+}
 
+fn add_error_definitions(pool: &mut DescriptorPool) -> FileDescriptor {
     let primary_file = pool.files().last().unwrap().name().to_owned();
 
-    if let Err(err) = pool.decode_file_descriptor_set(PROTOS) {
-        tracing::warn!(
-            "failed to add additional protos to pool from {}: {:#}",
-            path.display(),
-            err
-        );
+    if let Err(err) = pool.decode_file_descriptor_set(ERRORS) {
+        tracing::warn!("failed to add additional protos to pool: {:#}", err);
     }
 
-    Ok(pool.get_file_by_name(&primary_file).unwrap())
+    pool.get_file_by_name(&primary_file).unwrap()
 }
 
 fn load_pool(path: &Path) -> Result<DescriptorPool> {

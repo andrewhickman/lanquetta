@@ -18,9 +18,11 @@ pub(in crate::app) fn build(
 fn file_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-file-menu"))
         .entry(
-            MenuItem::new(LocalizedString::new("common-menu-file-open"))
-                .command(app::command::add_file())
-                .hotkey(SysMods::Cmd, "o"),
+            Menu::new("Add services").entry(
+                MenuItem::new(LocalizedString::new("common-menu-file-open"))
+                    .command(app::command::add_file())
+                    .hotkey(SysMods::Cmd, "o"),
+            ),
         )
         .separator()
         .entry(

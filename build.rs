@@ -1,32 +1,20 @@
-use std::{env, fs, path::PathBuf};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 fn main() -> anyhow::Result<()> {
     vergen::EmitBuilder::builder().git_sha(true).emit()?;
 
-    let mut compiler = protox::Compiler::new(["grpc/src/proto", "googleapis", "proto"]).unwrap();
-    compiler
-        .include_source_info(false)
-        .include_imports(true)
-        .open_files([
-            "grpc/health/v1/health.proto",
-            "grpc/reflection/v1/reflection.proto",
+    compile_protos(
+        ["googleapis", "proto"],
+        [
             "google/rpc/status.proto",
             "google/rpc/error_details.proto",
-            "lanquetta.proto",
-        ])
-        .unwrap();
-
-    for file in compiler.files() {
-        if let Some(path) = file.path() {
-            println!("cargo:rerun-if-changed={}", path.display());
-        }
-    }
-
-    fs::write(
-        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("proto.bin"),
-        compiler.encode_file_descriptor_set(),
-    )
-    .unwrap();
+            "lanquetta/errors.proto",
+        ],
+        "errors.bin",
+    );
 
     #[cfg(windows)]
     winres::WindowsResource::new()
@@ -38,4 +26,29 @@ fn main() -> anyhow::Result<()> {
     println!("cargo:rerun-if-changed=img/logo.ico");
 
     Ok(())
+}
+
+fn compile_protos(
+    includes: impl IntoIterator<Item = impl AsRef<Path>>,
+    files: impl IntoIterator<Item = impl AsRef<Path>>,
+    destination: impl AsRef<Path>,
+) {
+    let mut compiler = protox::Compiler::new(includes).unwrap();
+    compiler
+        .include_source_info(false)
+        .include_imports(true)
+        .open_files(files)
+        .unwrap();
+
+    for file in compiler.files() {
+        if let Some(path) = file.path() {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }
+    }
+
+    fs::write(
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join(destination),
+        compiler.encode_file_descriptor_set(),
+    )
+    .unwrap();
 }

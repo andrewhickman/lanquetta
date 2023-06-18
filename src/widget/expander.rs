@@ -33,7 +33,6 @@ where
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(header)
         .with_child(child)
-        .boxed()
 }
 
 impl<T> ExpanderHeader<T>
