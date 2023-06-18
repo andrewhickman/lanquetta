@@ -9,6 +9,7 @@ use druid::{
     },
     ArcStr, Data, Lens, WidgetExt,
 };
+use prost_reflect::DescriptorPool;
 use serde::{Deserialize, Serialize};
 use tonic::metadata::MetadataMap;
 
@@ -115,7 +116,12 @@ impl State {
         });
     }
 
-    pub fn add_response(&mut self, result: Result<JsonText, Error>, duration: Option<Duration>) {
+    pub fn add_response(
+        &mut self,
+        pool: &DescriptorPool,
+        result: Result<JsonText, Error>,
+        duration: Option<Duration>,
+    ) {
         for item in self.items.iter_mut() {
             item.expanded = false;
         }
@@ -125,7 +131,7 @@ impl State {
         self.items.push_back(ItemExpanderState {
             label: name,
             expanded: true,
-            data: item::State::from_response(result),
+            data: item::State::from_response(pool, result),
             kind: ItemKind::Response,
             duration: duration.map(format_duration).unwrap_or_default().into(),
         });

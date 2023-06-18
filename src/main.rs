@@ -12,6 +12,8 @@ use anyhow::{Context, Result};
 use tokio::runtime::Runtime;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
+const PROTOS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/proto.bin"));
+
 pub fn main() -> Result<()> {
     let filter_layer = EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new("info"))?;
 

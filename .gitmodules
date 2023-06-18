@@ -1,0 +1,6 @@
+[submodule "grpc"]
+	path = grpc
+	url = https://github.com/grpc/grpc
+[submodule "googleapis"]
+	path = googleapis
+	url = https://github.com/googleapis/googleapis

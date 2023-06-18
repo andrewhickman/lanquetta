@@ -1,12 +1,30 @@
 use std::{ffi::OsStr, path::Path};
 
 use anyhow::{bail, Result};
-use prost_reflect::DescriptorPool;
+use prost_reflect::{DescriptorPool, FileDescriptor};
 
-pub fn load_file(path: &Path) -> Result<DescriptorPool> {
-    match compile(path) {
+use crate::PROTOS;
+
+pub fn load_file(path: &Path) -> Result<FileDescriptor> {
+    let mut pool = load_pool(path)?;
+
+    let primary_file = pool.files().last().unwrap().name().to_owned();
+
+    if let Err(err) = pool.decode_file_descriptor_set(PROTOS) {
+        tracing::warn!(
+            "failed to add additional protos to pool from {}: {:#}",
+            path.display(),
+            err
+        );
+    }
+
+    Ok(pool.get_file_by_name(&primary_file).unwrap())
+}
+
+fn load_pool(path: &Path) -> Result<DescriptorPool> {
+    match compile_proto(path) {
         Ok(pool) => Ok(pool),
-        Err(err) if err.is_parse() => match load(path) {
+        Err(err) if err.is_parse() => match compile_file_set(path) {
             Ok(pool) => Ok(pool),
             Err(_) => {
                 if path.extension() == Some(OsStr::new("proto")) {
@@ -20,7 +38,7 @@ pub fn load_file(path: &Path) -> Result<DescriptorPool> {
     }
 }
 
-fn compile(path: &Path) -> Result<DescriptorPool, protox::Error> {
+fn compile_proto(path: &Path) -> Result<DescriptorPool, protox::Error> {
     match path.parent() {
         Some(include) => Ok(protox::Compiler::new([include])?
             .include_imports(true)
@@ -31,7 +49,7 @@ fn compile(path: &Path) -> Result<DescriptorPool, protox::Error> {
     }
 }
 
-fn load(path: &Path) -> Result<DescriptorPool> {
+fn compile_file_set(path: &Path) -> Result<DescriptorPool> {
     let bytes = fs_err::read(path)?;
     DescriptorPool::decode(bytes.as_slice()).map_err(|err| anyhow::anyhow!("{:?}", err))
 }

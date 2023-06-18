@@ -191,10 +191,12 @@ impl MethodTabController {
 
                 let json_result = JsonText::short(response.to_json());
 
-                data.stream.add_response(Ok(json_result), duration);
+                data.stream
+                    .add_response(data.method.parent_pool(), Ok(json_result), duration);
             }
             grpc::ResponseResult::Error(error, metadata) => {
-                data.stream.add_response(Err(error), None);
+                data.stream
+                    .add_response(data.method.parent_pool(), Err(error), None);
                 data.stream.add_metadata(metadata);
                 self.call = None;
             }

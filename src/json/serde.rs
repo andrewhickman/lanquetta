@@ -18,3 +18,11 @@ where
     let s = String::deserialize(deserializer)?;
     Ok(JsonText::short(s))
 }
+
+pub fn deserialize_short_opt<'de, D>(deserializer: D) -> Result<Option<JsonText>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = Option::<String>::deserialize(deserializer)?;
+    Ok(s.map(JsonText::short))
+}

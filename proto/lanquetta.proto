@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package lanquetta;
+
+message UnknownAny {
+    string type_url = 1 [json_name = "@type"];
+    bytes value = 2;
+}

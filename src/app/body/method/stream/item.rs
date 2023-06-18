@@ -3,13 +3,19 @@ use std::mem::{self, Discriminant};
 use anyhow::Error;
 use druid::{
     lens::Field,
-    widget::{Label, LineBreaking, TextBox, ViewSwitcher},
+    widget::{CrossAxisAlignment, Flex, Label, LineBreaking, Maybe, TextBox, ViewSwitcher},
     Application, Data, Env, Lens, Widget, WidgetExt as _,
 };
+use prost_reflect::{DescriptorPool, DynamicMessage, Value};
 use serde::{Deserialize, Serialize};
 use tonic::{metadata::MetadataMap, Code, Status};
 
-use crate::{app::body::fmt_connect_err, theme};
+use crate::{
+    app::body::fmt_connect_err,
+    grpc,
+    theme::{self, INVALID},
+    widget::Empty,
+};
 use crate::{
     app::metadata,
     json::{self, JsonText},
@@ -19,8 +25,15 @@ use crate::{
 pub(in crate::app) enum State {
     #[serde(deserialize_with = "json::serde::deserialize_short")]
     Payload(JsonText),
-    Error(String),
+    Error(ErrorDetail),
     Metadata(metadata::State),
+}
+
+#[derive(Debug, Clone, Lens, Data, Serialize, Deserialize)]
+pub struct ErrorDetail {
+    message: String,
+    #[serde(deserialize_with = "json::serde::deserialize_short_opt")]
+    details: Option<JsonText>,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -34,12 +47,31 @@ pub(in crate::app) fn build() -> impl Widget<State> {
             )
             .lens(State::lens_payload())
             .boxed(),
-            State::Error(_) => theme::error_label_scope(
-                Label::dynamic(|data: &String, _: &Env| data.clone())
-                    .with_line_break_mode(LineBreaking::WordWrap),
-            )
-            .lens(State::lens_error())
-            .boxed(),
+            State::Error(_) => Flex::column()
+                .cross_axis_alignment(CrossAxisAlignment::Fill)
+                .with_child(
+                    theme::error_label_scope(
+                        Label::dynamic(|data: &String, _: &Env| data.clone())
+                            .with_line_break_mode(LineBreaking::WordWrap),
+                    )
+                    .lens(ErrorDetail::message),
+                )
+                .with_child(
+                    Maybe::new(
+                        || {
+                            theme::text_box_scope(
+                                TextBox::multiline()
+                                    .readonly()
+                                    .with_font(theme::EDITOR_FONT),
+                            )
+                            .env_scope(|env: &mut Env, _: &JsonText| env.set(INVALID, true))
+                        },
+                        || Empty,
+                    )
+                    .lens(ErrorDetail::details),
+                )
+                .lens(State::lens_error())
+                .boxed(),
             State::Metadata(_) => metadata::build().lens(State::lens_metadata()).boxed(),
         },
     )
@@ -59,7 +91,7 @@ impl State {
         )
     }
 
-    fn lens_error() -> impl Lens<State, String> {
+    fn lens_error() -> impl Lens<State, ErrorDetail> {
         Field::new(
             |data| match data {
                 State::Error(err) => err,
@@ -89,10 +121,18 @@ impl State {
         State::Payload(json)
     }
 
-    pub fn from_response(result: Result<JsonText, Error>) -> Self {
+    pub fn from_response(pool: &DescriptorPool, result: Result<JsonText, Error>) -> Self {
         match result {
             Ok(payload) => State::Payload(payload),
-            Err(err) => State::Error(fmt_grpc_err(&err)),
+            Err(err) => {
+                let message = fmt_grpc_err(&err);
+                let details = error_details(pool, &err).map(|payload| {
+                    let response = grpc::Response::new(payload);
+                    JsonText::short(response.to_json())
+                });
+
+                State::Error(ErrorDetail { message, details })
+            }
         }
     }
 
@@ -110,12 +150,60 @@ impl State {
     pub fn set_clipboard(&self) {
         let data = match self {
             State::Payload(payload) => payload.original_data(),
-            State::Error(err) => err.as_str(),
+            State::Error(err) => {
+                if let Some(detail) = &err.details {
+                    detail.original_data()
+                } else {
+                    err.message.as_str()
+                }
+            }
             State::Metadata(_) => return,
         };
 
         Application::global().clipboard().put_string(data);
     }
+}
+
+fn error_details(pool: &DescriptorPool, err: &anyhow::Error) -> Option<DynamicMessage> {
+    let Some(status) = err.downcast_ref::<Status>() else {
+        return None
+    };
+
+    if status.details().is_empty() {
+        return None;
+    };
+
+    let Some(desc) = pool.get_message_by_name("google.rpc.Status") else {
+        return None
+    };
+
+    let Ok(mut payload) = DynamicMessage::decode(desc, status.details()) else {
+        return None
+    };
+
+    for detail in payload.get_field_by_name_mut("details")?.as_list_mut()? {
+        let Some(message) = detail.as_message_mut() else { return None };
+
+        let type_url = message.get_field_by_name("type_url")?.as_str()?.to_owned();
+        if pool
+            .get_message_by_name(type_url.strip_prefix("type.googleapis.com/")?)
+            .is_none()
+        {
+            let value = message.get_field_by_name("value")?.as_bytes()?.clone();
+
+            let mut unknown_message =
+                DynamicMessage::new(pool.get_message_by_name("lanquetta.UnknownAny")?);
+            unknown_message
+                .try_set_field_by_name("type_url", Value::String(type_url))
+                .ok()?;
+            unknown_message
+                .try_set_field_by_name("value", Value::Bytes(value))
+                .ok()?;
+            *message = unknown_message;
+        }
+    }
+
+    Some(payload)
 }
 
 fn fmt_grpc_err(err: &anyhow::Error) -> String {

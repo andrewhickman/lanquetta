@@ -76,10 +76,10 @@ impl State {
 
 impl ServiceListState {
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
-        let file_set = protoc::load_file(path)?;
+        let file = protoc::load_file(path)?;
 
         self.services
-            .extend(file_set.services().map(service::ServiceState::from));
+            .extend(file.services().map(service::ServiceState::from));
         Ok(())
     }
 
