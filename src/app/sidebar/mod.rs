@@ -29,7 +29,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     let add_button = Flex::row()
         .with_child(Icon::add().padding(8.0))
         .with_child(
-            Label::new("Add file")
+            Label::new("Add services")
                 .with_font(theme::font::HEADER_ONE)
                 .with_line_break_mode(LineBreaking::Clip),
         )
