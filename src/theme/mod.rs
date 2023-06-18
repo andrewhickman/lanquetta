@@ -9,6 +9,7 @@ use druid::{
 
 pub(crate) const BODY_PADDING: f64 = 16.0;
 pub(crate) const BODY_SPACER: f64 = 12.0;
+pub(crate) const GRID_NARROW_SPACER: f64 = 2.0;
 
 pub(crate) const EDITOR_FONT: Key<FontDescriptor> = Key::new("app.editor-font");
 pub(crate) const TAB_LABEL_FONT: Key<FontDescriptor> = Key::new("app.tab-label-font");

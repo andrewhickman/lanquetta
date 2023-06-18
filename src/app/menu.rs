@@ -18,11 +18,16 @@ pub(in crate::app) fn build(
 fn file_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-file-menu"))
         .entry(
-            Menu::new("Add services").entry(
-                MenuItem::new(LocalizedString::new("common-menu-file-open"))
-                    .command(app::command::add_file())
-                    .hotkey(SysMods::Cmd, "o"),
-            ),
+            Menu::new("Add services")
+                .entry(
+                    MenuItem::new(LocalizedString::new("common-menu-file-open"))
+                        .command(app::command::add_file())
+                        .hotkey(SysMods::Cmd, "o"),
+                )
+                .entry(
+                    MenuItem::new("Compiler options")
+                        .command(app::command::SELECT_OR_CREATE_COMPILER_TAB),
+                ),
         )
         .separator()
         .entry(

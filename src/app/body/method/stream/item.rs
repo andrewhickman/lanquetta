@@ -45,7 +45,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                     .readonly()
                     .with_font(theme::EDITOR_FONT),
             )
-            .lens(State::lens_payload())
+            .lens(State::payload_lens())
             .boxed(),
             State::Error(_) => Flex::column()
                 .cross_axis_alignment(CrossAxisAlignment::Fill)
@@ -70,15 +70,15 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                     )
                     .lens(ErrorDetail::details),
                 )
-                .lens(State::lens_error())
+                .lens(State::error_lens())
                 .boxed(),
-            State::Metadata(_) => metadata::build().lens(State::lens_metadata()).boxed(),
+            State::Metadata(_) => metadata::build().lens(State::metadata_lens()).boxed(),
         },
     )
 }
 
 impl State {
-    fn lens_payload() -> impl Lens<State, JsonText> {
+    fn payload_lens() -> impl Lens<State, JsonText> {
         Field::new(
             |data| match data {
                 State::Payload(payload) => payload,
@@ -91,7 +91,7 @@ impl State {
         )
     }
 
-    fn lens_error() -> impl Lens<State, ErrorDetail> {
+    fn error_lens() -> impl Lens<State, ErrorDetail> {
         Field::new(
             |data| match data {
                 State::Error(err) => err,
@@ -104,7 +104,7 @@ impl State {
         )
     }
 
-    fn lens_metadata() -> impl Lens<State, metadata::State> {
+    fn metadata_lens() -> impl Lens<State, metadata::State> {
         Field::new(
             |data| match data {
                 State::Metadata(metadata) => metadata,

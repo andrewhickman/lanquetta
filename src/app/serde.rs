@@ -14,7 +14,7 @@ use serde::{
 };
 
 use crate::{
-    app::{self, sidebar::service::ServiceOptions},
+    app,
     json::JsonText,
     widget::{TabId, TabsData},
 };
@@ -59,7 +59,7 @@ struct AppServiceState {
     #[serde(flatten)]
     idx: AppServiceRef,
     expanded: bool,
-    options: ServiceOptions,
+    options: app::sidebar::service::ServiceOptions,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,11 +86,15 @@ enum AppBodyTabKind {
         request: String,
         request_metadata: app::metadata::State,
         stream: app::body::StreamState,
-        options: ServiceOptions,
+        options: app::sidebar::service::ServiceOptions,
     },
     Options {
         #[serde(flatten)]
         idx: AppServiceRef,
+    },
+    Compile {
+        includes: Vec<String>,
+        files: Vec<String>,
     },
 }
 
@@ -165,6 +169,10 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                                 },
                             }
                         }
+                        app::body::TabState::Compile(state) => AppBodyTabKind::Compile {
+                            includes: state.serde_includes(),
+                            files: state.serde_files(),
+                        },
                     };
 
                     Ok(AppBodyTabState { kind })
@@ -271,6 +279,10 @@ impl AppBodyState {
                         app::body::TabState::new_options(service, options),
                     ))
                 }
+                AppBodyTabKind::Compile { includes, files } => Ok((
+                    TabId::next(),
+                    app::body::TabState::new_compile(includes, files),
+                )),
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
 

@@ -2038,7 +2038,8 @@ dependencies = [
  "once_cell",
  "open",
  "prost-reflect",
- "protox",
+ "protox 0.3.5",
+ "protox 0.4.0",
  "rand",
  "regex",
  "rustls",
@@ -2752,7 +2753,22 @@ dependencies = [
  "prost",
  "prost-reflect",
  "prost-types",
- "protox-parse",
+ "protox-parse 0.3.3",
+ "thiserror",
+]
+
+[[package]]
+name = "protox"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd193227bd2de1153ddb96220743a879e85ff437e5f953cbffb6d93a1983fcf5"
+dependencies = [
+ "bytes",
+ "miette",
+ "prost",
+ "prost-reflect",
+ "prost-types",
+ "protox-parse 0.4.0",
  "thiserror",
 ]
 
@@ -2761,6 +2777,18 @@ name = "protox-parse"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712a2a651fa4466e67df6c967df5d7fc6cbffac89afc7b834f97ec49846c9c11"
+dependencies = [
+ "logos",
+ "miette",
+ "prost-types",
+ "thiserror",
+]
+
+[[package]]
+name = "protox-parse"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c97a75f1daf9b5ea340682be987c91995df87731ae7546369b88835f08809f6"
 dependencies = [
  "logos",
  "miette",

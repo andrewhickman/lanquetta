@@ -2,7 +2,7 @@ mod controller;
 
 use druid::{
     widget::{prelude::*, Button, Checkbox, CrossAxisAlignment, Flex, Label, Scroll},
-    Data, Lens, WidgetExt,
+    ArcStr, Data, Lens, WidgetExt,
 };
 use prost_reflect::ServiceDescriptor;
 
@@ -106,8 +106,8 @@ impl OptionsTabState {
         }
     }
 
-    pub fn label(&self) -> String {
-        format!("{} options", self.service.name())
+    pub fn label(&self) -> ArcStr {
+        format!("{} options", self.service.name()).into()
     }
 
     pub fn service(&self) -> &ServiceDescriptor {

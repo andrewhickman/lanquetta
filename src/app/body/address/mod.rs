@@ -5,7 +5,7 @@ use druid::{
         prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking, Spinner,
         TextBox, ViewSwitcher,
     },
-    Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
+    ArcStr, Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
 };
 use http::Uri;
 use once_cell::sync::Lazy;
@@ -15,7 +15,7 @@ use crate::{
     widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
 };
 
-type AddressValidationState = ValidationState<String, Uri, String>;
+type AddressValidationState = ValidationState<String, Uri, ArcStr>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct AddressState {
@@ -41,7 +41,7 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
     let error_label = theme::error_label_scope(
         Label::dynamic(|data: &AddressState, _| {
             if let Err(err) = data.uri.result() {
-                err.clone()
+                err.to_string()
             } else if let RequestState::ConnectFailed(err) = data.request_state() {
                 err.to_string()
             } else {
@@ -197,13 +197,13 @@ where
         .boxed()
 }
 
-static VALIDATE_URI: Lazy<ValidationFn<String, Uri, String>> = Lazy::new(|| Arc::new(validate_uri));
+static VALIDATE_URI: Lazy<ValidationFn<String, Uri, ArcStr>> = Lazy::new(|| Arc::new(validate_uri));
 
 #[allow(clippy::ptr_arg)]
-fn validate_uri(s: &String) -> Result<Uri, String> {
+fn validate_uri(s: &String) -> Result<Uri, ArcStr> {
     let uri = Uri::from_str(s).map_err(|err| err.to_string())?;
     if uri.scheme().is_none() {
-        return Err("URI must have scheme".to_owned());
+        return Err("URI must have scheme".into());
     }
     Ok(uri)
 }

@@ -1,12 +1,13 @@
 mod address;
+mod compile;
 mod method;
 mod options;
 
-pub(in crate::app) use self::method::StreamState;
+pub(in crate::app) use self::{compile::CompileTabState, method::StreamState};
 
 use std::{collections::BTreeMap, io, mem, ops::Bound, sync::Arc};
 
-use druid::{widget::ViewSwitcher, ArcStr, Data, Lens, Widget, WidgetExt as _};
+use druid::{lens::Field, widget::ViewSwitcher, ArcStr, Data, Lens, Widget, WidgetExt as _};
 use iter_set::Inclusion;
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
@@ -37,6 +38,7 @@ pub enum RequestState {
 pub enum TabState {
     Method(MethodTabState),
     Options(OptionsTabState),
+    Compile(CompileTabState),
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -47,6 +49,9 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                 TabState::Method(_) => method::build_body().lens(TabState::method_lens()).boxed(),
                 TabState::Options(_) => {
                     options::build_body().lens(TabState::options_lens()).boxed()
+                }
+                TabState::Compile(_) => {
+                    compile::build_body().lens(TabState::compile_lens()).boxed()
                 }
             },
         )
@@ -59,6 +64,19 @@ impl State {
             tabs: Arc::new(tabs),
             selected,
         }
+    }
+
+    pub fn select_or_create_compiler_tab(&mut self) {
+        for (&id, tab) in self.tabs.iter() {
+            if matches!(tab, TabState::Compile(_)) {
+                self.selected = Some(id);
+                return;
+            }
+        }
+
+        let id = TabId::next();
+        self.selected = Some(id);
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_compile());
     }
 
     pub fn select_or_create_method_tab(
@@ -74,12 +92,9 @@ impl State {
         }
 
         for (&id, tab) in self.tabs.iter() {
-            match tab {
-                TabState::Method(data) if data.method() == method => {
-                    self.selected = Some(id);
-                    return;
-                }
-                _ => (),
+            if matches!(tab, TabState::Method(data) if data.method() == method) {
+                self.selected = Some(id);
+                return;
             }
         }
 
@@ -99,12 +114,11 @@ impl State {
         }
 
         for (&id, tab) in self.tabs.iter() {
-            match tab {
-                TabState::Options(data) if data.service() == service => {
-                    self.selected = Some(id);
-                    return;
-                }
-                _ => (),
+            if matches!(tab,
+                TabState::Options(data) if data.service() == service)
+            {
+                self.selected = Some(id);
+                return;
             }
         }
 
@@ -136,6 +150,7 @@ impl State {
         Arc::make_mut(&mut self.tabs).retain(|_, v| match v {
             TabState::Method(method) => method.method().parent_service() != service,
             TabState::Options(options) => options.service() != service,
+            TabState::Compile(_) => true,
         });
         self.update_selected_after_remove();
     }
@@ -261,6 +276,7 @@ impl State {
                     tab.set_service_options(options.clone());
                 }
             }
+            TabState::Compile(_) => (),
         })
     }
 
@@ -268,6 +284,7 @@ impl State {
         self.with_selected(|_, tab| match tab {
             TabState::Method(tab) => tab.can_connect(),
             TabState::Options(tab) => tab.can_connect(),
+            TabState::Compile(_) => false,
         })
         .unwrap_or(false)
     }
@@ -276,6 +293,7 @@ impl State {
         self.with_selected(|_, tab| match tab {
             TabState::Method(tab) => tab.can_send(),
             TabState::Options(_) => false,
+            TabState::Compile(_) => false,
         })
         .unwrap_or(false)
     }
@@ -284,6 +302,7 @@ impl State {
         self.with_selected(|_, tab| match tab {
             TabState::Method(tab) => tab.can_finish(),
             TabState::Options(_) => false,
+            TabState::Compile(_) => false,
         })
         .unwrap_or(false)
     }
@@ -292,6 +311,7 @@ impl State {
         self.with_selected(|_, tab| match tab {
             TabState::Method(tab) => tab.can_disconnect(),
             TabState::Options(tab) => tab.can_disconnect(),
+            TabState::Compile(_) => false,
         })
         .unwrap_or(false)
     }
@@ -300,6 +320,10 @@ impl State {
 impl TabState {
     fn empty_method(method: prost_reflect::MethodDescriptor, options: ServiceOptions) -> TabState {
         TabState::Method(MethodTabState::empty(method, options))
+    }
+
+    fn empty_compile() -> TabState {
+        TabState::Compile(CompileTabState::default())
     }
 
     pub fn new_method(
@@ -324,63 +348,55 @@ impl TabState {
         TabState::Options(OptionsTabState::new(service, options))
     }
 
+    pub fn new_compile(includes: Vec<String>, files: Vec<String>) -> TabState {
+        TabState::Compile(CompileTabState::new(includes, files))
+    }
+
     pub fn label(&self) -> ArcStr {
         match self {
             TabState::Method(method) => method.method().name().into(),
-            TabState::Options(options) => options.label().into(),
+            TabState::Options(options) => options.label(),
+            TabState::Compile(_) => ArcStr::from("Compiler options"),
         }
     }
 
     fn method_lens() -> impl Lens<TabState, MethodTabState> {
-        struct MethodLens;
-
-        impl Lens<TabState, MethodTabState> for MethodLens {
-            fn with<V, F: FnOnce(&MethodTabState) -> V>(&self, data: &TabState, f: F) -> V {
-                match data {
-                    TabState::Method(method) => f(method),
-                    _ => panic!("expected method data"),
-                }
-            }
-
-            fn with_mut<V, F: FnOnce(&mut MethodTabState) -> V>(
-                &self,
-                data: &mut TabState,
-                f: F,
-            ) -> V {
-                match data {
-                    TabState::Method(method) => f(method),
-                    _ => panic!("expected method data"),
-                }
-            }
-        }
-
-        MethodLens
+        Field::new(
+            |data| match data {
+                TabState::Method(method) => method,
+                _ => panic!("expected method data"),
+            },
+            |data| match data {
+                TabState::Method(method) => method,
+                _ => panic!("expected method data"),
+            },
+        )
     }
 
     fn options_lens() -> impl Lens<TabState, OptionsTabState> {
-        struct OptionsLens;
+        Field::new(
+            |data| match data {
+                TabState::Options(options) => options,
+                _ => panic!("expected options data"),
+            },
+            |data| match data {
+                TabState::Options(options) => options,
+                _ => panic!("expected options data"),
+            },
+        )
+    }
 
-        impl Lens<TabState, OptionsTabState> for OptionsLens {
-            fn with<V, F: FnOnce(&OptionsTabState) -> V>(&self, data: &TabState, f: F) -> V {
-                match data {
-                    TabState::Options(options) => f(options),
-                    _ => panic!("expected options data"),
-                }
-            }
-
-            fn with_mut<V, F: FnOnce(&mut OptionsTabState) -> V>(
-                &self,
-                data: &mut TabState,
-                f: F,
-            ) -> V {
-                match data {
-                    TabState::Options(options) => f(options),
-                    _ => panic!("expected options data"),
-                }
-            }
-        }
-
-        OptionsLens
+    fn compile_lens() -> impl Lens<TabState, CompileTabState> {
+        Field::new(
+            |data| match data {
+                TabState::Compile(compile) => compile,
+                _ => panic!("expected compile data"),
+            },
+            |data| match data {
+                TabState::Compile(compile) => compile,
+                _ => panic!("expected compile data"),
+            },
+        )
     }
 }
 

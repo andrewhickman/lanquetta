@@ -9,7 +9,7 @@ use druid::{
         prelude::*, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Label, LineBreaking,
         List, TextBox,
     },
-    Lens, Point, Selector, UnitPoint, WidgetExt, WidgetPod,
+    ArcStr, Lens, Point, Selector, UnitPoint, WidgetExt, WidgetPod,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -24,11 +24,11 @@ use crate::{
 
 pub type State = Arc<Vec<Entry>>;
 
-type EntryValidation = ValidationState<EditableEntry, ParsedEntry, String>;
+type EntryValidationState = ValidationState<EditableEntry, ParsedEntry, ArcStr>;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub struct EditableState {
-    entries: Arc<Vec<EntryValidation>>,
+    entries: Arc<Vec<EntryValidationState>>,
 }
 
 #[derive(Debug, Default, Clone, Data, Lens, Serialize, Deserialize)]
@@ -95,7 +95,7 @@ fn build_row() -> impl Widget<Entry> {
         )
 }
 
-fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidation> {
+fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
     let close = Icon::close()
         .with_fill(FillStrat::ScaleDown)
         .background(theme::hot_or_active_painter(
@@ -129,12 +129,12 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidation> {
     );
 
     let error = Either::new(
-        |data: &EntryValidation, _: &Env| data.is_pristine_or_valid(),
+        |data: &EntryValidationState, _: &Env| data.is_pristine_or_valid(),
         Empty,
         theme::error_label_scope(
-            Label::dynamic(|data: &EntryValidation, _| {
+            Label::dynamic(|data: &EntryValidationState, _| {
                 if let Err(err) = data.result() {
-                    err.clone()
+                    err.to_string()
                 } else {
                     String::default()
                 }
@@ -177,7 +177,7 @@ struct EditableLayout {
 
 struct DeleteMetadataController;
 
-pub const DELETE_METADATA: Selector = Selector::new("app.metadata.delete");
+const DELETE_METADATA: Selector = Selector::new("app.metadata.delete");
 
 pub fn state_from_tonic(metadata: MetadataMap) -> State {
     Arc::new(
@@ -342,10 +342,10 @@ impl Data for ParsedEntry {
     }
 }
 
-static VALIDATE_ENTRY: Lazy<ValidationFn<EditableEntry, ParsedEntry, String>> =
+static VALIDATE_ENTRY: Lazy<ValidationFn<EditableEntry, ParsedEntry, ArcStr>> =
     Lazy::new(|| Arc::new(validate_entry));
 
-fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, String> {
+fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, ArcStr> {
     if let Ok(key) = BinaryMetadataKey::from_str(&raw.key) {
         const STANDARD: GeneralPurpose = GeneralPurpose::new(
             &alphabet::STANDARD,
@@ -356,15 +356,15 @@ fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, String> {
 
         let bytes = STANDARD
             .decode(raw.value.as_ref())
-            .map_err(|_| "invalid base64".to_owned())?;
+            .map_err(|_| "invalid base64")?;
 
         let value = BinaryMetadataValue::try_from(bytes).map_err(|err| err.to_string())?;
         Ok(ParsedEntry::Binary { key, value })
     } else if let Ok(key) = AsciiMetadataKey::from_str(&raw.key) {
-        let value = AsciiMetadataValue::try_from(raw.value.as_ref())
-            .map_err(|_| "invalid ascii".to_owned())?;
+        let value =
+            AsciiMetadataValue::try_from(raw.value.as_ref()).map_err(|_| "invalid ascii")?;
         Ok(ParsedEntry::Ascii { key, value })
     } else {
-        Err("invalid key".to_owned())
+        Err("invalid key".into())
     }
 }

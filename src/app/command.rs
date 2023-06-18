@@ -14,6 +14,10 @@ pub const SELECT_OR_CREATE_OPTIONS_TAB: Selector<(ServiceDescriptor, ServiceOpti
 pub const SELECT_OR_CREATE_METHOD_TAB: Selector<MethodDescriptor> =
     Selector::new("app.select-or-create-method-tab");
 
+/// Select or create a compiler options tab.
+pub const SELECT_OR_CREATE_COMPILER_TAB: Selector =
+    Selector::new("app.select-or-create-compiler-tab");
+
 /// Set service options
 pub const SET_SERVICE_OPTIONS: Selector<(ServiceDescriptor, ServiceOptions)> =
     Selector::new("app.set-service-options");

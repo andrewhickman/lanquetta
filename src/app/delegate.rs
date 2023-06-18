@@ -57,6 +57,9 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::CLEAR) {
             data.body.clear_request_history();
             Handled::Yes
+        } else if cmd.is(command::SELECT_OR_CREATE_COMPILER_TAB) {
+            data.body.select_or_create_compiler_tab();
+            Handled::Yes
         } else if let Some((service, options)) = cmd.get(command::SET_SERVICE_OPTIONS) {
             data.body.set_service_options(service, options);
             data.sidebar.set_service_options(service, options);
