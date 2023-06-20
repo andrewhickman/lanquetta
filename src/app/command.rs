@@ -1,7 +1,9 @@
-use druid::{Command, FileDialogOptions, FileSpec, Selector};
+use druid::{Command, FileDialogOptions, FileInfo, FileSpec, Selector};
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
 use crate::app::sidebar::service::ServiceOptions;
+
+use super::body::CompileOptions;
 
 /// Open the source code in a browser
 pub const OPEN_GITHUB: Selector = Selector::new("app.open-github");
@@ -15,8 +17,11 @@ pub const SELECT_OR_CREATE_METHOD_TAB: Selector<MethodDescriptor> =
     Selector::new("app.select-or-create-method-tab");
 
 /// Select or create a compiler options tab.
-pub const SELECT_OR_CREATE_COMPILER_TAB: Selector =
-    Selector::new("app.select-or-create-compiler-tab");
+pub const SELECT_OR_CREATE_COMPILE_TAB: Selector =
+    Selector::new("app.select-or-create-compile-tab");
+
+/// Set compiler options
+pub const SET_COMPILE_OPTIONS: Selector<CompileOptions> = Selector::new("app.set-compile-options");
 
 /// Set service options
 pub const SET_SERVICE_OPTIONS: Selector<(ServiceDescriptor, ServiceOptions)> =
@@ -65,9 +70,12 @@ pub fn add_file() -> Command {
 
     druid::commands::SHOW_OPEN_PANEL.with(
         FileDialogOptions::new()
+            .accept_command(ADD_FILE_ACCEPT)
             .allowed_types(vec![PROTO_DEFINITION_FILE, FDSET_FILE])
             .default_type(PROTO_DEFINITION_FILE)
             .title("Import services")
             .button_text("Load"),
     )
 }
+
+pub const ADD_FILE_ACCEPT: Selector<FileInfo> = Selector::new("app.add-file-accept");

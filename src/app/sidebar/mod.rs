@@ -13,6 +13,8 @@ use prost_reflect::ServiceDescriptor;
 
 use crate::{app::command, protoc, theme, widget::Icon};
 
+use super::body::CompileOptions;
+
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub(in crate::app) struct State {
     services: ServiceListState,
@@ -23,13 +25,14 @@ pub(in crate::app) struct State {
 #[derive(Debug, Default, Clone, Data)]
 pub(in crate::app) struct ServiceListState {
     services: im::Vector<service::ServiceState>,
+    compile_options: CompileOptions,
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
     let add_button = Flex::row()
         .with_child(Icon::add().padding(8.0))
         .with_child(
-            Label::new("Add services")
+            Label::new("Import services")
                 .with_font(theme::font::HEADER_ONE)
                 .with_line_break_mode(LineBreaking::Clip),
         )
@@ -75,8 +78,18 @@ impl State {
 }
 
 impl ServiceListState {
+    pub fn new<T>(services: T, compile_options: CompileOptions) -> Self
+    where
+        T: IntoIterator<Item = service::ServiceState>,
+    {
+        ServiceListState {
+            services: im::Vector::from_iter(services),
+            compile_options,
+        }
+    }
+
     pub fn add_from_path(&mut self, path: &Path) -> Result<()> {
-        let file = protoc::load_file(path)?;
+        let file = protoc::load_file(path, self.compile_options.includes())?;
 
         self.services
             .extend(file.services().map(service::ServiceState::from));
@@ -91,10 +104,7 @@ impl ServiceListState {
         self.services.remove(index)
     }
 
-    pub fn get_service_options(
-        &self,
-        service: &ServiceDescriptor,
-    ) -> Option<&service::ServiceOptions> {
+    pub fn service_options(&self, service: &ServiceDescriptor) -> Option<&service::ServiceOptions> {
         for service_state in self.services.iter() {
             if service_state.service() == service {
                 return Some(service_state.options());
@@ -115,16 +125,13 @@ impl ServiceListState {
             }
         }
     }
-}
 
-impl FromIterator<service::ServiceState> for ServiceListState {
-    fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = service::ServiceState>,
-    {
-        ServiceListState {
-            services: im::Vector::from_iter(iter),
-        }
+    pub fn compile_options(&self) -> &CompileOptions {
+        &self.compile_options
+    }
+
+    pub fn set_compile_options(&mut self, options: CompileOptions) {
+        self.compile_options = options
     }
 }
 

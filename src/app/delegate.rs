@@ -32,7 +32,7 @@ impl AppDelegate<app::State> for Delegate {
         _env: &Env,
     ) -> Handled {
         tracing::debug!("Received command: {:?}", cmd);
-        if let Some(file) = cmd.get(druid::commands::OPEN_FILE) {
+        if let Some(file) = cmd.get(command::ADD_FILE_ACCEPT) {
             if let Err(err) = data.sidebar.add_from_path(file.path()) {
                 data.error = Some(format!("Error loading file: {}", fmt_err(&err)).into());
             } else {
@@ -57,18 +57,21 @@ impl AppDelegate<app::State> for Delegate {
         } else if cmd.is(command::CLEAR) {
             data.body.clear_request_history();
             Handled::Yes
-        } else if cmd.is(command::SELECT_OR_CREATE_COMPILER_TAB) {
+        } else if cmd.is(command::SELECT_OR_CREATE_COMPILE_TAB) {
             data.body.select_or_create_compiler_tab();
             Handled::Yes
         } else if let Some((service, options)) = cmd.get(command::SET_SERVICE_OPTIONS) {
             data.body.set_service_options(service, options);
             data.sidebar.set_service_options(service, options);
             Handled::Yes
+        } else if let Some(options) = cmd.get(command::SET_COMPILE_OPTIONS) {
+            data.sidebar.set_compile_options(options.clone());
+            Handled::Yes
         } else if let Some((service, options)) = cmd.get(command::SELECT_OR_CREATE_OPTIONS_TAB) {
             data.body.select_or_create_options_tab(service, options);
             Handled::Yes
         } else if let Some(method) = cmd.get(command::SELECT_OR_CREATE_METHOD_TAB) {
-            if let Some(options) = data.sidebar.get_service_options(method.parent_service()) {
+            if let Some(options) = data.sidebar.service_options(method.parent_service()) {
                 data.body
                     .select_or_create_method_tab(method, options.clone());
             }
@@ -78,7 +81,7 @@ impl AppDelegate<app::State> for Delegate {
             data.body.remove_service(service.service());
             Handled::Yes
         } else if let Some(method) = cmd.get(command::CREATE_TAB) {
-            if let Some(options) = data.sidebar.get_service_options(method.parent_service()) {
+            if let Some(options) = data.sidebar.service_options(method.parent_service()) {
                 data.body.create_method_tab(method, options.clone());
             }
             Handled::Yes

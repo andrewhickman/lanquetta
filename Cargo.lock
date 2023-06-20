@@ -49,9 +49,9 @@ checksum = "6b4930d2cb77ce62f89ee5d5289b4ac049559b1c45539271f5ed4fdc7db34545"
 
 [[package]]
 name = "arrayvec"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8868f09ff8cea88b079da74ae569d9b8c62a23c68c746240b704ee6f7525c89c"
+checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
 name = "ashpd"
@@ -371,9 +371,9 @@ dependencies = [
 
 [[package]]
 name = "cfg-expr"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e70d3ad08698a0568b0562f22710fe6bfc1f4a61a367c77d0398c562eadd453a"
+checksum = "215c0072ecc28f92eeb0eea38ba63ddfcb65c2828c46311d646f1a3ff5f9841c"
 dependencies = [
  "smallvec",
  "target-lexicon",
@@ -624,7 +624,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.8.3"
-source = "git+https://github.com/andrewhickman/druid?branch=master#dab08798fd958d1eefaed35b4ea6f67ac312a792"
+source = "git+https://github.com/andrewhickman/druid?branch=master#4cce1e2d120d93fae807330ee756fc23df6aaf80"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -649,7 +649,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.5.1"
-source = "git+https://github.com/andrewhickman/druid?branch=master#dab08798fd958d1eefaed35b4ea6f67ac312a792"
+source = "git+https://github.com/andrewhickman/druid?branch=master#4cce1e2d120d93fae807330ee756fc23df6aaf80"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -659,7 +659,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.8.3"
-source = "git+https://github.com/andrewhickman/druid?branch=master#dab08798fd958d1eefaed35b4ea6f67ac312a792"
+source = "git+https://github.com/andrewhickman/druid?branch=master#4cce1e2d120d93fae807330ee756fc23df6aaf80"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -3704,9 +3704,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.24"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f57e3ca2a01450b1a921183a9c9cbfda207fd822cef4ccb00a65402cbba7a74"
+checksum = "8803eee176538f94ae9a14b55b2804eb7e1441f8210b1c31290b3bccdccff73b"
 dependencies = [
  "proc-macro2",
  "quote",

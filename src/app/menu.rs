@@ -18,7 +18,7 @@ pub(in crate::app) fn build(
 fn file_menu() -> Menu<app::State> {
     Menu::new(LocalizedString::new("common-menu-file-menu"))
         .entry(
-            Menu::new("Add services")
+            Menu::new("Import services")
                 .entry(
                     MenuItem::new(LocalizedString::new("common-menu-file-open"))
                         .command(app::command::add_file())
@@ -26,7 +26,7 @@ fn file_menu() -> Menu<app::State> {
                 )
                 .entry(
                     MenuItem::new("Compiler options")
-                        .command(app::command::SELECT_OR_CREATE_COMPILER_TAB),
+                        .command(app::command::SELECT_OR_CREATE_COMPILE_TAB),
                 ),
         )
         .separator()

@@ -19,6 +19,8 @@ use crate::{
     widget::{TabId, TabsData},
 };
 
+use super::body::CompileOptions;
+
 impl Serialize for app::State {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -46,6 +48,7 @@ struct AppState {
     file_descriptor_sets: Vec<DescriptorPoolSerde>,
     services: Vec<AppServiceState>,
     body: AppBodyState,
+    compile_options: CompileOptions,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -92,10 +95,7 @@ enum AppBodyTabKind {
         #[serde(flatten)]
         idx: AppServiceRef,
     },
-    Compile {
-        includes: Vec<String>,
-        files: Vec<String>,
-    },
+    Compile,
 }
 
 #[derive(Debug)]
@@ -169,10 +169,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                                 },
                             }
                         }
-                        app::body::TabState::Compile(state) => AppBodyTabKind::Compile {
-                            includes: state.serde_includes(),
-                            files: state.serde_files(),
-                        },
+                        app::body::TabState::Compile(_) => AppBodyTabKind::Compile,
                     };
 
                     Ok(AppBodyTabState { kind })
@@ -193,6 +190,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
             file_descriptor_sets,
             services,
             body,
+            compile_options: data.sidebar.compile_options().clone(),
         })
     }
 }
@@ -205,6 +203,7 @@ impl TryInto<app::State> for AppState {
             file_descriptor_sets,
             services,
             body,
+            compile_options,
         } = self;
 
         let file_descriptor_sets: Vec<_> = file_descriptor_sets
@@ -212,18 +211,20 @@ impl TryInto<app::State> for AppState {
             .map(|serde| serde.0)
             .collect();
 
+        let service_states = services
+            .iter()
+            .map(|service| {
+                Ok(app::sidebar::service::ServiceState::new(
+                    get_service(&file_descriptor_sets, &service.idx)?,
+                    service.expanded,
+                    service.options.clone(),
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?;
+
         Ok(app::State {
-            sidebar: services
-                .iter()
-                .map(|service| {
-                    Ok(app::sidebar::service::ServiceState::new(
-                        get_service(&file_descriptor_sets, &service.idx)?,
-                        service.expanded,
-                        service.options.clone(),
-                    ))
-                })
-                .collect::<Result<app::sidebar::ServiceListState>>()?,
-            body: body.into_state(&file_descriptor_sets, &services)?,
+            body: body.into_state(&file_descriptor_sets, &services, &compile_options)?,
+            sidebar: app::sidebar::ServiceListState::new(service_states, compile_options),
             error: None,
         })
     }
@@ -234,6 +235,7 @@ impl AppBodyState {
         self,
         file_sets: &[prost_reflect::DescriptorPool],
         services: &[AppServiceState],
+        compile_options: &CompileOptions,
     ) -> Result<app::body::State> {
         let tabs = self
             .tabs
@@ -279,9 +281,9 @@ impl AppBodyState {
                         app::body::TabState::new_options(service, options),
                     ))
                 }
-                AppBodyTabKind::Compile { includes, files } => Ok((
+                AppBodyTabKind::Compile => Ok((
                     TabId::next(),
-                    app::body::TabState::new_compile(includes, files),
+                    app::body::TabState::new_compile(compile_options),
                 )),
             })
             .collect::<Result<BTreeMap<_, _>>>()?;

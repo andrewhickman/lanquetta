@@ -96,16 +96,6 @@ fn build_row() -> impl Widget<Entry> {
 }
 
 fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
-    let close = Icon::close()
-        .with_fill(FillStrat::ScaleDown)
-        .background(theme::hot_or_active_painter(
-            druid::theme::BUTTON_BORDER_RADIUS,
-        ))
-        .on_click(move |ctx: &mut EventCtx, data: &mut EditableEntry, _| {
-            data.deleted = true;
-            ctx.submit_command(DELETE_METADATA.to(parent));
-        });
-
     let form_id = WidgetId::next();
     let form_field = FormField::new(
         form_id,
@@ -123,9 +113,7 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
                     .controller(FinishEditController::new(form_id))
                     .lens(EditableEntry::value),
                 0.67,
-            )
-            .with_spacer(GRID_NARROW_SPACER)
-            .with_child(close),
+            ),
     );
 
     let error = Either::new(
@@ -144,10 +132,24 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
         .padding((GRID_NARROW_SPACER, 0.0, 0.0, 0.0)),
     );
 
+    let close = Icon::close()
+        .with_fill(FillStrat::ScaleDown)
+        .background(theme::hot_or_active_painter(
+            druid::theme::BUTTON_BORDER_RADIUS,
+        ))
+        .on_click(
+            move |ctx: &mut EventCtx, data: &mut EntryValidationState, _| {
+                data.with_text_mut(|d| d.deleted = true);
+                ctx.submit_command(DELETE_METADATA.to(parent));
+            },
+        );
+
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
         .with_flex_child(form_field, 1.0)
         .with_child(error)
+        .with_spacer(GRID_NARROW_SPACER)
+        .with_child(close)
 }
 
 fn build_add_button() -> impl Widget<EditableState> {

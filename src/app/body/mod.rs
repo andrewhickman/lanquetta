@@ -3,7 +3,7 @@ mod compile;
 mod method;
 mod options;
 
-pub(in crate::app) use self::{compile::CompileTabState, method::StreamState};
+pub(in crate::app) use self::{compile::CompileOptions, method::StreamState};
 
 use std::{collections::BTreeMap, io, mem, ops::Bound, sync::Arc};
 
@@ -11,7 +11,7 @@ use druid::{lens::Field, widget::ViewSwitcher, ArcStr, Data, Lens, Widget, Widge
 use iter_set::Inclusion;
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
-use self::{method::MethodTabState, options::OptionsTabState};
+use self::{compile::CompileTabState, method::MethodTabState, options::OptionsTabState};
 use crate::{
     app::{command, fmt_err, metadata, sidebar::service::ServiceOptions},
     json::JsonText,
@@ -348,8 +348,8 @@ impl TabState {
         TabState::Options(OptionsTabState::new(service, options))
     }
 
-    pub fn new_compile(includes: Vec<String>, files: Vec<String>) -> TabState {
-        TabState::Compile(CompileTabState::new(includes, files))
+    pub fn new_compile(options: &CompileOptions) -> TabState {
+        TabState::Compile(CompileTabState::new(options))
     }
 
     pub fn label(&self) -> ArcStr {
