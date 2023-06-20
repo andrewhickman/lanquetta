@@ -66,7 +66,7 @@ impl State {
         }
     }
 
-    pub fn select_or_create_compiler_tab(&mut self) {
+    pub fn select_or_create_compiler_tab(&mut self, compile_options: &CompileOptions) {
         for (&id, tab) in self.tabs.iter() {
             if matches!(tab, TabState::Compile(_)) {
                 self.selected = Some(id);
@@ -76,7 +76,7 @@ impl State {
 
         let id = TabId::next();
         self.selected = Some(id);
-        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_compile());
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::new_compile(compile_options));
     }
 
     pub fn select_or_create_method_tab(
@@ -320,10 +320,6 @@ impl State {
 impl TabState {
     fn empty_method(method: prost_reflect::MethodDescriptor, options: ServiceOptions) -> TabState {
         TabState::Method(MethodTabState::empty(method, options))
-    }
-
-    fn empty_compile() -> TabState {
-        TabState::Compile(CompileTabState::default())
     }
 
     pub fn new_method(
