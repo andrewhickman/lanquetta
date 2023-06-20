@@ -70,7 +70,7 @@ fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
     let form_id = WidgetId::next();
     let form_field = FormField::new(
         form_id,
-        theme::text_box_scope(TextBox::<PathText>::default().expand_width())
+        theme::text_box_scope(TextBox::<PathText>::default().with_placeholder(path_placeholder_text()).expand_width())
             .controller(FinishEditController::new(form_id))
             .lens(PathEntry::path),
     );
@@ -110,6 +110,14 @@ fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
         .with_spacer(GRID_NARROW_SPACER)
         .with_child(close)
         .padding((0.0, 0.0, 0.0, GRID_NARROW_SPACER))
+}
+
+fn path_placeholder_text() -> String {
+    if cfg!(windows) {
+        "C:\\path\\to\\include".to_owned()
+    } else {
+        "/path/to/include".to_owned()
+    }
 }
 
 fn build_add_include_button() -> impl Widget<Arc<Vec<PathValidationState>>> {

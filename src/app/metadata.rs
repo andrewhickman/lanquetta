@@ -102,16 +102,24 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
         Flex::row()
             .cross_axis_alignment(CrossAxisAlignment::Fill)
             .with_flex_child(
-                theme::text_box_scope(TextBox::<Arc<String>>::new().expand_width())
-                    .controller(FinishEditController::new(form_id))
-                    .lens(EditableEntry::key),
+                theme::text_box_scope(
+                    TextBox::<Arc<String>>::new()
+                        .with_placeholder("key")
+                        .expand_width(),
+                )
+                .controller(FinishEditController::new(form_id))
+                .lens(EditableEntry::key),
                 0.33,
             )
             .with_spacer(GRID_NARROW_SPACER)
             .with_flex_child(
-                theme::text_box_scope(TextBox::<Arc<String>>::new().expand_width())
-                    .controller(FinishEditController::new(form_id))
-                    .lens(EditableEntry::value),
+                theme::text_box_scope(
+                    TextBox::<Arc<String>>::new()
+                        .with_placeholder("value")
+                        .expand_width(),
+                )
+                .controller(FinishEditController::new(form_id))
+                .lens(EditableEntry::value),
                 0.67,
             ),
     );
