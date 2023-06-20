@@ -5,7 +5,7 @@ use druid::{EventCtx, ExtEventSink, Selector, WidgetId};
 
 pub const UPDATE: Selector = Selector::new("app.update");
 
-type QueueInner<W, T> = SegQueue<Box<dyn FnOnce(&mut W, &mut T) + Send>>;
+type QueueInner<W, T> = SegQueue<Box<dyn FnOnce(&mut W, &mut EventCtx, &mut T) + Send>>;
 
 pub struct UpdateQueue<W, T> {
     queue: Arc<QueueInner<W, T>>,
@@ -24,7 +24,7 @@ impl<W, T> UpdateQueue<W, T> {
         }
     }
 
-    pub fn pop(&self) -> Option<impl FnOnce(&mut W, &mut T)> {
+    pub fn pop(&self) -> Option<impl FnOnce(&mut W, &mut EventCtx, &mut T)> {
         self.queue.pop()
     }
 
@@ -42,7 +42,7 @@ impl<W, T> UpdateQueue<W, T> {
 }
 
 impl<W, T> UpdateQueueWriter<W, T> {
-    pub fn write(&self, f: impl FnOnce(&mut W, &mut T) + Send + 'static) -> bool {
+    pub fn write(&self, f: impl FnOnce(&mut W, &mut EventCtx, &mut T) + Send + 'static) -> bool {
         if let Some(queue) = self.queue.upgrade() {
             queue.push(Box::new(f));
             self.event_sink
