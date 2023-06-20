@@ -15,6 +15,7 @@ use self::{compile::CompileTabState, method::MethodTabState, options::OptionsTab
 use crate::{
     app::{command, fmt_err, metadata, sidebar::service::ServiceOptions},
     json::JsonText,
+    theme,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
 
@@ -30,7 +31,9 @@ pub enum RequestState {
     ConnectInProgress,
     Connected,
     ConnectFailed(ArcStr),
-    Active,
+    AuthorizationHookFailed(ArcStr),
+    SendInProgress,
+    AuthorizationHookInProgress,
 }
 
 #[derive(Debug, Clone, Data)]
@@ -518,4 +521,16 @@ pub fn fmt_connect_err(err: &anyhow::Error) -> ArcStr {
     } else {
         fmt_err(err)
     }
+}
+
+fn layout_spinner<T>(child: impl Widget<T> + 'static, padding: f64) -> Box<dyn Widget<T>>
+where
+    T: Data,
+{
+    child
+        .padding(padding)
+        .center()
+        .fix_size(24.0, 24.0)
+        .padding((0.0, 0.0, theme::BODY_SPACER, 0.0))
+        .boxed()
 }

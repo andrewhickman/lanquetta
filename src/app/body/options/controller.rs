@@ -55,11 +55,11 @@ where
         if old_data.default_address.uri() != data.default_address.uri()
             || old_data.verify_certs != data.verify_certs
             || !old_data.default_metadata.same(&data.default_metadata)
+            || !old_data.auth.same(&data.auth)
         {
             ctx.submit_command(
                 command::SET_SERVICE_OPTIONS.with((data.service.clone(), data.service_options())),
             );
-            ctx.submit_command(command::DISCONNECT.to(ctx.widget_id()));
         }
 
         child.update(ctx, old_data, data, env);
@@ -83,7 +83,7 @@ impl OptionsTabController {
             Handled::Yes
         } else if command.is(update_queue::UPDATE) {
             while let Some(update) = self.updates.pop() {
-                (update)(self, data)
+                (update)(self, ctx, data)
             }
             Handled::Yes
         } else {
@@ -108,7 +108,7 @@ impl OptionsTabController {
         let verify_certs = data.service_options().verify_certs;
         tokio::spawn(async move {
             let result = grpc::Client::new(&uri, verify_certs).await;
-            update_writer.write(|controller, data| controller.finish_connect(data, result));
+            update_writer.write(|controller, _, data| controller.finish_connect(data, result));
         });
 
         data.default_address

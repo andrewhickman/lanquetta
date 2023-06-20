@@ -68,9 +68,14 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
             |data: &MethodTabState, _| match data.address.request_state() {
                 RequestState::NotStarted | RequestState::ConnectFailed(_) => "Connect".to_owned(),
                 RequestState::ConnectInProgress => "Connecting...".to_owned(),
-                RequestState::Connected => "Send".to_owned(),
-                RequestState::Active if data.method.is_client_streaming() => "Send".to_owned(),
-                RequestState::Active => "Sending...".to_owned(),
+                RequestState::Connected | RequestState::AuthorizationHookFailed(_) => {
+                    "Send".to_owned()
+                }
+                RequestState::SendInProgress if data.method.is_client_streaming() => {
+                    "Send".to_owned()
+                }
+                RequestState::SendInProgress => "Sending...".to_owned(),
+                RequestState::AuthorizationHookInProgress => "Authorizing...".to_owned(),
             },
         )
         .on_click(
@@ -81,8 +86,12 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
                         debug_assert!(data.can_connect());
                         ctx.submit_command(command::CONNECT.to(body_id));
                     }
-                    RequestState::ConnectInProgress => unreachable!(),
-                    RequestState::Connected | RequestState::Active => {
+                    RequestState::ConnectInProgress | RequestState::AuthorizationHookInProgress => {
+                        unreachable!()
+                    }
+                    RequestState::Connected
+                    | RequestState::SendInProgress
+                    | RequestState::AuthorizationHookFailed(_) => {
                         debug_assert!(data.can_send());
                         ctx.submit_command(command::SEND.to(body_id));
                     }
@@ -95,7 +104,9 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
     let finish_button = theme::button_scope(
         Button::dynamic(
             |data: &MethodTabState, _| match data.address.request_state() {
-                RequestState::Active if data.method.is_client_streaming() => "Finish".to_owned(),
+                RequestState::SendInProgress if data.method.is_client_streaming() => {
+                    "Finish".to_owned()
+                }
                 _ => "Disconnect".to_owned(),
             },
         )
@@ -104,12 +115,14 @@ fn build_address_bar(body_id: WidgetId) -> impl Widget<MethodTabState> {
                 debug_assert!(data.can_finish() || data.can_disconnect());
                 match data.address.request_state() {
                     RequestState::NotStarted | RequestState::ConnectFailed(_) => unreachable!(),
-                    RequestState::Active if data.method.is_client_streaming() => {
+                    RequestState::SendInProgress if data.method.is_client_streaming() => {
                         ctx.submit_command(command::FINISH.to(body_id));
                     }
                     RequestState::ConnectInProgress
+                    | RequestState::AuthorizationHookInProgress
                     | RequestState::Connected
-                    | RequestState::Active => {
+                    | RequestState::SendInProgress
+                    | RequestState::AuthorizationHookFailed(_) => {
                         ctx.submit_command(command::DISCONNECT.to(body_id));
                     }
                 }
@@ -183,9 +196,12 @@ impl MethodTabState {
             && match self.address.request_state() {
                 RequestState::NotStarted
                 | RequestState::ConnectInProgress
+                | RequestState::AuthorizationHookInProgress
                 | RequestState::ConnectFailed(_) => false,
                 RequestState::Connected => true,
-                RequestState::Active => self.method.is_client_streaming(),
+                RequestState::SendInProgress | RequestState::AuthorizationHookFailed(_) => {
+                    self.method.is_client_streaming()
+                }
             }
     }
 
@@ -195,20 +211,26 @@ impl MethodTabState {
                 RequestState::NotStarted | RequestState::ConnectFailed(_) => true,
                 RequestState::Connected
                 | RequestState::ConnectInProgress
-                | RequestState::Active => false,
+                | RequestState::AuthorizationHookInProgress
+                | RequestState::SendInProgress
+                | RequestState::AuthorizationHookFailed(_) => false,
             }
     }
 
     pub fn can_finish(&self) -> bool {
-        matches!(self.address.request_state(), RequestState::Active)
+        matches!(self.address.request_state(), RequestState::SendInProgress)
             && self.method.is_client_streaming()
     }
 
     pub fn can_disconnect(&self) -> bool {
-        matches!(
-            self.address.request_state(),
-            RequestState::ConnectInProgress | RequestState::Connected | RequestState::Active
-        )
+        match self.address.request_state() {
+            RequestState::ConnectInProgress
+            | RequestState::AuthorizationHookInProgress
+            | RequestState::Connected
+            | RequestState::SendInProgress
+            | RequestState::AuthorizationHookFailed(_) => true,
+            RequestState::NotStarted | RequestState::ConnectFailed(_) => false,
+        }
     }
 
     pub fn service_options(&self) -> &ServiceOptions {

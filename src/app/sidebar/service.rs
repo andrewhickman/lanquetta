@@ -13,6 +13,7 @@ use crate::{
         metadata,
         sidebar::method,
     },
+    auth::AuthorizationHook,
     theme,
     widget::expander,
     widget::{ExpanderData, Icon},
@@ -47,6 +48,7 @@ pub struct ServiceOptions {
     pub default_address: Option<Uri>,
     pub verify_certs: bool,
     pub default_metadata: metadata::State,
+    pub auth_hook: Option<Arc<AuthorizationHook>>,
 }
 
 impl Default for ServiceOptions {
@@ -55,6 +57,7 @@ impl Default for ServiceOptions {
             default_address: Default::default(),
             verify_certs: true,
             default_metadata: metadata::State::default(),
+            auth_hook: None,
         }
     }
 }

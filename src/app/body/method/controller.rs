@@ -2,11 +2,12 @@ use druid::{
     widget::{prelude::*, Controller},
     Command, Handled,
 };
+use tonic::metadata::MetadataMap;
 
 use crate::{
     app::{
         body::{fmt_connect_err, method::MethodTabState, RequestState},
-        command,
+        command, fmt_err,
     },
     grpc,
     json::JsonText,
@@ -88,7 +89,7 @@ impl MethodTabController {
             Handled::Yes
         } else if command.is(update_queue::UPDATE) {
             while let Some(update) = self.updates.pop() {
-                (update)(self, data)
+                (update)(self, ctx, data)
             }
             Handled::Yes
         } else {
@@ -113,7 +114,7 @@ impl MethodTabController {
         let verify_certs = data.service_options.verify_certs;
         tokio::spawn(async move {
             let result = grpc::Client::new(&uri, verify_certs).await;
-            update_writer.write(|controller, data| controller.finish_connect(data, result));
+            update_writer.write(|controller, _, data| controller.finish_connect(data, result));
         });
 
         data.address
@@ -134,10 +135,39 @@ impl MethodTabController {
     }
 
     fn start_send(&mut self, ctx: &mut EventCtx, data: &mut MethodTabState) {
+        if let Some(hook) = &data.service_options.auth_hook {
+            let hook = hook.clone();
+            let update_writer = self.updates.writer(ctx);
+            tokio::spawn(async move {
+                let result = hook.get_headers().await;
+                update_writer.write(|controller, ctx, data| match result {
+                    Ok(authorization) => {
+                        controller.start_send_with_authorization(ctx, data, authorization)
+                    }
+                    Err(err) => data
+                        .address
+                        .set_request_state(RequestState::AuthorizationHookFailed(fmt_err(&err))),
+                });
+            });
+
+            data.address
+                .set_request_state(RequestState::AuthorizationHookInProgress);
+        } else {
+            self.start_send_with_authorization(ctx, data, http::HeaderMap::new())
+        }
+    }
+
+    fn start_send_with_authorization(
+        &mut self,
+        ctx: &mut EventCtx,
+        data: &mut MethodTabState,
+        authorization: http::HeaderMap,
+    ) {
         let request = match data.request().get() {
             Some(request) => request.clone(),
             None => {
                 tracing::error!("Send called with no request");
+                self.set_request_state(data);
                 return;
             }
         };
@@ -160,18 +190,21 @@ impl MethodTabController {
                 }
             };
 
-            let metadata = data.request().tonic_metadata();
+            let mut metadata = data.request().tonic_metadata().into_headers();
+            metadata.extend(authorization);
+            let metadata = MetadataMap::from_headers(metadata);
 
             let update_writer = self.updates.writer(ctx);
             self.call =
                 Some(
                     client.call(data.method.clone(), request, metadata, move |response| {
-                        update_writer
-                            .write(|controller, data| controller.handle_response(data, response));
+                        update_writer.write(|controller, _, data| {
+                            controller.handle_response(data, response)
+                        });
                     }),
                 );
 
-            data.address.set_request_state(RequestState::Active);
+            data.address.set_request_state(RequestState::SendInProgress);
         }
     }
 
@@ -230,7 +263,7 @@ impl MethodTabController {
         let request_state = match (self.is_active(), self.is_connected()) {
             (false, false) => RequestState::NotStarted,
             (false, true) => RequestState::Connected,
-            (true, _) => RequestState::Active,
+            (true, _) => RequestState::SendInProgress,
         };
         data.address.set_request_state(request_state);
     }

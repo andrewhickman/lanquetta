@@ -11,7 +11,12 @@ use http::Uri;
 use once_cell::sync::Lazy;
 
 use crate::{
-    app::{body::RequestState, command, sidebar::service::ServiceOptions, theme},
+    app::{
+        body::{layout_spinner, RequestState},
+        command,
+        sidebar::service::ServiceOptions,
+        theme,
+    },
     widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
 };
 
@@ -66,10 +71,10 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
         |request_state: &RequestState, _| mem::discriminant(request_state),
         |_, request_state, _| match request_state {
             RequestState::NotStarted => Empty.boxed(),
-            RequestState::ConnectInProgress | RequestState::Active => {
-                layout_spinner(Spinner::new(), 2.0)
-            }
-            RequestState::Connected => {
+            RequestState::ConnectInProgress
+            | RequestState::SendInProgress
+            | RequestState::AuthorizationHookInProgress => layout_spinner(Spinner::new(), 2.0),
+            RequestState::Connected | RequestState::AuthorizationHookFailed(_) => {
                 layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0)
             }
             RequestState::ConnectFailed(_) => {
@@ -183,18 +188,6 @@ where
 
         child.update(ctx, old_data, data, env)
     }
-}
-
-fn layout_spinner<T>(child: impl Widget<T> + 'static, padding: f64) -> Box<dyn Widget<T>>
-where
-    T: Data,
-{
-    child
-        .padding(padding)
-        .center()
-        .fix_size(24.0, 24.0)
-        .padding((0.0, 0.0, theme::BODY_SPACER, 0.0))
-        .boxed()
 }
 
 static VALIDATE_URI: Lazy<ValidationFn<String, Uri, ArcStr>> = Lazy::new(|| Arc::new(validate_uri));

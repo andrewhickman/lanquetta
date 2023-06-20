@@ -70,9 +70,13 @@ fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
     let form_id = WidgetId::next();
     let form_field = FormField::new(
         form_id,
-        theme::text_box_scope(TextBox::<PathText>::default().with_placeholder(path_placeholder_text()).expand_width())
-            .controller(FinishEditController::new(form_id))
-            .lens(PathEntry::path),
+        theme::text_box_scope(
+            TextBox::<PathText>::default()
+                .with_placeholder(path_placeholder_text())
+                .expand_width(),
+        )
+        .controller(FinishEditController::new(form_id))
+        .lens(PathEntry::path),
     );
 
     let error = Either::new(

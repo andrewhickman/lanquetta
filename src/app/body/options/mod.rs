@@ -1,3 +1,4 @@
+mod auth;
 mod controller;
 
 use druid::{
@@ -27,6 +28,7 @@ pub struct OptionsTabState {
     default_address: AddressState,
     verify_certs: bool,
     default_metadata: metadata::EditableState,
+    auth: auth::State,
 }
 
 pub fn build_body() -> impl Widget<OptionsTabState> {
@@ -55,6 +57,14 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
             )
             .with_spacer(theme::BODY_SPACER)
             .with_child(default_metadata.lens(OptionsTabState::default_metadata))
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(
+                Label::new("Authorization hook")
+                    .with_font(theme::font::HEADER_TWO)
+                    .align_left(),
+            )
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(auth::build().lens(OptionsTabState::auth))
             .must_fill_main_axis(true)
             .cross_axis_alignment(CrossAxisAlignment::Start)
             .padding(theme::BODY_PADDING)
@@ -103,6 +113,7 @@ impl OptionsTabState {
             },
             verify_certs: options.verify_certs,
             default_metadata: metadata::EditableState::new(options.default_metadata),
+            auth: auth::State::new(&options.auth_hook),
         }
     }
 
@@ -119,6 +130,7 @@ impl OptionsTabState {
             default_address: self.default_address.uri().cloned(),
             verify_certs: self.verify_certs,
             default_metadata: self.default_metadata.to_state(),
+            auth_hook: self.auth.hook(),
         }
     }
 
@@ -135,14 +147,18 @@ impl OptionsTabState {
                 RequestState::NotStarted | RequestState::ConnectFailed(_) => true,
                 RequestState::Connected
                 | RequestState::ConnectInProgress
-                | RequestState::Active => false,
+                | RequestState::AuthorizationHookInProgress
+                | RequestState::AuthorizationHookFailed(_)
+                | RequestState::SendInProgress => false,
             }
     }
 
     pub fn can_disconnect(&self) -> bool {
         matches!(
             self.default_address.request_state(),
-            RequestState::ConnectInProgress | RequestState::Connected | RequestState::Active
+            RequestState::ConnectInProgress
+                | RequestState::Connected
+                | RequestState::SendInProgress
         )
     }
 }
