@@ -14,7 +14,7 @@ use crate::{
     app::body::fmt_connect_err,
     grpc,
     theme::{self, INVALID},
-    widget::Empty,
+    widget::{code_area, Empty},
 };
 use crate::{
     app::metadata,
@@ -40,13 +40,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     ViewSwitcher::new(
         |data: &State, _: &Env| mem::discriminant(data),
         |_: &Discriminant<State>, data: &State, _: &Env| match data {
-            State::Payload(_) => theme::text_box_scope(
-                TextBox::multiline()
-                    .readonly()
-                    .with_font(theme::EDITOR_FONT),
-            )
-            .lens(State::payload_lens())
-            .boxed(),
+            State::Payload(_) => code_area(false).lens(State::payload_lens()).boxed(),
             State::Error(_) => Flex::column()
                 .cross_axis_alignment(CrossAxisAlignment::Fill)
                 .with_child(
@@ -59,12 +53,8 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                 .with_child(
                     Maybe::new(
                         || {
-                            theme::text_box_scope(
-                                TextBox::multiline()
-                                    .readonly()
-                                    .with_font(theme::EDITOR_FONT),
-                            )
-                            .env_scope(|env: &mut Env, _: &JsonText| env.set(INVALID, true))
+                            code_area(false)
+                                .env_scope(|env: &mut Env, _: &JsonText| env.set(INVALID, true))
                         },
                         || Empty,
                     )

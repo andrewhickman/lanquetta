@@ -7,7 +7,7 @@ use base64::{
 use druid::{
     widget::{
         prelude::*, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Label, LineBreaking,
-        List, TextBox,
+        List,
     },
     ArcStr, Lens, Point, Selector, UnitPoint, WidgetExt, WidgetPod,
 };
@@ -19,7 +19,10 @@ use tonic::metadata::{
 
 use crate::{
     theme,
-    widget::{Empty, FinishEditController, FormField, Icon, ValidationFn, ValidationState},
+    widget::{
+        input, readonly_input, Empty, FinishEditController, FormField, Icon, ValidationFn,
+        ValidationState,
+    },
 };
 
 pub type State = Arc<Vec<Entry>>;
@@ -82,17 +85,9 @@ pub(in crate::app) fn build_editable() -> impl Widget<EditableState> {
 fn build_row() -> impl Widget<Entry> {
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
-        .with_flex_child(
-            theme::text_box_scope(TextBox::<Arc<String>>::default().readonly().expand_width())
-                .lens(Entry::key),
-            0.33,
-        )
+        .with_flex_child(readonly_input().lens(Entry::key), 0.33)
         .with_spacer(GRID_NARROW_SPACER)
-        .with_flex_child(
-            theme::text_box_scope(TextBox::<Arc<String>>::default().readonly().expand_width())
-                .lens(Entry::value),
-            0.67,
-        )
+        .with_flex_child(readonly_input().lens(Entry::value), 0.67)
 }
 
 fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
@@ -102,24 +97,16 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
         Flex::row()
             .cross_axis_alignment(CrossAxisAlignment::Fill)
             .with_flex_child(
-                theme::text_box_scope(
-                    TextBox::<Arc<String>>::new()
-                        .with_placeholder("key")
-                        .expand_width(),
-                )
-                .controller(FinishEditController::new(form_id))
-                .lens(EditableEntry::key),
+                input("key")
+                    .controller(FinishEditController::new(form_id))
+                    .lens(EditableEntry::key),
                 0.33,
             )
             .with_spacer(GRID_NARROW_SPACER)
             .with_flex_child(
-                theme::text_box_scope(
-                    TextBox::<Arc<String>>::new()
-                        .with_placeholder("value")
-                        .expand_width(),
-                )
-                .controller(FinishEditController::new(form_id))
-                .lens(EditableEntry::value),
+                input("value")
+                    .controller(FinishEditController::new(form_id))
+                    .lens(EditableEntry::value),
                 0.67,
             ),
     );

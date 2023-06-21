@@ -5,7 +5,7 @@ use druid::{
     text::{EditableText, EnvUpdateCtx, Link, StringCursor},
     widget::{
         prelude::*, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Label, LineBreaking,
-        List, Scroll, TextBox,
+        List, Scroll,
     },
     ArcStr, Data, FileDialogOptions, FileInfo, Lens, Selector, UnitPoint, WidgetExt,
 };
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app::command,
     theme::{self, BODY_PADDING, GRID_NARROW_SPACER},
-    widget::{Empty, FormField, Icon, ValidationFn, ValidationState},
+    widget::{input, Empty, FormField, Icon, ValidationFn, ValidationState},
 };
 
 #[derive(Default, Debug, Clone, Data, Lens)]
@@ -67,12 +67,7 @@ pub fn build_body() -> impl Widget<CompileTabState> {
 }
 
 fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
-    let form_field = FormField::text_box(theme::text_box_scope(
-        TextBox::<PathText>::default()
-            .with_placeholder(path_placeholder_text())
-            .expand_width()
-            .lens(PathEntry::path),
-    ));
+    let form_field = FormField::text_box(input(path_placeholder_text()).lens(PathEntry::path));
 
     let error = Either::new(
         |data: &PathValidationState, _: &Env| data.is_pristine_or_valid(),

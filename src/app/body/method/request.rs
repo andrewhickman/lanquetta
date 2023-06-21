@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use druid::{
     piet::TextStorage,
-    widget::{prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, TextBox},
+    widget::{prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label},
     Data, Lens, Point, Widget, WidgetExt as _, WidgetPod,
 };
 use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
@@ -13,7 +13,7 @@ use crate::{
     grpc,
     json::JsonText,
     theme::{self, BODY_SPACER},
-    widget::{Empty, FormField, ValidationState, FINISH_EDIT},
+    widget::{code_area, Empty, FormField, ValidationState, FINISH_EDIT},
 };
 
 type RequestValidationState = ValidationState<JsonText, grpc::Request, String>;
@@ -27,11 +27,9 @@ pub(in crate::app) struct State {
 struct RequestController;
 
 pub(in crate::app) fn build() -> impl Widget<State> {
-    let textbox = FormField::text_box(theme::text_box_scope(
-        TextBox::multiline().with_font(theme::EDITOR_FONT),
-    ))
-    .controller(RequestController)
-    .expand();
+    let textbox = FormField::text_box(code_area(true))
+        .controller(RequestController)
+        .expand();
     let error_label =
         theme::error_label_scope(Label::dynamic(|data: &RequestValidationState, _| {
             data.result().err().cloned().unwrap_or_default()

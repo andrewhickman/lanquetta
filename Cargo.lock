@@ -623,7 +623,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.8.3"
-source = "git+https://github.com/andrewhickman/druid?branch=master#4cce1e2d120d93fae807330ee756fc23df6aaf80"
+source = "git+https://github.com/andrewhickman/druid?branch=master#5ea6d1cb1f778e7d8f4023d0d3f80ed59876f815"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -648,7 +648,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.5.1"
-source = "git+https://github.com/andrewhickman/druid?branch=master#4cce1e2d120d93fae807330ee756fc23df6aaf80"
+source = "git+https://github.com/andrewhickman/druid?branch=master#5ea6d1cb1f778e7d8f4023d0d3f80ed59876f815"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -658,7 +658,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.8.3"
-source = "git+https://github.com/andrewhickman/druid?branch=master#4cce1e2d120d93fae807330ee756fc23df6aaf80"
+source = "git+https://github.com/andrewhickman/druid?branch=master#5ea6d1cb1f778e7d8f4023d0d3f80ed59876f815"
 dependencies = [
  "anyhow",
  "ashpd",
@@ -2352,11 +2352,12 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "open"
-version = "4.1.0"
+version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d16814a067484415fda653868c9be0ac5f2abd2ef5d951082a5f2fe1b3662944"
+checksum = "3a083c0c7e5e4a8ec4176346cf61f67ac674e8bfb059d9226e1c54a96b377c12"
 dependencies = [
  "is-wsl",
+ "libc",
  "pathdiff",
 ]
 

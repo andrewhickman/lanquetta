@@ -3,7 +3,7 @@ use std::{mem, str::FromStr, sync::Arc};
 use druid::{
     widget::{
         prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking, Spinner,
-        TextBox, ViewSwitcher,
+        ViewSwitcher,
     },
     ArcStr, Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
 };
@@ -17,7 +17,7 @@ use crate::{
         sidebar::service::ServiceOptions,
         theme,
     },
-    widget::{Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
+    widget::{input, Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
 };
 
 type AddressValidationState = ValidationState<String, Uri, ArcStr>;
@@ -35,13 +35,9 @@ struct AddressController {
 }
 
 pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
-    let address_textbox = FormField::text_box(theme::text_box_scope(
-        TextBox::new()
-            .with_placeholder("http://localhost:80")
-            .expand_width(),
-    ))
-    .controller(AddressController { parent })
-    .lens(AddressState::uri_lens);
+    let address_textbox = FormField::text_box(input("http://localhost:80"))
+        .controller(AddressController { parent })
+        .lens(AddressState::uri_lens);
 
     let error_label = theme::error_label_scope(
         Label::dynamic(|data: &AddressState, _| {

@@ -4,7 +4,7 @@ use anyhow::Result;
 use druid::{
     widget::{
         prelude::*, Button, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking,
-        Spinner, TextBox, ViewSwitcher,
+        Spinner, ViewSwitcher,
     },
     ArcStr, Command, Handled, Lens, Selector, WidgetExt,
 };
@@ -15,6 +15,7 @@ use crate::{
     auth::AuthorizationHook,
     theme,
     widget::{
+        input,
         update_queue::{self, UpdateQueue},
         Empty, FormField, Icon, ValidationFn, ValidationState,
     },
@@ -46,12 +47,7 @@ type CommandValidationState = ValidationState<String, Option<Arc<AuthorizationHo
 pub fn build() -> impl Widget<State> {
     let id = WidgetId::next();
 
-    let command_textbox = FormField::text_box(theme::text_box_scope(
-        TextBox::new()
-            .with_placeholder(command_placeholder())
-            .expand_width(),
-    ))
-    .lens(State::command);
+    let command_textbox = FormField::text_box(input(command_placeholder())).lens(State::command);
 
     let error_label = theme::error_label_scope(
         Label::dynamic(|data: &State, _| {
