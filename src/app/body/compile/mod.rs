@@ -4,10 +4,10 @@ use druid::{
     piet::{PietTextLayoutBuilder, TextStorage},
     text::{EditableText, EnvUpdateCtx, Link, StringCursor},
     widget::{
-        prelude::*, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Label, LineBreaking,
-        List, Scroll,
+        prelude::*, Controller, CrossAxisAlignment, FillStrat, Flex, Label, LineBreaking, List,
+        Scroll,
     },
-    ArcStr, Data, FileDialogOptions, FileInfo, Lens, Selector, UnitPoint, WidgetExt,
+    ArcStr, Data, FileDialogOptions, FileInfo, Lens, Selector, WidgetExt,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app::command,
     theme::{self, BODY_PADDING, GRID_NARROW_SPACER},
-    widget::{input, Empty, FormField, Icon, ValidationFn, ValidationState},
+    widget::{error_label, input, FormField, Icon, ValidationFn, ValidationState},
 };
 
 #[derive(Default, Debug, Clone, Data, Lens)]
@@ -69,20 +69,9 @@ pub fn build_body() -> impl Widget<CompileTabState> {
 fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
     let form_field = FormField::text_box(input(path_placeholder_text()).lens(PathEntry::path));
 
-    let error = Either::new(
-        |data: &PathValidationState, _: &Env| data.is_pristine_or_valid(),
-        Empty,
-        theme::error_label_scope(
-            Label::dynamic(|data: &PathValidationState, _| {
-                if let Err(err) = data.result() {
-                    err.to_string()
-                } else {
-                    String::default()
-                }
-            })
-            .align_vertical(UnitPoint::CENTER),
-        )
-        .padding((GRID_NARROW_SPACER, 0.0, 0.0, 0.0)),
+    let error = error_label(
+        |path: &PathValidationState| path.display_error(),
+        (GRID_NARROW_SPACER, 0.0, 0.0, 0.0),
     );
 
     let close = Icon::close()

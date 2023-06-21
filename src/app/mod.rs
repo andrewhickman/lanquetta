@@ -9,15 +9,15 @@ mod sidebar;
 
 use druid::{
     widget::Painter,
-    widget::{Either, Flex, Label, LineBreaking, Split},
-    AppLauncher, ArcStr, Data, Lens, PlatformError, RenderContext, UnitPoint, Widget,
-    WidgetExt as _, WindowDesc,
+    widget::{Either, Flex, Split},
+    AppLauncher, ArcStr, Data, Insets, Lens, PlatformError, RenderContext, Widget, WidgetExt as _,
+    WindowDesc,
 };
 
 use self::config::{Config, ConfigController};
 use crate::{
     theme,
-    widget::{Empty, Icon},
+    widget::{error_label, Empty, Icon},
 };
 
 pub fn launch() -> Result<(), PlatformError> {
@@ -53,39 +53,31 @@ fn build() -> impl Widget<State> {
 
     let error = Either::new(
         |data: &Option<ArcStr>, _| data.is_some(),
-        theme::error_label_scope(
-            Flex::row()
-                .with_flex_child(
-                    Label::dynamic(|data: &Option<ArcStr>, _| match data {
-                        Some(data) => data.to_string(),
-                        None => String::default(),
-                    })
-                    .with_line_break_mode(LineBreaking::WordWrap)
-                    .align_horizontal(UnitPoint::CENTER),
-                    1.0,
-                )
-                .with_child(
-                    Icon::close()
-                        .background(Painter::new(|ctx, _, env| {
-                            let color = theme::color::ERROR.with_alpha(0.38);
-                            let bounds = ctx
-                                .size()
-                                .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
-                            if ctx.is_active() {
-                                let color =
-                                    theme::color::active(color, env.get(druid::theme::TEXT_COLOR));
-                                ctx.fill(bounds, &color);
-                            } else if ctx.is_hot() {
-                                let color =
-                                    theme::color::hot(color, env.get(druid::theme::TEXT_COLOR));
-                                ctx.fill(bounds, &color);
-                            }
-                        }))
-                        .on_click(|_, data: &mut Option<ArcStr>, _| {
-                            *data = None;
-                        }),
-                ),
-        ),
+        Flex::row()
+            .with_flex_child(
+                error_label(|data: &Option<ArcStr>| data.clone(), Insets::ZERO),
+                1.0,
+            )
+            .with_child(
+                Icon::close()
+                    .background(Painter::new(|ctx, _, env| {
+                        let color = theme::color::ERROR.with_alpha(0.38);
+                        let bounds = ctx
+                            .size()
+                            .to_rounded_rect(env.get(druid::theme::BUTTON_BORDER_RADIUS));
+                        if ctx.is_active() {
+                            let color =
+                                theme::color::active(color, env.get(druid::theme::TEXT_COLOR));
+                            ctx.fill(bounds, &color);
+                        } else if ctx.is_hot() {
+                            let color = theme::color::hot(color, env.get(druid::theme::TEXT_COLOR));
+                            ctx.fill(bounds, &color);
+                        }
+                    }))
+                    .on_click(|_, data: &mut Option<ArcStr>, _| {
+                        *data = None;
+                    }),
+            ),
         Empty,
     );
     let split = Split::columns(sidebar, body)

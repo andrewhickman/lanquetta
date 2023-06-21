@@ -1,11 +1,8 @@
 use std::{mem, str::FromStr, sync::Arc};
 
 use druid::{
-    widget::{
-        prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking, Spinner,
-        ViewSwitcher,
-    },
-    ArcStr, Data, Env, EventCtx, Lens, Widget, WidgetExt as _,
+    widget::{prelude::*, Controller, CrossAxisAlignment, Flex, Spinner, ViewSwitcher},
+    ArcStr, Data, Env, EventCtx, Insets, Lens, Widget, WidgetExt as _,
 };
 use http::Uri;
 use once_cell::sync::Lazy;
@@ -17,7 +14,9 @@ use crate::{
         sidebar::service::ServiceOptions,
         theme,
     },
-    widget::{input, Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT},
+    widget::{
+        error_label, input, Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT,
+    },
 };
 
 type AddressValidationState = ValidationState<String, Uri, ArcStr>;
@@ -39,27 +38,7 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
         .controller(AddressController { parent })
         .lens(AddressState::uri_lens);
 
-    let error_label = theme::error_label_scope(
-        Label::dynamic(|data: &AddressState, _| {
-            if let Err(err) = data.uri.result() {
-                err.to_string()
-            } else if let RequestState::ConnectFailed(err) = data.request_state() {
-                err.to_string()
-            } else {
-                String::default()
-            }
-        })
-        .with_line_break_mode(LineBreaking::WordWrap),
-    );
-    let error = Either::new(
-        |data: &AddressState, _| {
-            !data.uri.is_pristine_or_valid()
-                || matches!(data.request_state(), RequestState::ConnectFailed(_))
-        },
-        error_label,
-        Empty,
-    )
-    .expand_width();
+    let error = error_label(|data: &AddressState| data.error(), Insets::ZERO).expand_width();
 
     let address_form_field = Flex::column().with_child(address_textbox).with_child(error);
 
@@ -129,6 +108,18 @@ impl AddressState {
 
     pub fn set_request_state(&mut self, request_state: RequestState) {
         self.request_state = request_state;
+    }
+
+    pub fn error(&self) -> Option<ArcStr> {
+        if let Some(err) = self.uri.display_error() {
+            Some(err)
+        } else if let RequestState::ConnectFailed(err)
+        | RequestState::AuthorizationHookFailed(err) = self.request_state()
+        {
+            Some(err.clone())
+        } else {
+            None
+        }
     }
 }
 

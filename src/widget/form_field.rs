@@ -208,6 +208,23 @@ impl<T, O, E> ValidationState<T, O, E> {
 
 impl<T, O, E> ValidationState<T, O, E>
 where
+    E: Clone,
+{
+    pub fn error(&self) -> Option<E> {
+        self.result().err().cloned()
+    }
+
+    pub fn display_error(&self) -> Option<E> {
+        if self.pristine {
+            None
+        } else {
+            self.error()
+        }
+    }
+}
+
+impl<T, O, E> ValidationState<T, O, E>
+where
     T: Data,
 {
     pub fn with_text_mut<V>(&mut self, f: impl FnOnce(&mut T) -> V) -> V {

@@ -7,8 +7,8 @@ mod form_field;
 mod icon;
 
 use druid::text::{EditableText, TextStorage};
-use druid::widget::TextBox;
-use druid::{Data, Widget, WidgetExt};
+use druid::widget::{Label, LineBreaking, Maybe, TextBox};
+use druid::{ArcStr, Data, Env, Insets, Lens, TextAlignment, Widget, WidgetExt};
 
 use crate::theme;
 
@@ -48,4 +48,42 @@ where
             .with_editable(editable)
             .expand_width(),
     )
+}
+
+pub fn error_label<T>(
+    selector: impl Fn(&T) -> Option<ArcStr>,
+    insets: impl Into<Insets>,
+) -> impl Widget<T>
+where
+    T: Data,
+{
+    struct ErrorLens<F>(F);
+
+    impl<T, F> Lens<T, Option<ArcStr>> for ErrorLens<F>
+    where
+        T: Data,
+        F: for<'a> Fn(&T) -> Option<ArcStr>,
+    {
+        fn with<V, G: FnOnce(&Option<ArcStr>) -> V>(&self, data: &T, g: G) -> V {
+            g(&(self.0)(data))
+        }
+
+        fn with_mut<V, G: FnOnce(&mut Option<ArcStr>) -> V>(&self, data: &mut T, g: G) -> V {
+            g(&mut (self.0)(data))
+        }
+    }
+
+    let insets = insets.into();
+    Maybe::new(
+        move || {
+            theme::error_label_scope(
+                Label::new(|data: &ArcStr, _: &Env| data.clone())
+                    .with_text_alignment(TextAlignment::Start)
+                    .with_line_break_mode(LineBreaking::WordWrap),
+            )
+            .padding(insets)
+        },
+        || Empty,
+    )
+    .lens(ErrorLens(selector))
 }

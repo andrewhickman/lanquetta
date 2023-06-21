@@ -3,10 +3,10 @@ use std::{mem, sync::Arc};
 use anyhow::Result;
 use druid::{
     widget::{
-        prelude::*, Button, Controller, CrossAxisAlignment, Either, Flex, Label, LineBreaking,
+        prelude::*, Button, Controller, CrossAxisAlignment, Flex,
         Spinner, ViewSwitcher,
     },
-    ArcStr, Command, Handled, Lens, Selector, WidgetExt,
+    ArcStr, Command, Handled, Insets, Lens, Selector, WidgetExt,
 };
 use once_cell::sync::Lazy;
 
@@ -15,7 +15,7 @@ use crate::{
     auth::AuthorizationHook,
     theme,
     widget::{
-        input,
+        error_label, input,
         update_queue::{self, UpdateQueue},
         Empty, FormField, Icon, ValidationFn, ValidationState,
     },
@@ -49,27 +49,7 @@ pub fn build() -> impl Widget<State> {
 
     let command_textbox = FormField::text_box(input(command_placeholder())).lens(State::command);
 
-    let error_label = theme::error_label_scope(
-        Label::dynamic(|data: &State, _| {
-            if let Err(err) = data.command.result() {
-                err.to_string()
-            } else if let ExecuteState::Failed(err) = &data.execute_state {
-                err.to_string()
-            } else {
-                String::default()
-            }
-        })
-        .with_line_break_mode(LineBreaking::WordWrap),
-    );
-    let error = Either::new(
-        |data: &State, _| {
-            !data.command.is_pristine_or_valid()
-                || matches!(data.execute_state, ExecuteState::Failed(_))
-        },
-        error_label,
-        Empty,
-    )
-    .expand_width();
+    let error = error_label(|data: &State| data.error(), Insets::ZERO).expand_width();
 
     let command_form_field = Flex::column().with_child(command_textbox).with_child(error);
 
@@ -122,6 +102,16 @@ impl State {
 
     pub fn hook(&self) -> Option<Arc<AuthorizationHook>> {
         self.command.result().ok().and_then(|h| h.clone())
+    }
+
+    pub fn error(&self) -> Option<Arc<str>> {
+        if let Some(err) = self.command.display_error() {
+            Some(err)
+        } else if let ExecuteState::Failed(err) = &self.execute_state {
+            Some(err.clone())
+        } else {
+            None
+        }
     }
 }
 

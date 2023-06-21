@@ -6,8 +6,7 @@ use base64::{
 };
 use druid::{
     widget::{
-        prelude::*, Controller, CrossAxisAlignment, Either, FillStrat, Flex, Label, LineBreaking,
-        List,
+        prelude::*, Controller, CrossAxisAlignment, FillStrat, Flex, Label, LineBreaking, List,
     },
     ArcStr, Lens, Point, Selector, UnitPoint, WidgetExt, WidgetPod,
 };
@@ -20,7 +19,7 @@ use tonic::metadata::{
 use crate::{
     theme,
     widget::{
-        input, readonly_input, Empty, FinishEditController, FormField, Icon, ValidationFn,
+        error_label, input, readonly_input, FinishEditController, FormField, Icon, ValidationFn,
         ValidationState,
     },
 };
@@ -111,21 +110,11 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
             ),
     );
 
-    let error = Either::new(
-        |data: &EntryValidationState, _: &Env| data.is_pristine_or_valid(),
-        Empty,
-        theme::error_label_scope(
-            Label::dynamic(|data: &EntryValidationState, _| {
-                if let Err(err) = data.result() {
-                    err.to_string()
-                } else {
-                    String::default()
-                }
-            })
-            .align_vertical(UnitPoint::CENTER),
-        )
-        .padding((GRID_NARROW_SPACER, 0.0, 0.0, 0.0)),
-    );
+    let error = error_label(
+        |data: &EntryValidationState| data.display_error(),
+        (GRID_NARROW_SPACER, 0.0, 0.0, 0.0),
+    )
+    .align_vertical(UnitPoint::CENTER);
 
     let close = Icon::close()
         .with_fill(FillStrat::ScaleDown)

@@ -3,8 +3,8 @@ use std::mem::{self, Discriminant};
 use anyhow::Error;
 use druid::{
     lens::Field,
-    widget::{CrossAxisAlignment, Flex, Label, LineBreaking, Maybe, TextBox, ViewSwitcher},
-    Application, ArcStr, Data, Env, Lens, Widget, WidgetExt as _,
+    widget::{CrossAxisAlignment, Flex, Maybe, ViewSwitcher},
+    Application, ArcStr, Data, Env, Insets, Lens, Widget, WidgetExt as _,
 };
 use prost_reflect::{DescriptorPool, DynamicMessage, Value};
 use serde::{Deserialize, Serialize};
@@ -13,8 +13,8 @@ use tonic::{metadata::MetadataMap, Code, Status};
 use crate::{
     app::body::fmt_connect_err,
     grpc,
-    theme::{self, INVALID},
-    widget::{code_area, Empty},
+    theme::INVALID,
+    widget::{code_area, error_label, Empty},
 };
 use crate::{
     app::metadata,
@@ -44,11 +44,8 @@ pub(in crate::app) fn build() -> impl Widget<State> {
             State::Error(_) => Flex::column()
                 .cross_axis_alignment(CrossAxisAlignment::Fill)
                 .with_child(
-                    theme::error_label_scope(
-                        Label::dynamic(|data: &ArcStr, _: &Env| data.to_string())
-                            .with_line_break_mode(LineBreaking::WordWrap),
-                    )
-                    .lens(ErrorDetail::message),
+                    error_label(|data: &ArcStr| Some(data.clone()), Insets::ZERO)
+                        .lens(ErrorDetail::message),
                 )
                 .with_child(
                     Maybe::new(

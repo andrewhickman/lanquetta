@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use druid::{
     piet::TextStorage,
-    widget::{prelude::*, Controller, CrossAxisAlignment, Either, Flex, Label},
-    Data, Lens, Point, Widget, WidgetExt as _, WidgetPod,
+    widget::{prelude::*, Controller, CrossAxisAlignment, Flex, Label},
+    ArcStr, Data, Insets, Lens, Point, Widget, WidgetExt as _, WidgetPod,
 };
 use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
 use tonic::metadata::MetadataMap;
@@ -13,10 +13,10 @@ use crate::{
     grpc,
     json::JsonText,
     theme::{self, BODY_SPACER},
-    widget::{code_area, Empty, FormField, ValidationState, FINISH_EDIT},
+    widget::{code_area, error_label, FormField, ValidationState, FINISH_EDIT},
 };
 
-type RequestValidationState = ValidationState<JsonText, grpc::Request, String>;
+type RequestValidationState = ValidationState<JsonText, grpc::Request, ArcStr>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -30,16 +30,8 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     let textbox = FormField::text_box(code_area(true))
         .controller(RequestController)
         .expand();
-    let error_label =
-        theme::error_label_scope(Label::dynamic(|data: &RequestValidationState, _| {
-            data.result().err().cloned().unwrap_or_default()
-        }));
-    let error = Either::new(
-        |data: &RequestValidationState, _| !data.is_pristine_or_valid(),
-        error_label,
-        Empty,
-    )
-    .expand_width();
+    let error =
+        error_label(|data: &RequestValidationState| data.error(), Insets::ZERO).expand_width();
 
     let body = Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
@@ -80,7 +72,8 @@ impl State {
             body: ValidationState::dirty(
                 json.into(),
                 Arc::new(move |s| {
-                    grpc::Request::from_json(request.clone(), s.as_str()).map_err(|e| e.to_string())
+                    grpc::Request::from_json(request.clone(), s.as_str())
+                        .map_err(|e| e.to_string().into())
                 }),
             ),
         }
