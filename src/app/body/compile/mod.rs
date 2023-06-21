@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     app::command,
     theme::{self, BODY_PADDING, GRID_NARROW_SPACER},
-    widget::{Empty, FinishEditController, FormField, Icon, ValidationFn, ValidationState},
+    widget::{Empty, FormField, Icon, ValidationFn, ValidationState},
 };
 
 #[derive(Default, Debug, Clone, Data, Lens)]
@@ -67,17 +67,12 @@ pub fn build_body() -> impl Widget<CompileTabState> {
 }
 
 fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
-    let form_id = WidgetId::next();
-    let form_field = FormField::new(
-        form_id,
-        theme::text_box_scope(
-            TextBox::<PathText>::default()
-                .with_placeholder(path_placeholder_text())
-                .expand_width(),
-        )
-        .controller(FinishEditController::new(form_id))
-        .lens(PathEntry::path),
-    );
+    let form_field = FormField::text_box(theme::text_box_scope(
+        TextBox::<PathText>::default()
+            .with_placeholder(path_placeholder_text())
+            .expand_width()
+            .lens(PathEntry::path),
+    ));
 
     let error = Either::new(
         |data: &PathValidationState, _: &Env| data.is_pristine_or_valid(),
