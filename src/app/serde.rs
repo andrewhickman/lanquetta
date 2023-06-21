@@ -96,6 +96,9 @@ enum AppBodyTabKind {
         idx: AppServiceRef,
     },
     Compile,
+    Reflection {
+        options: app::sidebar::service::ServiceOptions,
+    },
 }
 
 #[derive(Debug)]
@@ -170,6 +173,9 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                             }
                         }
                         app::body::TabState::Compile(_) => AppBodyTabKind::Compile,
+                        app::body::TabState::Reflection(options) => AppBodyTabKind::Reflection {
+                            options: options.service_options().clone(),
+                        },
                     };
 
                     Ok(AppBodyTabState { kind })
@@ -285,6 +291,9 @@ impl AppBodyState {
                     TabId::next(),
                     app::body::TabState::new_compile(compile_options),
                 )),
+                AppBodyTabKind::Reflection { options } => {
+                    Ok((TabId::next(), app::body::TabState::new_reflection(options)))
+                }
             })
             .collect::<Result<BTreeMap<_, _>>>()?;
 

@@ -2,6 +2,7 @@ mod address;
 mod compile;
 mod method;
 mod options;
+mod reflection;
 
 pub(in crate::app) use self::{compile::CompileOptions, method::StreamState};
 
@@ -11,7 +12,10 @@ use druid::{lens::Field, widget::ViewSwitcher, ArcStr, Data, Lens, Widget, Widge
 use iter_set::Inclusion;
 use prost_reflect::{MethodDescriptor, ServiceDescriptor};
 
-use self::{compile::CompileTabState, method::MethodTabState, options::OptionsTabState};
+use self::{
+    compile::CompileTabState, method::MethodTabState, options::OptionsTabState,
+    reflection::ReflectionTabState,
+};
 use crate::{
     app::{command, fmt_err, metadata, sidebar::service::ServiceOptions},
     json::JsonText,
@@ -42,6 +46,7 @@ pub enum TabState {
     Method(MethodTabState),
     Options(OptionsTabState),
     Compile(CompileTabState),
+    Reflection(ReflectionTabState),
 }
 
 pub(in crate::app) fn build() -> impl Widget<State> {
@@ -56,6 +61,9 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                 TabState::Compile(_) => {
                     compile::build_body().lens(TabState::compile_lens()).boxed()
                 }
+                TabState::Reflection(_) => reflection::build_body()
+                    .lens(TabState::reflection_lens())
+                    .boxed(),
             },
         )
     })
@@ -154,6 +162,7 @@ impl State {
             TabState::Method(method) => method.method().parent_service() != service,
             TabState::Options(options) => options.service() != service,
             TabState::Compile(_) => true,
+            TabState::Reflection(_) => true,
         });
         self.update_selected_after_remove();
     }
@@ -280,6 +289,7 @@ impl State {
                 }
             }
             TabState::Compile(_) => (),
+            TabState::Reflection(_) => (),
         })
     }
 
@@ -288,6 +298,7 @@ impl State {
             TabState::Method(tab) => tab.can_connect(),
             TabState::Options(tab) => tab.can_connect(),
             TabState::Compile(_) => false,
+            TabState::Reflection(_) => false,
         })
         .unwrap_or(false)
     }
@@ -297,6 +308,7 @@ impl State {
             TabState::Method(tab) => tab.can_send(),
             TabState::Options(_) => false,
             TabState::Compile(_) => false,
+            TabState::Reflection(tab) => tab.can_send(),
         })
         .unwrap_or(false)
     }
@@ -306,6 +318,7 @@ impl State {
             TabState::Method(tab) => tab.can_finish(),
             TabState::Options(_) => false,
             TabState::Compile(_) => false,
+            TabState::Reflection(_) => false,
         })
         .unwrap_or(false)
     }
@@ -315,6 +328,7 @@ impl State {
             TabState::Method(tab) => tab.can_disconnect(),
             TabState::Options(tab) => tab.can_disconnect(),
             TabState::Compile(_) => false,
+            TabState::Reflection(_) => false,
         })
         .unwrap_or(false)
     }
@@ -351,11 +365,16 @@ impl TabState {
         TabState::Compile(CompileTabState::new(options))
     }
 
+    pub fn new_reflection(options: ServiceOptions) -> TabState {
+        TabState::Reflection(ReflectionTabState::new(options))
+    }
+
     pub fn label(&self) -> ArcStr {
         match self {
             TabState::Method(method) => method.method().name().into(),
             TabState::Options(options) => options.label(),
             TabState::Compile(_) => ArcStr::from("Compiler options"),
+            TabState::Reflection(_) => ArcStr::from("Server reflection"),
         }
     }
 
@@ -394,6 +413,19 @@ impl TabState {
             |data| match data {
                 TabState::Compile(compile) => compile,
                 _ => panic!("expected compile data"),
+            },
+        )
+    }
+
+    fn reflection_lens() -> impl Lens<TabState, ReflectionTabState> {
+        Field::new(
+            |data| match data {
+                TabState::Reflection(reflection) => reflection,
+                _ => panic!("expected reflection data"),
+            },
+            |data| match data {
+                TabState::Reflection(reflection) => reflection,
+                _ => panic!("expected reflection data"),
             },
         )
     }
