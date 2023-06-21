@@ -4,7 +4,7 @@ use druid::{
     ArcStr, Data, Lens, Widget, WidgetExt as _,
 };
 
-use crate::{app::command, grpc::MethodKind, theme, widget::Icon};
+use crate::{app::command, grpc::MethodKind, lens, theme, widget::Icon};
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {
@@ -83,19 +83,7 @@ impl State {
 
 impl MethodState {
     fn name() -> impl Lens<MethodState, ArcStr> {
-        struct NameLens;
-
-        impl Lens<MethodState, ArcStr> for NameLens {
-            fn with<V, F: FnOnce(&ArcStr) -> V>(&self, data: &MethodState, f: F) -> V {
-                f(&data.method.name().into())
-            }
-
-            fn with_mut<V, F: FnOnce(&mut ArcStr) -> V>(&self, data: &mut MethodState, f: F) -> V {
-                f(&mut data.method.name().into())
-            }
-        }
-
-        NameLens
+        lens::Project::new(|data: &MethodState| data.method.name().into())
     }
 
     pub fn method(&self) -> &prost_reflect::MethodDescriptor {

@@ -8,9 +8,9 @@ mod icon;
 
 use druid::text::{EditableText, TextStorage};
 use druid::widget::{Label, LineBreaking, Maybe, TextBox};
-use druid::{ArcStr, Data, Env, Insets, Lens, TextAlignment, Widget, WidgetExt};
+use druid::{ArcStr, Data, Env, Insets, TextAlignment, Widget, WidgetExt};
 
-use crate::theme;
+use crate::{lens, theme};
 
 pub use self::empty::Empty;
 pub use self::expander::ExpanderData;
@@ -57,22 +57,6 @@ pub fn error_label<T>(
 where
     T: Data,
 {
-    struct ErrorLens<F>(F);
-
-    impl<T, F> Lens<T, Option<ArcStr>> for ErrorLens<F>
-    where
-        T: Data,
-        F: for<'a> Fn(&T) -> Option<ArcStr>,
-    {
-        fn with<V, G: FnOnce(&Option<ArcStr>) -> V>(&self, data: &T, g: G) -> V {
-            g(&(self.0)(data))
-        }
-
-        fn with_mut<V, G: FnOnce(&mut Option<ArcStr>) -> V>(&self, data: &mut T, g: G) -> V {
-            g(&mut (self.0)(data))
-        }
-    }
-
     let insets = insets.into();
     Maybe::new(
         move || {
@@ -85,5 +69,5 @@ where
         },
         || Empty,
     )
-    .lens(ErrorLens(selector))
+    .lens(lens::Project::new(selector))
 }

@@ -2,10 +2,7 @@ use std::{mem, sync::Arc};
 
 use anyhow::Result;
 use druid::{
-    widget::{
-        prelude::*, Button, Controller, CrossAxisAlignment, Flex,
-        Spinner, ViewSwitcher,
-    },
+    widget::{prelude::*, Button, Controller, CrossAxisAlignment, Flex, Spinner, ViewSwitcher},
     ArcStr, Command, Handled, Insets, Lens, Selector, WidgetExt,
 };
 use once_cell::sync::Lazy;
