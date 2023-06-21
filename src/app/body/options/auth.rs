@@ -9,7 +9,6 @@ use druid::{
     ArcStr, Command, Handled, Lens, Selector, WidgetExt,
 };
 use once_cell::sync::Lazy;
-use tokio::task::AbortHandle;
 
 use crate::{
     app::{body::layout_spinner, fmt_err},
@@ -40,7 +39,6 @@ const CANCEL_TEST: Selector = Selector::new("app.body.options.auth.cancel-test")
 
 struct AuthOptionsController {
     updates: UpdateQueue<AuthOptionsController, State>,
-    abort_handle: Option<AbortHandle>,
 }
 
 type CommandValidationState = ValidationState<String, Option<Arc<AuthorizationHook>>, ArcStr>;
@@ -135,7 +133,6 @@ impl AuthOptionsController {
     fn new() -> Self {
         AuthOptionsController {
             updates: UpdateQueue::new(),
-            abort_handle: None,
         }
     }
 
@@ -155,20 +152,16 @@ impl AuthOptionsController {
             let hook = hook.clone();
 
             data.execute_state = ExecuteState::Active;
-            let task = tokio::spawn(async move {
+            tokio::spawn(async move {
                 let result = hook.get_headers_force().await.map(drop);
                 writer.write(|_, _, data| match result {
                     Ok(_) => data.execute_state = ExecuteState::Succeeded,
                     Err(err) => data.execute_state = ExecuteState::Failed(fmt_err(&err)),
                 });
             });
-            self.abort_handle = Some(task.abort_handle());
 
             Handled::Yes
         } else if command.is(CANCEL_TEST) {
-            if let Some(handle) = self.abort_handle.take() {
-                handle.abort();
-            }
             data.execute_state = ExecuteState::NotStarted;
             self.updates.disconnect();
             Handled::Yes

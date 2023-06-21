@@ -64,7 +64,6 @@ impl AuthorizationHook {
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .kill_on_drop(true)
             .spawn()
             .context("failed to run authorization plugin")?;
         tracing::info!(
