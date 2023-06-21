@@ -54,10 +54,7 @@ fn build() -> impl Widget<State> {
     let error = Either::new(
         |data: &Option<ArcStr>, _| data.is_some(),
         Flex::row()
-            .with_flex_child(
-                error_label(|data: &Option<ArcStr>| data.clone(), Insets::ZERO),
-                1.0,
-            )
+            .with_flex_child(error_label(Insets::ZERO), 1.0)
             .with_child(
                 Icon::close()
                     .background(Painter::new(|ctx, _, env| {

@@ -12,6 +12,7 @@ use crate::{
     app::metadata,
     grpc,
     json::JsonText,
+    lens,
     theme::{self, BODY_SPACER},
     widget::{code_area, error_label, FormField, ValidationState, FINISH_EDIT},
 };
@@ -30,8 +31,11 @@ pub(in crate::app) fn build() -> impl Widget<State> {
     let textbox = FormField::text_box(code_area(true))
         .controller(RequestController)
         .expand();
-    let error =
-        error_label(|data: &RequestValidationState| data.error(), Insets::ZERO).expand_width();
+    let error = error_label(Insets::ZERO)
+        .expand_width()
+        .lens(lens::Project::new(|data: &RequestValidationState| {
+            data.error()
+        }));
 
     let body = Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Fill)

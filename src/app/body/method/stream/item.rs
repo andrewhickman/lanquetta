@@ -12,7 +12,7 @@ use tonic::{metadata::MetadataMap, Code, Status};
 
 use crate::{
     app::body::fmt_connect_err,
-    grpc,
+    grpc, lens,
     theme::INVALID,
     widget::{code_area, error_label, Empty},
 };
@@ -43,10 +43,9 @@ pub(in crate::app) fn build() -> impl Widget<State> {
             State::Payload(_) => code_area(false).lens(State::payload_lens()).boxed(),
             State::Error(_) => Flex::column()
                 .cross_axis_alignment(CrossAxisAlignment::Fill)
-                .with_child(
-                    error_label(|data: &ArcStr| Some(data.clone()), Insets::ZERO)
-                        .lens(ErrorDetail::message),
-                )
+                .with_child(error_label(Insets::ZERO).lens(lens::Project::new(
+                    |data: &ErrorDetail| Some(data.message.clone()),
+                )))
                 .with_child(
                     Maybe::new(
                         || {

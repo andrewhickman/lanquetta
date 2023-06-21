@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 use crate::{
     app::{body::layout_spinner, fmt_err},
     auth::AuthorizationHook,
-    theme,
+    lens, theme,
     widget::{
         error_label, input,
         update_queue::{self, UpdateQueue},
@@ -46,7 +46,9 @@ pub fn build() -> impl Widget<State> {
 
     let command_textbox = FormField::text_box(input(command_placeholder())).lens(State::command);
 
-    let error = error_label(|data: &State| data.error(), Insets::ZERO).expand_width();
+    let error = error_label(Insets::ZERO)
+        .expand_width()
+        .lens(lens::Project::new(|data: &State| data.error()));
 
     let command_form_field = Flex::column().with_child(command_textbox).with_child(error);
 

@@ -17,7 +17,7 @@ use tonic::metadata::{
 };
 
 use crate::{
-    theme,
+    lens, theme,
     widget::{
         error_label, input, readonly_input, FinishEditController, FormField, Icon, ValidationFn,
         ValidationState,
@@ -110,11 +110,11 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
             ),
     );
 
-    let error = error_label(
-        |data: &EntryValidationState| data.display_error(),
-        (GRID_NARROW_SPACER, 0.0, 0.0, 0.0),
-    )
-    .align_vertical(UnitPoint::CENTER);
+    let error = error_label((GRID_NARROW_SPACER, 0.0, 0.0, 0.0))
+        .align_vertical(UnitPoint::CENTER)
+        .lens(lens::Project::new(|data: &EntryValidationState| {
+            data.display_error()
+        }));
 
     let close = Icon::close()
         .with_fill(FillStrat::ScaleDown)

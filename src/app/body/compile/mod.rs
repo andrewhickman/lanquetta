@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     app::command,
+    lens,
     theme::{self, BODY_PADDING, GRID_NARROW_SPACER},
     widget::{error_label, input, FormField, Icon, ValidationFn, ValidationState},
 };
@@ -69,10 +70,9 @@ pub fn build_body() -> impl Widget<CompileTabState> {
 fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
     let form_field = FormField::text_box(input(path_placeholder_text()).lens(PathEntry::path));
 
-    let error = error_label(
+    let error = error_label((GRID_NARROW_SPACER, 0.0, 0.0, 0.0)).lens(lens::Project::new(
         |path: &PathValidationState| path.display_error(),
-        (GRID_NARROW_SPACER, 0.0, 0.0, 0.0),
-    );
+    ));
 
     let close = Icon::close()
         .with_fill(FillStrat::ScaleDown)

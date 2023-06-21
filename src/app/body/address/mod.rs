@@ -14,6 +14,7 @@ use crate::{
         sidebar::service::ServiceOptions,
         theme,
     },
+    lens,
     widget::{
         error_label, input, Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT,
     },
@@ -38,7 +39,9 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
         .controller(AddressController { parent })
         .lens(AddressState::uri_lens);
 
-    let error = error_label(|data: &AddressState| data.error(), Insets::ZERO).expand_width();
+    let error = error_label(Insets::ZERO)
+        .expand_width()
+        .lens(lens::Project::new(|data: &AddressState| data.error()));
 
     let address_form_field = Flex::column().with_child(address_textbox).with_child(error);
 

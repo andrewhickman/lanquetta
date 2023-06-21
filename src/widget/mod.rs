@@ -10,7 +10,7 @@ use druid::text::{EditableText, TextStorage};
 use druid::widget::{Label, LineBreaking, Maybe, TextBox};
 use druid::{ArcStr, Data, Env, Insets, TextAlignment, Widget, WidgetExt};
 
-use crate::{lens, theme};
+use crate::theme;
 
 pub use self::empty::Empty;
 pub use self::expander::ExpanderData;
@@ -50,13 +50,7 @@ where
     )
 }
 
-pub fn error_label<T>(
-    selector: impl Fn(&T) -> Option<ArcStr>,
-    insets: impl Into<Insets>,
-) -> impl Widget<T>
-where
-    T: Data,
-{
+pub fn error_label(insets: impl Into<Insets>) -> impl Widget<Option<ArcStr>> {
     let insets = insets.into();
     Maybe::new(
         move || {
@@ -69,5 +63,4 @@ where
         },
         || Empty,
     )
-    .lens(lens::Project::new(selector))
 }
