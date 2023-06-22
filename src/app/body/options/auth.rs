@@ -1,20 +1,21 @@
-use std::{mem, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use druid::{
-    widget::{prelude::*, Button, Controller, CrossAxisAlignment, Flex, Spinner, ViewSwitcher},
+    widget::{prelude::*, Button, Controller, CrossAxisAlignment, Flex},
     ArcStr, Command, Handled, Insets, Lens, Selector, WidgetExt,
 };
 use once_cell::sync::Lazy;
 
 use crate::{
-    app::{body::layout_spinner, fmt_err},
+    app::fmt_err,
     auth::AuthorizationHook,
-    lens, theme,
+    lens,
+    theme::{self, BODY_PADDING},
     widget::{
-        error_label, input,
+        error_label, input, state_icon,
         update_queue::{self, UpdateQueue},
-        Empty, FormField, Icon, ValidationFn, ValidationState,
+        FormField, StateIcon, ValidationFn, ValidationState,
     },
 };
 
@@ -27,7 +28,7 @@ pub struct State {
 #[derive(Debug, Data, Clone)]
 pub enum ExecuteState {
     NotStarted,
-    Active,
+    InProgress,
     Succeeded,
     Failed(ArcStr),
 }
@@ -52,19 +53,8 @@ pub fn build() -> impl Widget<State> {
 
     let command_form_field = Flex::column().with_child(command_textbox).with_child(error);
 
-    let spinner = ViewSwitcher::new(
-        |execute_state: &ExecuteState, _| mem::discriminant(execute_state),
-        |_, execute_state, _| match execute_state {
-            ExecuteState::NotStarted => Empty.boxed(),
-            ExecuteState::Active => layout_spinner(Spinner::new(), 2.0),
-            ExecuteState::Succeeded => {
-                layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0)
-            }
-            ExecuteState::Failed(_) => {
-                layout_spinner(Icon::close().with_color(theme::color::ERROR), 0.0)
-            }
-        },
-    );
+    let spinner = state_icon((0.0, 0.0, BODY_PADDING, 0.0))
+        .lens(lens::Project::new(|data: &State| data.state_icon()));
 
     let test_button = theme::button_scope(Button::new("Test").on_click(
         move |ctx: &mut EventCtx, _: &mut State, _: &Env| {
@@ -73,14 +63,14 @@ pub fn build() -> impl Widget<State> {
     ))
     .disabled_if(|data: &State, _| {
         matches!(data.command.result(), Ok(None) | Err(_))
-            || matches!(data.execute_state, ExecuteState::Active)
+            || matches!(data.execute_state, ExecuteState::InProgress)
     });
 
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_flex_child(command_form_field, 1.0)
         .with_spacer(theme::BODY_SPACER)
-        .with_child(spinner.lens(State::execute_state))
+        .with_child(spinner)
         .with_child(test_button.fix_width(100.0))
         .controller(AuthOptionsController::new())
         .with_id(id)
@@ -112,6 +102,15 @@ impl State {
             None
         }
     }
+
+    pub fn state_icon(&self) -> StateIcon {
+        match self.execute_state {
+            ExecuteState::NotStarted => StateIcon::NotStarted,
+            ExecuteState::InProgress => StateIcon::InProgress,
+            ExecuteState::Succeeded => StateIcon::Succeeded,
+            ExecuteState::Failed(_) => StateIcon::Failed,
+        }
+    }
 }
 
 impl AuthOptionsController {
@@ -136,7 +135,7 @@ impl AuthOptionsController {
             let writer = self.updates.writer(ctx);
             let hook = hook.clone();
 
-            data.execute_state = ExecuteState::Active;
+            data.execute_state = ExecuteState::InProgress;
             tokio::spawn(async move {
                 let result = hook.get_headers_force().await.map(drop);
                 writer.write(|_, _, data| match result {

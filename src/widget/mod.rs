@@ -6,8 +6,10 @@ mod empty;
 mod form_field;
 mod icon;
 
+use std::mem;
+
 use druid::text::{EditableText, TextStorage};
-use druid::widget::{Label, LineBreaking, Maybe, TextBox};
+use druid::widget::{Label, LineBreaking, Maybe, Spinner, TextBox, ViewSwitcher};
 use druid::{ArcStr, Data, Env, Insets, TextAlignment, Widget, WidgetExt};
 
 use crate::theme;
@@ -47,6 +49,42 @@ where
             .with_font(theme::EDITOR_FONT)
             .with_editable(editable)
             .expand_width(),
+    )
+}
+
+#[derive(Data, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum StateIcon {
+    NotStarted,
+    InProgress,
+    Succeeded,
+    Failed,
+}
+
+pub fn state_icon(insets: impl Into<Insets>) -> impl Widget<StateIcon> {
+    let insets = insets.into();
+    ViewSwitcher::new(
+        |state: &StateIcon, _| mem::discriminant(state),
+        move |_, request_state, _| match request_state {
+            StateIcon::NotStarted => Empty.boxed(),
+            StateIcon::InProgress => Spinner::new()
+                .padding(2.0)
+                .center()
+                .fix_size(24.0, 24.0)
+                .padding(insets)
+                .boxed(),
+            StateIcon::Succeeded => Icon::check()
+                .with_color(theme::color::BOLD_ACCENT)
+                .center()
+                .fix_size(24.0, 24.0)
+                .padding(insets)
+                .boxed(),
+            StateIcon::Failed => Icon::close()
+                .with_color(theme::color::ERROR)
+                .center()
+                .fix_size(24.0, 24.0)
+                .padding(insets)
+                .boxed(),
+        },
     )
 }
 

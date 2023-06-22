@@ -1,22 +1,19 @@
-use std::{mem, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use druid::{
-    widget::{prelude::*, Controller, CrossAxisAlignment, Flex, Spinner, ViewSwitcher},
+    widget::{prelude::*, Controller, CrossAxisAlignment, Flex},
     ArcStr, Data, Env, EventCtx, Insets, Lens, Widget, WidgetExt as _,
 };
 use http::Uri;
 use once_cell::sync::Lazy;
 
 use crate::{
-    app::{
-        body::{layout_spinner, RequestState},
-        command,
-        sidebar::service::ServiceOptions,
-        theme,
-    },
+    app::{body::RequestState, command, sidebar::service::ServiceOptions, theme},
     lens,
+    theme::BODY_PADDING,
     widget::{
-        error_label, input, Empty, FormField, Icon, ValidationFn, ValidationState, FINISH_EDIT,
+        error_label, input, state_icon, FormField, StateIcon, ValidationFn, ValidationState,
+        FINISH_EDIT,
     },
 };
 
@@ -45,27 +42,14 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
 
     let address_form_field = Flex::column().with_child(address_textbox).with_child(error);
 
-    let spinner = ViewSwitcher::new(
-        |request_state: &RequestState, _| mem::discriminant(request_state),
-        |_, request_state, _| match request_state {
-            RequestState::NotStarted => Empty.boxed(),
-            RequestState::ConnectInProgress
-            | RequestState::SendInProgress
-            | RequestState::AuthorizationHookInProgress => layout_spinner(Spinner::new(), 2.0),
-            RequestState::Connected | RequestState::AuthorizationHookFailed(_) => {
-                layout_spinner(Icon::check().with_color(theme::color::BOLD_ACCENT), 0.0)
-            }
-            RequestState::ConnectFailed(_) => {
-                layout_spinner(Icon::close().with_color(theme::color::ERROR), 0.0)
-            }
-        },
-    );
+    let spinner = state_icon((0.0, 0.0, BODY_PADDING, 0.0))
+        .lens(lens::Project::new(|data: &AddressState| data.state_icon()));
 
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_flex_child(address_form_field, 1.0)
         .with_spacer(theme::BODY_SPACER)
-        .with_child(spinner.lens(AddressState::request_state_lens))
+        .with_child(spinner)
 }
 
 impl Default for AddressState {
@@ -122,6 +106,19 @@ impl AddressState {
             Some(err.clone())
         } else {
             None
+        }
+    }
+
+    pub fn state_icon(&self) -> StateIcon {
+        match self.request_state {
+            RequestState::NotStarted => StateIcon::NotStarted,
+            RequestState::ConnectInProgress
+            | RequestState::AuthorizationHookInProgress
+            | RequestState::SendInProgress => StateIcon::InProgress,
+            RequestState::Connected => StateIcon::Succeeded,
+            RequestState::ConnectFailed(_) | RequestState::AuthorizationHookFailed(_) => {
+                StateIcon::Failed
+            }
         }
     }
 }
