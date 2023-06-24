@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use druid::{
     piet::TextStorage,
-    widget::{prelude::*, Controller, CrossAxisAlignment, Flex, Label},
+    widget::{prelude::*, Controller, CrossAxisAlignment, Flex},
     ArcStr, Data, Insets, Lens, Point, Widget, WidgetExt as _, WidgetPod,
 };
 use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
@@ -13,7 +13,7 @@ use crate::{
     grpc,
     json::JsonText,
     lens,
-    theme::{self, BODY_SPACER},
+    theme::BODY_SPACER,
     widget::{code_area, error_label, FormField, ValidationState, FINISH_EDIT},
 };
 
@@ -47,12 +47,6 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         body: WidgetPod::new(body.boxed()),
         metadata: WidgetPod::new(metadata.boxed()),
     }
-}
-
-pub(in crate::app) fn build_header() -> impl Widget<State> {
-    Label::new("Request editor")
-        .with_font(theme::font::HEADER_TWO)
-        .align_left()
 }
 
 struct RequestLayout {

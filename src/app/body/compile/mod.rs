@@ -44,16 +44,13 @@ pub fn build_body() -> impl Widget<CompileTabState> {
 
     Scroll::new(
         Flex::column()
-            .with_child(
-                Label::new("Include paths")
-                    .with_font(theme::font::HEADER_TWO)
-                    .align_left(),
-            )
+            .with_child(Label::new("Include paths").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
             .with_child(
                 EditableList::new("Add path", add_path, build_path_row)
                     .lens(CompileTabState::includes_lens),
             )
+            .cross_axis_alignment(CrossAxisAlignment::Start)
             .padding(BODY_PADDING),
     )
     .vertical()

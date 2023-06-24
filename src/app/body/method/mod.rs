@@ -5,7 +5,7 @@ mod stream;
 pub(in crate::app) use self::stream::State as StreamState;
 
 use druid::{
-    widget::{prelude::*, Button, CrossAxisAlignment, Flex, Split},
+    widget::{prelude::*, Button, CrossAxisAlignment, Flex, Label, Split},
     Data, Lens, WidgetExt,
 };
 
@@ -42,14 +42,20 @@ pub fn build_body() -> impl Widget<MethodTabState> {
         Flex::column()
             .with_child(build_address_bar(id))
             .with_spacer(theme::BODY_SPACER)
-            .with_child(request::build_header().lens(MethodTabState::request_lens))
+            .with_child(
+                Label::new("Request editor")
+                    .with_font(theme::font::HEADER_TWO)
+                    .lens(MethodTabState::request_lens),
+            )
             .with_spacer(theme::BODY_SPACER)
             .with_flex_child(request::build().lens(MethodTabState::request_lens), 1.0)
+            .cross_axis_alignment(CrossAxisAlignment::Start)
             .padding(theme::BODY_PADDING),
         Flex::column()
             .with_child(stream::build_header().lens(MethodTabState::stream_lens))
             .with_spacer(theme::BODY_SPACER)
             .with_flex_child(stream::build().lens(MethodTabState::stream_lens), 1.0)
+            .cross_axis_alignment(CrossAxisAlignment::Start)
             .padding(theme::BODY_PADDING),
     )
     .min_size(150.0, 100.0)

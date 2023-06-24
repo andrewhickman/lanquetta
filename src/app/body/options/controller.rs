@@ -100,10 +100,6 @@ impl OptionsTabController {
             }
         };
 
-        if self.is_connected() {
-            return;
-        }
-
         let update_writer = self.updates.writer(ctx);
         let verify_certs = data.service_options().verify_certs;
         tokio::spawn(async move {
@@ -119,7 +115,8 @@ impl OptionsTabController {
         match result {
             Ok(client) => {
                 self.client = Some(client);
-                self.set_request_state(data);
+                data.default_address
+                    .set_request_state(RequestState::Connected);
             }
             Err(err) => {
                 data.default_address
@@ -130,22 +127,8 @@ impl OptionsTabController {
 
     fn disconnect(&mut self, _: &mut EventCtx, data: &mut OptionsTabState) {
         self.client = None;
-
-        self.set_request_state(data);
-
+        data.default_address
+            .set_request_state(RequestState::NotStarted);
         self.updates.disconnect();
-    }
-
-    fn is_connected(&self) -> bool {
-        self.client.is_some()
-    }
-
-    fn set_request_state(&self, data: &mut OptionsTabState) {
-        let request_state = if self.is_connected() {
-            RequestState::Connected
-        } else {
-            RequestState::NotStarted
-        };
-        data.default_address.set_request_state(request_state);
     }
 }

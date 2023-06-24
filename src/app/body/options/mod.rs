@@ -50,19 +50,11 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
             .with_spacer(theme::BODY_SPACER)
             .with_child(tls_checkbox.lens(OptionsTabState::verify_certs))
             .with_spacer(theme::BODY_SPACER)
-            .with_child(
-                Label::new("Default metadata")
-                    .with_font(theme::font::HEADER_TWO)
-                    .align_left(),
-            )
+            .with_child(Label::new("Default metadata").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
             .with_child(default_metadata.lens(OptionsTabState::default_metadata))
             .with_spacer(theme::BODY_SPACER)
-            .with_child(
-                Label::new("Authorization hook")
-                    .with_font(theme::font::HEADER_TWO)
-                    .align_left(),
-            )
+            .with_child(Label::new("Authorization hook").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
             .with_child(auth::build().lens(OptionsTabState::auth))
             .must_fill_main_axis(true)
