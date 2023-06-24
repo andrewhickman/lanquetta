@@ -17,8 +17,9 @@ use tonic::{client::Grpc, metadata::MetadataMap, transport::Channel, Extensions,
 pub type ConnectResult = Result<Client>;
 
 pub enum ResponseResult {
+    Metadata(MetadataMap),
     Response(Response),
-    Finished(MetadataMap),
+    Finished,
     Error(Error, MetadataMap),
 }
 
@@ -86,7 +87,8 @@ impl Client {
                         Ok(response) => {
                             let (metadata, message, _) = response.into_parts();
                             on_response(ResponseResult::Response(message));
-                            on_response(ResponseResult::Finished(metadata));
+                            on_response(ResponseResult::Metadata(metadata));
+                            on_response(ResponseResult::Finished);
                         }
                         Err(err) => on_response(ResponseResult::from_status(err)),
                     }
@@ -112,7 +114,8 @@ impl Client {
                         Ok(response) => {
                             let (metadata, message, _) = response.into_parts();
                             on_response(ResponseResult::Response(message));
-                            on_response(ResponseResult::Finished(metadata));
+                            on_response(ResponseResult::Metadata(metadata));
+                            on_response(ResponseResult::Finished);
                         }
                         Err(err) => on_response(ResponseResult::from_status(err)),
                     }
@@ -126,30 +129,34 @@ impl Client {
                         .server_streaming(&method, request, metadata, path)
                         .await
                     {
-                        Ok(mut stream) => loop {
-                            match stream.next().await {
-                                Some(Ok(response)) => {
-                                    on_response(ResponseResult::Response(response));
-                                }
-                                Some(Err(err)) => {
-                                    on_response(ResponseResult::from_status(err));
-                                    break;
-                                }
-                                None => {
-                                    match stream.trailers().await {
-                                        Ok(metadata) => {
-                                            on_response(ResponseResult::Finished(
-                                                metadata.unwrap_or_default(),
-                                            ));
-                                        }
-                                        Err(err) => {
-                                            on_response(ResponseResult::from_status(err));
-                                        }
+                        Ok((mut stream, metadata)) => {
+                            on_response(ResponseResult::Metadata(metadata));
+                            loop {
+                                match stream.next().await {
+                                    Some(Ok(response)) => {
+                                        on_response(ResponseResult::Response(response));
                                     }
-                                    break;
+                                    Some(Err(err)) => {
+                                        on_response(ResponseResult::from_status(err));
+                                        break;
+                                    }
+                                    None => {
+                                        match stream.trailers().await {
+                                            Ok(metadata) => {
+                                                on_response(ResponseResult::Metadata(
+                                                    metadata.unwrap_or_default(),
+                                                ));
+                                                on_response(ResponseResult::Finished);
+                                            }
+                                            Err(err) => {
+                                                on_response(ResponseResult::from_status(err));
+                                            }
+                                        }
+                                        break;
+                                    }
                                 }
                             }
-                        },
+                        }
                         Err(err) => {
                             on_response(ResponseResult::from_status(err));
                         }
@@ -173,30 +180,34 @@ impl Client {
                         )
                         .await
                     {
-                        Ok(mut stream) => loop {
-                            match stream.next().await {
-                                Some(Ok(response)) => {
-                                    on_response(ResponseResult::Response(response));
-                                }
-                                Some(Err(err)) => {
-                                    on_response(ResponseResult::from_status(err));
-                                    break;
-                                }
-                                None => {
-                                    match stream.trailers().await {
-                                        Ok(metadata) => {
-                                            on_response(ResponseResult::Finished(
-                                                metadata.unwrap_or_default(),
-                                            ));
-                                        }
-                                        Err(err) => {
-                                            on_response(ResponseResult::from_status(err));
-                                        }
+                        Ok((mut stream, metadata)) => {
+                            on_response(ResponseResult::Metadata(metadata));
+                            loop {
+                                match stream.next().await {
+                                    Some(Ok(response)) => {
+                                        on_response(ResponseResult::Response(response));
                                     }
-                                    break;
+                                    Some(Err(err)) => {
+                                        on_response(ResponseResult::from_status(err));
+                                        break;
+                                    }
+                                    None => {
+                                        match stream.trailers().await {
+                                            Ok(metadata) => {
+                                                on_response(ResponseResult::Metadata(
+                                                    metadata.unwrap_or_default(),
+                                                ));
+                                                on_response(ResponseResult::Finished);
+                                            }
+                                            Err(err) => {
+                                                on_response(ResponseResult::from_status(err));
+                                            }
+                                        }
+                                        break;
+                                    }
                                 }
                             }
-                        },
+                        }
                         Err(err) => {
                             on_response(ResponseResult::from_status(err));
                         }
@@ -259,12 +270,12 @@ impl Client {
         request: Request,
         metadata: MetadataMap,
         path: PathAndQuery,
-    ) -> tonic::Result<tonic::Streaming<Response>> {
+    ) -> tonic::Result<(tonic::Streaming<Response>, MetadataMap)> {
         self.grpc
             .ready()
             .await
             .map_err(|err| Status::from_error(err.into()))?;
-        Ok(self
+        let (metadata, stream, _) = self
             .grpc
             .server_streaming(
                 tonic::Request::from_parts(metadata, Extensions::default(), request),
@@ -272,7 +283,8 @@ impl Client {
                 codec::DynamicCodec::new(method.clone()),
             )
             .await?
-            .into_inner())
+            .into_parts();
+        Ok((stream, metadata))
     }
 
     async fn streaming(
@@ -281,12 +293,12 @@ impl Client {
         requests: impl Stream<Item = Request> + Send + Sync + 'static,
         metadata: MetadataMap,
         path: PathAndQuery,
-    ) -> tonic::Result<tonic::Streaming<Response>> {
+    ) -> tonic::Result<(tonic::Streaming<Response>, MetadataMap)> {
         self.grpc
             .ready()
             .await
             .map_err(|err| Status::from_error(err.into()))?;
-        Ok(self
+        let (metadata, stream, _) = self
             .grpc
             .streaming(
                 tonic::Request::from_parts(metadata, Extensions::default(), requests),
@@ -294,7 +306,8 @@ impl Client {
                 codec::DynamicCodec::new(method.clone()),
             )
             .await?
-            .into_inner())
+            .into_parts();
+        Ok((stream, metadata))
     }
 }
 
