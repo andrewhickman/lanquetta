@@ -104,7 +104,7 @@ impl ServiceListState {
 
     pub fn add_service(&mut self, service: ServiceDescriptor, options: ServiceOptions) {
         self.services
-            .push_back(service::ServiceState::new(service.clone(), true, options));
+            .push_back(service::ServiceState::new(service, true, options));
     }
 
     pub fn remove_service(&mut self, index: usize) -> service::ServiceState {
