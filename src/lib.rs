@@ -2,6 +2,7 @@
 
 pub mod app;
 mod auth;
+mod error;
 mod grpc;
 mod json;
 mod lens;

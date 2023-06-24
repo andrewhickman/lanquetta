@@ -1,7 +1,10 @@
 use anyhow::Result;
 use druid::{AppDelegate, Command, DelegateCtx, Env, Handled, Target, WindowHandle, WindowId};
 
-use crate::app::{self, command, fmt_err};
+use crate::{
+    app::{self, command},
+    error::fmt_err,
+};
 
 pub(in crate::app) fn build() -> impl AppDelegate<app::State> {
     Delegate
@@ -61,6 +64,9 @@ impl AppDelegate<app::State> for Delegate {
             data.body
                 .select_or_create_compiler_tab(data.sidebar.compile_options());
             Handled::Yes
+        } else if cmd.is(command::SELECT_OR_CREATE_REFLECTION_TAB) {
+            data.body.select_or_create_reflection_tab();
+            Handled::Yes
         } else if let Some((service, options)) = cmd.get(command::SET_SERVICE_OPTIONS) {
             data.body.set_service_options(service, options);
             data.sidebar.set_service_options(service, options);
@@ -76,6 +82,9 @@ impl AppDelegate<app::State> for Delegate {
                 data.body
                     .select_or_create_method_tab(method, options.clone());
             }
+            Handled::Yes
+        } else if let Some((service, options)) = cmd.get(command::ADD_SERVICE) {
+            data.sidebar.add_service(service.clone(), options.clone());
             Handled::Yes
         } else if let Some(service_index) = cmd.get(command::REMOVE_SERVICE) {
             let service = data.sidebar.remove_service(*service_index);

@@ -8,17 +8,16 @@ use druid::{
 };
 use prost_reflect::{DescriptorPool, DynamicMessage, Value};
 use serde::{Deserialize, Serialize};
-use tonic::{metadata::MetadataMap, Code, Status};
+use tonic::{metadata::MetadataMap, Status};
 
 use crate::{
-    app::body::fmt_connect_err,
-    grpc, lens,
-    theme::INVALID,
-    widget::{code_area, error_label, Empty},
-};
-use crate::{
     app::metadata,
+    error::fmt_grpc_err,
+    grpc,
     json::{self, JsonText},
+    lens,
+    theme::INVALID,
+    widget::{code_area, empty, error_label},
 };
 
 #[derive(Debug, Clone, Data, Serialize, Deserialize)]
@@ -52,7 +51,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
                             code_area(false)
                                 .env_scope(|env: &mut Env, _: &JsonText| env.set(INVALID, true))
                         },
-                        || Empty,
+                        empty,
                     )
                     .lens(ErrorDetail::details),
                 )
@@ -190,38 +189,4 @@ fn error_details(pool: &DescriptorPool, err: &anyhow::Error) -> Option<DynamicMe
     }
 
     Some(payload)
-}
-
-fn fmt_grpc_err(err: &anyhow::Error) -> ArcStr {
-    if let Some(status) = err.downcast_ref::<Status>() {
-        if status.message().is_empty() {
-            fmt_code(status.code()).into()
-        } else {
-            format!("{}: {}", fmt_code(status.code()), status.message()).into()
-        }
-    } else {
-        fmt_connect_err(err)
-    }
-}
-
-fn fmt_code(code: Code) -> &'static str {
-    match code {
-        Code::Ok => "OK",
-        Code::Cancelled => "CANCELLED",
-        Code::Unknown => "UNKNOWN",
-        Code::InvalidArgument => "INVALID_ARGUMENT",
-        Code::DeadlineExceeded => "DEADLINE_EXCEEDED",
-        Code::NotFound => "NOT_FOUND",
-        Code::AlreadyExists => "ALREADY_EXISTS",
-        Code::PermissionDenied => "PERMISSION_DENIED",
-        Code::ResourceExhausted => "RESOURCE_EXHAUSTED",
-        Code::FailedPrecondition => "FAILED_PRECONDITION",
-        Code::Aborted => "ABORTED",
-        Code::OutOfRange => "OUT_OF_RANGE",
-        Code::Unimplemented => "UNIMPLEMENTED",
-        Code::Internal => "INTERNAL",
-        Code::Unavailable => "UNAVAILABLE",
-        Code::DataLoss => "DATA_LOSS",
-        Code::Unauthenticated => "UNAUTHENTICATED",
-    }
 }

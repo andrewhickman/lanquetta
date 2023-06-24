@@ -6,7 +6,7 @@ mod reflection;
 
 pub(in crate::app) use self::{compile::CompileOptions, method::StreamState};
 
-use std::{collections::BTreeMap, io, mem, ops::Bound, sync::Arc};
+use std::{collections::BTreeMap, mem, ops::Bound, sync::Arc};
 
 use druid::{lens::Field, widget::ViewSwitcher, ArcStr, Data, Lens, Widget, WidgetExt as _};
 use iter_set::Inclusion;
@@ -17,7 +17,7 @@ use self::{
     reflection::ReflectionTabState,
 };
 use crate::{
-    app::{command, fmt_err, metadata, sidebar::service::ServiceOptions},
+    app::{command, metadata, sidebar::service::ServiceOptions},
     json::JsonText,
     widget::{tabs, TabId, TabLabelState, TabsData, TabsDataChange},
 };
@@ -87,6 +87,19 @@ impl State {
         let id = TabId::next();
         self.selected = Some(id);
         Arc::make_mut(&mut self.tabs).insert(id, TabState::new_compile(compile_options));
+    }
+
+    pub fn select_or_create_reflection_tab(&mut self) {
+        for (&id, tab) in self.tabs.iter() {
+            if matches!(tab, TabState::Reflection(_)) {
+                self.selected = Some(id);
+                return;
+            }
+        }
+
+        let id = TabId::next();
+        self.selected = Some(id);
+        Arc::make_mut(&mut self.tabs).insert(id, TabState::empty_reflection());
     }
 
     pub fn select_or_create_method_tab(
@@ -368,6 +381,10 @@ impl TabState {
         TabState::Reflection(ReflectionTabState::new(options))
     }
 
+    pub fn empty_reflection() -> TabState {
+        TabState::Reflection(ReflectionTabState::default())
+    }
+
     pub fn label(&self) -> ArcStr {
         match self {
             TabState::Method(method) => method.method().name().into(),
@@ -543,13 +560,5 @@ impl TabsData for State {
             && !cmd.is(command::DISCONNECT)
             && !cmd.is(command::SEND)
             && !cmd.is(command::FINISH)
-    }
-}
-
-pub fn fmt_connect_err(err: &anyhow::Error) -> ArcStr {
-    if let Some(err) = err.root_cause().downcast_ref::<io::Error>() {
-        format!("failed to connect: {}", err).into()
-    } else {
-        fmt_err(err)
     }
 }

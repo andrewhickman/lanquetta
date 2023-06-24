@@ -19,7 +19,7 @@ use crate::theme;
 
 pub use self::{
     editable_list::EditableList,
-    empty::Empty,
+    empty::{empty, Empty},
     expander::ExpanderData,
     form_field::{FinishEditController, FormField, ValidationFn, ValidationState, FINISH_EDIT},
     icon::Icon,
@@ -103,6 +103,6 @@ pub fn error_label(insets: impl Into<Insets>) -> impl Widget<Option<ArcStr>> {
             )
             .padding(insets)
         },
-        || Empty,
+        empty,
     )
 }

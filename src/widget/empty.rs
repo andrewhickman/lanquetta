@@ -2,6 +2,10 @@ use druid::widget::prelude::*;
 
 pub struct Empty;
 
+pub fn empty() -> Empty {
+    Empty
+}
+
 impl<T> Widget<T> for Empty {
     fn event(&mut self, _: &mut EventCtx, _: &Event, _: &mut T, _: &Env) {}
 

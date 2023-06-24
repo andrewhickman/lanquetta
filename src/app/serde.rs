@@ -174,7 +174,7 @@ impl<'a> TryFrom<&'a app::State> for AppState {
                         }
                         app::body::TabState::Compile(_) => AppBodyTabKind::Compile,
                         app::body::TabState::Reflection(options) => AppBodyTabKind::Reflection {
-                            options: options.service_options().clone(),
+                            options: options.service_options(),
                         },
                     };
 

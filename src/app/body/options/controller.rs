@@ -5,9 +5,10 @@ use druid::{
 
 use crate::{
     app::{
-        body::{fmt_connect_err, options::OptionsTabState, RequestState},
+        body::{options::OptionsTabState, RequestState},
         command,
     },
+    error::fmt_connect_err,
     grpc,
     widget::update_queue::{self, UpdateQueue},
 };

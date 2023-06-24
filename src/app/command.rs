@@ -20,12 +20,20 @@ pub const SELECT_OR_CREATE_METHOD_TAB: Selector<MethodDescriptor> =
 pub const SELECT_OR_CREATE_COMPILE_TAB: Selector =
     Selector::new("app.select-or-create-compile-tab");
 
+/// Select or create a server reflection tab.
+pub const SELECT_OR_CREATE_REFLECTION_TAB: Selector =
+    Selector::new("app.select-or-create-reflection-tab");
+
 /// Set compiler options
 pub const SET_COMPILE_OPTIONS: Selector<CompileOptions> = Selector::new("app.set-compile-options");
 
 /// Set service options
 pub const SET_SERVICE_OPTIONS: Selector<(ServiceDescriptor, ServiceOptions)> =
     Selector::new("app.set-service-options");
+
+/// Add a service
+pub const ADD_SERVICE: Selector<(ServiceDescriptor, ServiceOptions)> =
+    Selector::new("app.add-service");
 
 /// Remove a service
 pub const REMOVE_SERVICE: Selector<usize> = Selector::new("app.remove-service");

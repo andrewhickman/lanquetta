@@ -13,6 +13,8 @@ use prost_reflect::ServiceDescriptor;
 
 use crate::{app::command, protoc, theme, widget::Icon};
 
+use self::service::ServiceOptions;
+
 use super::body::CompileOptions;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
@@ -98,6 +100,11 @@ impl ServiceListState {
 
     pub fn services(&self) -> &im::Vector<service::ServiceState> {
         &self.services
+    }
+
+    pub fn add_service(&mut self, service: ServiceDescriptor, options: ServiceOptions) {
+        self.services
+            .push_back(service::ServiceState::new(service.clone(), true, options));
     }
 
     pub fn remove_service(&mut self, index: usize) -> service::ServiceState {

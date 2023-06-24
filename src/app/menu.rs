@@ -27,6 +27,10 @@ fn file_menu() -> Menu<app::State> {
                 .entry(
                     MenuItem::new("Compiler options")
                         .command(app::command::SELECT_OR_CREATE_COMPILE_TAB),
+                )
+                .entry(
+                    MenuItem::new("Server reflection")
+                        .command(app::command::SELECT_OR_CREATE_REFLECTION_TAB),
                 ),
         )
         .separator()

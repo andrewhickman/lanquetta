@@ -8,8 +8,8 @@ use druid::{
 use once_cell::sync::Lazy;
 
 use crate::{
-    app::fmt_err,
     auth::AuthorizationHook,
+    error::fmt_err,
     lens,
     theme::{self, BODY_PADDING},
     widget::{

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Weak};
 
 use crossbeam_queue::SegQueue;
-use druid::{EventCtx, ExtEventSink, Selector, WidgetId};
+use druid::{EventCtx, ExtEventSink, Selector, Target, WidgetId};
 
 pub const UPDATE: Selector = Selector::new("app.update");
 
@@ -42,14 +42,17 @@ impl<W, T> UpdateQueue<W, T> {
 }
 
 impl<W, T> UpdateQueueWriter<W, T> {
-    pub fn write(&self, f: impl FnOnce(&mut W, &mut EventCtx, &mut T) + Send + 'static) -> bool {
+    pub fn write(&self, f: impl FnOnce(&mut W, &mut EventCtx, &mut T) + Send + 'static) {
         if let Some(queue) = self.queue.upgrade() {
             queue.push(Box::new(f));
-            self.event_sink
-                .submit_command(UPDATE, (), self.target)
-                .is_ok()
-        } else {
-            false
+            _ = self.event_sink.submit_command(UPDATE, (), self.target);
         }
+    }
+
+    pub fn submit_command<U>(&self, selector: Selector<U>, payload: U, target: impl Into<Target>)
+    where
+        U: Send + 'static,
+    {
+        _ = self.event_sink.submit_command(selector, payload, target);
     }
 }

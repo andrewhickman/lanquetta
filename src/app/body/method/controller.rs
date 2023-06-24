@@ -6,9 +6,10 @@ use tonic::metadata::MetadataMap;
 
 use crate::{
     app::{
-        body::{fmt_connect_err, method::MethodTabState, RequestState},
-        command, fmt_err,
+        body::{method::MethodTabState, RequestState},
+        command,
     },
+    error::{fmt_connect_err, fmt_err},
     grpc,
     json::JsonText,
     widget::update_queue::{self, UpdateQueue},
