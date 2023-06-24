@@ -50,10 +50,7 @@ pub(in crate::app) fn build() -> impl Widget<State> {
         });
 
     let add = Icon::add()
-        .background(theme::hot_or_active_painter(
-            druid::theme::BUTTON_BORDER_RADIUS,
-        ))
-        .on_click(|ctx, data: &mut State, _| {
+        .button(|ctx, data: &mut State, _| {
             ctx.submit_command(command::CREATE_TAB.with(data.method.method.clone()));
         })
         .padding((6.0, 3.0));

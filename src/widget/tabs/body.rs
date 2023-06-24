@@ -87,10 +87,6 @@ where
                 ctx.children_changed();
             }
         });
-
-        if old_data.selected() != data.selected() && data.selected().is_some() {
-            ctx.request_layout();
-        }
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {

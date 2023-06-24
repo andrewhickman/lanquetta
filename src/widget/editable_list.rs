@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use druid::{
     widget::{prelude::*, Flex, Label, LineBreaking},
-    widget::{FillStrat, List, ListIter},
+    widget::{List, ListIter},
     Lens, Point, WidgetExt, WidgetPod,
 };
 
@@ -50,16 +50,9 @@ where
                     Flex::row()
                         .with_flex_child(make_widget().lens(Entry::item), 1.0)
                         .with_spacer(GRID_NARROW_SPACER)
-                        .with_child(
-                            Icon::close()
-                                .with_fill(FillStrat::ScaleDown)
-                                .background(theme::hot_or_active_painter(
-                                    druid::theme::BUTTON_BORDER_RADIUS,
-                                ))
-                                .on_click(move |_, data: &mut Entry<T>, _| {
-                                    data.deleted = true;
-                                }),
-                        )
+                        .with_child(Icon::close().button(move |_, data: &mut Entry<T>, _| {
+                            data.deleted = true;
+                        }))
                 })
                 .with_spacing(GRID_NARROW_SPACER)
                 .scroll()

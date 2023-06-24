@@ -1,5 +1,4 @@
 use druid::{
-    widget::Controller,
     widget::LineBreaking,
     widget::Painter,
     widget::{prelude::*, RawLabel},
@@ -22,11 +21,6 @@ pub struct TabLabel {
     show_close: bool,
 }
 
-struct CloseButtonController {
-    tabs_id: WidgetId,
-    tab_id: TabId,
-}
-
 impl TabLabel {
     pub fn new(tabs_id: WidgetId, tab_id: TabId) -> Self {
         TabLabel {
@@ -41,7 +35,9 @@ impl TabLabel {
                 Icon::close()
                     .fix_size(20.0, 20.0)
                     .background(Painter::new(paint_close_background))
-                    .controller(CloseButtonController { tabs_id, tab_id }),
+                    .on_click(move |ctx, _, _| {
+                        ctx.submit_command(CLOSE_TAB.with(tab_id).to(tabs_id))
+                    }),
             )
             .boxed(),
             show_close: false,
@@ -189,58 +185,6 @@ impl Widget<State> for TabLabel {
         if self.show_close {
             self.close.paint(ctx, data, env);
         }
-    }
-}
-
-impl<W> Controller<State, W> for CloseButtonController
-where
-    W: Widget<State>,
-{
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut State,
-        env: &Env,
-    ) {
-        match event {
-            Event::MouseDown(mouse_event) => {
-                if mouse_event.button == MouseButton::Left {
-                    ctx.set_active(true);
-                    ctx.request_paint();
-                    ctx.set_handled();
-                }
-            }
-            Event::MouseUp(mouse_event) => {
-                if ctx.is_active() && mouse_event.button == MouseButton::Left {
-                    ctx.set_active(false);
-                    if ctx.is_hot() {
-                        ctx.submit_command(CLOSE_TAB.with(self.tab_id).to(self.tabs_id))
-                    }
-                    ctx.request_paint();
-                    ctx.set_handled();
-                }
-            }
-            _ => {}
-        }
-
-        child.event(ctx, event, data, env);
-    }
-
-    fn lifecycle(
-        &mut self,
-        child: &mut W,
-        ctx: &mut LifeCycleCtx,
-        event: &LifeCycle,
-        data: &State,
-        env: &Env,
-    ) {
-        if let LifeCycle::HotChanged(_) = event {
-            ctx.request_paint();
-        }
-
-        child.lifecycle(ctx, event, data, env);
     }
 }
 

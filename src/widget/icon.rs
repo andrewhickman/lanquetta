@@ -1,15 +1,16 @@
 use druid::{
     kurbo::BezPath,
     widget::{prelude::*, FillStrat},
-    Color, Data, KeyOrValue, Size,
+    Color, Data, KeyOrValue, Size, WidgetExt,
 };
 use once_cell::sync::Lazy;
+
+use crate::theme;
 
 const DEFAULT_SIZE: Size = Size::new(24.0, 24.0);
 
 pub struct Icon {
     path: &'static BezPath,
-    fill: FillStrat,
     color: KeyOrValue<Color>,
     size: Size,
 }
@@ -39,7 +40,6 @@ impl Icon {
     fn new(path: &'static BezPath) -> Self {
         Icon {
             path,
-            fill: FillStrat::Cover,
             color: druid::theme::TEXT_COLOR.into(),
             size: DEFAULT_SIZE,
         }
@@ -55,9 +55,17 @@ impl Icon {
         self
     }
 
-    pub fn with_fill(mut self, fill: FillStrat) -> Self {
-        self.fill = fill;
-        self
+    pub fn button<T>(
+        self,
+        on_click: impl Fn(&mut EventCtx, &mut T, &Env) + 'static,
+    ) -> impl Widget<T>
+    where
+        T: Data,
+    {
+        self.background(theme::hot_or_active_painter(
+            druid::theme::BUTTON_BORDER_RADIUS,
+        ))
+        .on_click(on_click)
     }
 }
 
@@ -80,12 +88,10 @@ impl<T: Data> Widget<T> for Icon {
 
     fn paint(&mut self, ctx: &mut PaintCtx, _: &T, env: &Env) {
         ctx.with_save(|ctx| {
-            if self.fill != FillStrat::Contain {
-                let clip_rect = ctx.size().to_rect();
-                ctx.clip(clip_rect);
-            }
+            let clip_rect = ctx.size().to_rect();
+            ctx.clip(clip_rect);
 
-            let offset = self.fill.affine_to_fill(ctx.size(), DEFAULT_SIZE);
+            let offset = FillStrat::Cover.affine_to_fill(ctx.size(), DEFAULT_SIZE);
             ctx.transform(offset);
 
             ctx.fill(self.path, &self.color.resolve(env))

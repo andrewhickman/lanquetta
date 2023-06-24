@@ -57,15 +57,7 @@ pub fn build_header() -> impl Widget<State> {
                 .expand_width(),
             1.0,
         )
-        .with_child(
-            Icon::close()
-                .background(theme::hot_or_active_painter(
-                    druid::theme::BUTTON_BORDER_RADIUS,
-                ))
-                .on_click(|_, data: &mut State, _| {
-                    data.clear();
-                }),
-        )
+        .with_child(Icon::close().button(|_, data: &mut State, _| data.clear()))
 }
 
 fn build_list_entry() -> impl Widget<ItemExpanderState> {

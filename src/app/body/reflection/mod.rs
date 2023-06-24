@@ -90,13 +90,9 @@ fn build_service_row(parent: WidgetId) -> impl Widget<String> {
         .with_flex_child(readonly_input(), 1.0)
         .with_spacer(GRID_NARROW_SPACER)
         .with_child(
-            Icon::add()
-                .background(theme::hot_or_active_painter(
-                    druid::theme::BUTTON_BORDER_RADIUS,
-                ))
-                .on_click(move |ctx: &mut EventCtx, data: &mut String, _| {
-                    ctx.submit_command(IMPORT_SERVICE.with(data.clone()).to(parent));
-                }),
+            Icon::add().button(move |ctx: &mut EventCtx, data: &mut String, _| {
+                ctx.submit_command(IMPORT_SERVICE.with(data.clone()).to(parent));
+            }),
         )
 }
 
