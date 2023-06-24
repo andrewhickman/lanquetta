@@ -3,10 +3,7 @@ use std::{borrow::Cow, ffi::OsString, fmt, fs, ops::Range, path::PathBuf, sync::
 use druid::{
     piet::{PietTextLayoutBuilder, TextStorage},
     text::{EditableText, EnvUpdateCtx, Link, StringCursor},
-    widget::{
-        prelude::*, Controller, CrossAxisAlignment, FillStrat, Flex, Label, LineBreaking, List,
-        Scroll,
-    },
+    widget::{prelude::*, Controller, CrossAxisAlignment, Flex, Label, Scroll},
     ArcStr, Data, FileDialogOptions, FileInfo, Lens, Selector, WidgetExt,
 };
 use once_cell::sync::Lazy;
@@ -16,7 +13,7 @@ use crate::{
     app::command,
     lens,
     theme::{self, BODY_PADDING, GRID_NARROW_SPACER},
-    widget::{error_label, input, FormField, Icon, ValidationFn, ValidationState},
+    widget::{error_label, input, EditableList, FormField, ValidationFn, ValidationState},
 };
 
 #[derive(Default, Debug, Clone, Data, Lens)]
@@ -54,9 +51,7 @@ pub fn build_body() -> impl Widget<CompileTabState> {
             )
             .with_spacer(theme::BODY_SPACER)
             .with_child(
-                Flex::column()
-                    .with_child(List::new(move || build_path_row(parent)))
-                    .with_child(build_add_include_button())
+                EditableList::new("Add path", add_path, build_path_row)
                     .lens(CompileTabState::includes_lens),
             )
             .padding(BODY_PADDING),
@@ -67,31 +62,30 @@ pub fn build_body() -> impl Widget<CompileTabState> {
     .with_id(parent)
 }
 
-fn build_path_row(parent: WidgetId) -> impl Widget<PathValidationState> {
+fn add_path(ctx: &mut EventCtx, _: &mut Arc<Vec<PathValidationState>>, _: &Env) {
+    ctx.submit_command(
+        druid::commands::SHOW_OPEN_PANEL.with(
+            FileDialogOptions::new()
+                .accept_multiple_command(ADD_PATH)
+                .select_directories()
+                .multi_selection()
+                .title("Add include paths")
+                .button_text("Add"),
+        ),
+    );
+}
+
+fn build_path_row() -> impl Widget<PathValidationState> {
     let form_field = FormField::text_box(input(path_placeholder_text()).lens(PathEntry::path));
 
     let error = error_label((GRID_NARROW_SPACER, 0.0, 0.0, 0.0)).lens(lens::Project::new(
         |path: &PathValidationState| path.display_error(),
     ));
 
-    let close = Icon::close()
-        .with_fill(FillStrat::ScaleDown)
-        .background(theme::hot_or_active_painter(
-            druid::theme::BUTTON_BORDER_RADIUS,
-        ))
-        .on_click(
-            move |ctx: &mut EventCtx, data: &mut PathValidationState, _| {
-                data.with_text_mut(|state| state.deleted = true);
-                ctx.submit_command(DELETE_PATH.to(parent));
-            },
-        );
-
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
         .with_flex_child(form_field, 1.0)
         .with_child(error)
-        .with_spacer(GRID_NARROW_SPACER)
-        .with_child(close)
         .padding((0.0, 0.0, 0.0, GRID_NARROW_SPACER))
 }
 
@@ -101,32 +95,6 @@ fn path_placeholder_text() -> String {
     } else {
         "/path/to/include".to_owned()
     }
-}
-
-fn build_add_include_button() -> impl Widget<Arc<Vec<PathValidationState>>> {
-    Flex::row()
-        .with_child(Icon::add().padding(3.0))
-        .with_child(
-            Label::new("Add path")
-                .with_font(theme::font::HEADER_TWO)
-                .with_line_break_mode(LineBreaking::Clip),
-        )
-        .must_fill_main_axis(true)
-        .on_click(move |ctx, _, _| {
-            ctx.submit_command(
-                druid::commands::SHOW_OPEN_PANEL.with(
-                    FileDialogOptions::new()
-                        .accept_multiple_command(ADD_PATH)
-                        .select_directories()
-                        .multi_selection()
-                        .title("Add include paths")
-                        .button_text("Add"),
-                ),
-            );
-        })
-        .background(theme::hot_or_active_painter(
-            druid::theme::BUTTON_BORDER_RADIUS,
-        ))
 }
 
 impl CompileTabState {

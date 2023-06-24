@@ -5,10 +5,8 @@ use base64::{
     engine::{DecodePaddingMode, Engine, GeneralPurpose, GeneralPurposeConfig},
 };
 use druid::{
-    widget::{
-        prelude::*, Controller, CrossAxisAlignment, FillStrat, Flex, Label, LineBreaking, List,
-    },
-    ArcStr, Lens, Point, Selector, UnitPoint, WidgetExt, WidgetPod,
+    widget::{prelude::*, CrossAxisAlignment, Flex, List},
+    ArcStr, Lens, Point, UnitPoint, WidgetExt, WidgetPod,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -17,10 +15,10 @@ use tonic::metadata::{
 };
 
 use crate::{
-    lens, theme,
+    lens,
     widget::{
-        error_label, input, readonly_input, FinishEditController, FormField, Icon, ValidationFn,
-        ValidationState,
+        error_label, input, readonly_input, EditableList, FinishEditController, FormField,
+        ValidationFn, ValidationState,
     },
 };
 
@@ -65,20 +63,17 @@ pub(in crate::app) fn build() -> impl Widget<State> {
 }
 
 pub(in crate::app) fn build_editable() -> impl Widget<EditableState> {
-    let parent = WidgetId::next();
-    EditableLayout {
-        add_button: WidgetPod::new(build_add_button().boxed()),
-        metadata: WidgetPod::new(
-            List::new(move || build_editable_row(parent))
-                .with_spacing(GRID_NARROW_SPACER)
-                .lens(EditableState::entries)
-                .controller(DeleteMetadataController)
-                .with_id(parent)
-                .scroll()
-                .vertical()
-                .boxed(),
-        ),
-    }
+    EditableList::new(
+        "Add metadata",
+        |_, data, _| {
+            Arc::make_mut(data).push(ValidationState::new(
+                EditableEntry::default(),
+                VALIDATE_ENTRY.clone(),
+            ))
+        },
+        build_editable_row,
+    )
+    .lens(EditableState::entries)
 }
 
 fn build_row() -> impl Widget<Entry> {
@@ -89,7 +84,7 @@ fn build_row() -> impl Widget<Entry> {
         .with_flex_child(readonly_input().lens(Entry::value), 0.67)
 }
 
-fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
+fn build_editable_row() -> impl Widget<EntryValidationState> {
     let form_id = WidgetId::next();
     let form_field = FormField::new(
         form_id,
@@ -116,54 +111,16 @@ fn build_editable_row(parent: WidgetId) -> impl Widget<EntryValidationState> {
             data.display_error()
         }));
 
-    let close = Icon::close()
-        .with_fill(FillStrat::ScaleDown)
-        .background(theme::hot_or_active_painter(
-            druid::theme::BUTTON_BORDER_RADIUS,
-        ))
-        .on_click(
-            move |ctx: &mut EventCtx, data: &mut EntryValidationState, _| {
-                data.with_text_mut(|d| d.deleted = true);
-                ctx.submit_command(DELETE_METADATA.to(parent));
-            },
-        );
-
     Flex::row()
         .cross_axis_alignment(CrossAxisAlignment::Fill)
         .with_flex_child(form_field, 1.0)
         .with_child(error)
-        .with_spacer(GRID_NARROW_SPACER)
-        .with_child(close)
-}
-
-fn build_add_button() -> impl Widget<EditableState> {
-    Flex::row()
-        .with_child(Icon::add().padding(3.0))
-        .with_child(
-            Label::new("Add metadata")
-                .with_font(theme::font::HEADER_TWO)
-                .with_line_break_mode(LineBreaking::Clip),
-        )
-        .must_fill_main_axis(true)
-        .on_click(|_, state: &mut EditableState, _| {
-            Arc::make_mut(&mut state.entries).push(ValidationState::new(
-                Default::default(),
-                VALIDATE_ENTRY.clone(),
-            ));
-        })
-        .background(theme::hot_or_active_painter(
-            druid::theme::BUTTON_BORDER_RADIUS,
-        ))
 }
 
 struct EditableLayout {
     metadata: WidgetPod<EditableState, Box<dyn Widget<EditableState>>>,
     add_button: WidgetPod<EditableState, Box<dyn Widget<EditableState>>>,
 }
-
-struct DeleteMetadataController;
-
-const DELETE_METADATA: Selector = Selector::new("app.metadata.delete");
 
 pub fn state_from_tonic(metadata: MetadataMap) -> State {
     Arc::new(
@@ -238,27 +195,6 @@ impl EditableState {
 
     pub fn is_valid(&self) -> bool {
         self.entries.iter().all(|e| e.is_valid())
-    }
-}
-
-impl<W> Controller<EditableState, W> for DeleteMetadataController
-where
-    W: Widget<EditableState>,
-{
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut EditableState,
-        env: &Env,
-    ) {
-        match event {
-            Event::Command(cmd) if cmd.is(DELETE_METADATA) => {
-                Arc::make_mut(&mut data.entries).retain(|e| !e.text().deleted);
-            }
-            _ => child.event(ctx, event, data, env),
-        }
     }
 }
 

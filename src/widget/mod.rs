@@ -2,25 +2,29 @@ pub mod expander;
 pub mod tabs;
 pub mod update_queue;
 
+mod editable_list;
 mod empty;
 mod form_field;
 mod icon;
 
 use std::mem;
 
-use druid::text::{EditableText, TextStorage};
-use druid::widget::{Label, LineBreaking, Maybe, Spinner, TextBox, ViewSwitcher};
-use druid::{ArcStr, Data, Env, Insets, TextAlignment, Widget, WidgetExt};
+use druid::{
+    text::{EditableText, TextStorage},
+    widget::{Label, LineBreaking, Maybe, Spinner, TextBox, ViewSwitcher},
+    ArcStr, Data, Env, Insets, TextAlignment, Widget, WidgetExt,
+};
 
 use crate::theme;
 
-pub use self::empty::Empty;
-pub use self::expander::ExpanderData;
-pub use self::form_field::{
-    FinishEditController, FormField, ValidationFn, ValidationState, FINISH_EDIT,
+pub use self::{
+    editable_list::EditableList,
+    empty::Empty,
+    expander::ExpanderData,
+    form_field::{FinishEditController, FormField, ValidationFn, ValidationState, FINISH_EDIT},
+    icon::Icon,
+    tabs::{TabId, TabLabelState, TabsData, TabsDataChange},
 };
-pub use self::icon::Icon;
-pub use self::tabs::{TabId, TabLabelState, TabsData, TabsDataChange};
 
 pub fn input<T>(placeholder: impl Into<String>) -> impl Widget<T>
 where
