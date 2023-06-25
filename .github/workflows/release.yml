@@ -1,0 +1,60 @@
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: lanquetta
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: lanquetta.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install packages
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt update
+          sudo apt install libgtk-3-dev
+
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - run: cargo fetch
+
+      - name: Release build
+        run: cargo build --release
+
+      - run: chmod +x target/release/${{ matrix.binary }}
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: lanqetta-${{ matrix.target }}
+          path: target/release/${{ matrix.binary }}
+
+  release:
+    name: Release
+    runs-on: ubuntu-22.04
+    needs: build
+    permissions: write-all
+    steps:
+      - uses: actions/download-artifact@v3
+
+      - run: gh release create --repo ${{ github.repository }} ${{ github.ref_name }} --title ${{ github.ref_name }} --generate-notes ./lanqetta-x86_64-pc-windows-msvc/lanquetta.exe ./lanqetta-x86_64-unknown-linux-gnu/lanquetta
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
