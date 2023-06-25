@@ -5,7 +5,7 @@ use std::{
 
 use anyhow::{Context, Error, Result};
 use druid::piet::TextStorage;
-use prost_reflect::{prost::Message, prost_types::FileDescriptorSet};
+use prost_reflect::{prost::Message, prost_types::FileDescriptorSet, SerializeOptions};
 use prost_reflect::{DescriptorPool, DynamicMessage, ReflectMessage};
 use serde::{
     de::{self, Deserializer},
@@ -327,7 +327,10 @@ impl Serialize for DescriptorPoolSerde {
                 .clear_field_by_name("source_code_info");
         }
 
-        dynamic.serialize(serializer)
+        dynamic.serialize_with_options(
+            serializer,
+            &SerializeOptions::new().use_proto_field_name(true),
+        )
     }
 }
 

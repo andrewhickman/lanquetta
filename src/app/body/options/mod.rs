@@ -1,3 +1,5 @@
+pub mod proxy;
+
 mod auth;
 mod controller;
 
@@ -9,7 +11,10 @@ use prost_reflect::ServiceDescriptor;
 
 use crate::{
     app::{
-        body::address::{self, AddressState},
+        body::{
+            address::{self, AddressState},
+            RequestState,
+        },
         command, metadata,
         sidebar::service::ServiceOptions,
     },
@@ -17,8 +22,6 @@ use crate::{
 };
 
 use self::controller::OptionsTabController;
-
-use super::RequestState;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct OptionsTabState {
@@ -29,6 +32,7 @@ pub struct OptionsTabState {
     verify_certs: bool,
     default_metadata: metadata::EditableState,
     auth: auth::State,
+    proxy: proxy::State,
 }
 
 pub fn build_body() -> impl Widget<OptionsTabState> {
@@ -57,7 +61,9 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
             .with_child(Label::new("Authorization hook").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
             .with_child(auth::build().lens(OptionsTabState::auth))
-            .must_fill_main_axis(true)
+            .with_child(Label::new("Proxy").with_font(theme::font::HEADER_TWO))
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(proxy::build().lens(OptionsTabState::proxy))
             .cross_axis_alignment(CrossAxisAlignment::Start)
             .padding(theme::BODY_PADDING)
             .controller(OptionsTabController::new())
@@ -99,13 +105,14 @@ impl OptionsTabState {
     pub fn new(service: ServiceDescriptor, options: ServiceOptions) -> Self {
         OptionsTabState {
             service,
-            default_address: match options.default_address {
+            default_address: match &options.default_address {
                 Some(uri) => AddressState::new(uri.to_string()),
                 None => AddressState::default(),
             },
             verify_certs: options.verify_certs,
             default_metadata: metadata::EditableState::new(options.default_metadata),
             auth: auth::State::new(&options.auth_hook),
+            proxy: proxy::State::new(options.proxy, options.default_address),
         }
     }
 
@@ -123,6 +130,7 @@ impl OptionsTabState {
             verify_certs: self.verify_certs,
             default_metadata: self.default_metadata.to_state(),
             auth_hook: self.auth.hook(),
+            proxy: self.proxy.get(),
         }
     }
 

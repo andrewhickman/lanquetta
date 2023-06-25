@@ -7,5 +7,6 @@ mod grpc;
 mod json;
 mod lens;
 mod protoc;
+mod proxy;
 mod theme;
 mod widget;

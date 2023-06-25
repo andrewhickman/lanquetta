@@ -57,6 +57,7 @@ where
             || old_data.verify_certs != data.verify_certs
             || !old_data.default_metadata.same(&data.default_metadata)
             || !old_data.auth.same(&data.auth)
+            || !old_data.proxy.same(&data.proxy)
         {
             ctx.submit_command(
                 command::SET_SERVICE_OPTIONS.with((data.service.clone(), data.service_options())),

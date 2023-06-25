@@ -9,7 +9,10 @@ use druid::{
 
 use crate::{
     app::{
-        body::address::{self, AddressState},
+        body::{
+            address::{self, AddressState},
+            options::proxy,
+        },
         metadata,
         sidebar::service::ServiceOptions,
     },
@@ -29,6 +32,7 @@ pub struct ReflectionTabState {
     verify_certs: bool,
     metadata: metadata::EditableState,
     services: Option<Arc<Vec<String>>>,
+    proxy: proxy::State,
 }
 
 pub fn build_body() -> impl Widget<ReflectionTabState> {
@@ -99,13 +103,14 @@ fn build_service_row(parent: WidgetId) -> impl Widget<String> {
 impl ReflectionTabState {
     pub fn new(options: ServiceOptions) -> ReflectionTabState {
         ReflectionTabState {
-            address: match options.default_address {
+            address: match &options.default_address {
                 Some(uri) => AddressState::new(uri.to_string()),
                 None => AddressState::default(),
             },
             verify_certs: options.verify_certs,
             metadata: metadata::EditableState::new(options.default_metadata),
             services: None,
+            proxy: proxy::State::new(options.proxy, options.default_address),
         }
     }
 
@@ -115,6 +120,7 @@ impl ReflectionTabState {
             verify_certs: self.verify_certs,
             default_metadata: self.metadata.to_state(),
             auth_hook: None,
+            proxy: self.proxy.get(),
         }
     }
 

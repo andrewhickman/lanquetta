@@ -38,7 +38,9 @@ pub(in crate::app) fn build(parent: WidgetId) -> impl Widget<AddressState> {
 
     let error = error_label(Insets::ZERO)
         .expand_width()
-        .lens(lens::Project::new(|data: &AddressState| data.error()));
+        .lens(lens::Project::new(|data: &AddressState| {
+            data.display_error()
+        }));
 
     let address_form_field = Flex::column().with_child(address_textbox).with_child(error);
 
@@ -97,7 +99,7 @@ impl AddressState {
         self.request_state = request_state;
     }
 
-    pub fn error(&self) -> Option<ArcStr> {
+    pub fn display_error(&self) -> Option<ArcStr> {
         if let Some(err) = self.uri.display_error() {
             Some(err)
         } else if let RequestState::ConnectFailed(err)
