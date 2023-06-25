@@ -45,7 +45,7 @@ druid = { version = "0.8.3", default-features = false, features = [
     "im",
     "svg",
     "serde",
-    "x11",
+    "gtk",
     "raw-win-handle"
 ] }
 fs-err = "2.9.0"
