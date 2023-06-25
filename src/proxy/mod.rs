@@ -8,6 +8,14 @@
 
 // TODO: reloading values from env
 
+// TODO proxy auth
+// TODO proxy tls validation
+
+mod ignore;
+mod sys;
+
+use std::sync::Arc;
+
 use anyhow::Result;
 use druid::Data;
 use http::Uri;
@@ -15,10 +23,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Data)]
 #[serde(from = "ProxyKind", into = "ProxyKind")]
-pub struct Proxy {}
+pub struct Proxy {
+    inner: Option<Arc<ProxyInner>>,
+}
 
-#[derive(Serialize, Deserialize)]
-enum ProxyKind {
+#[derive(Debug)]
+struct ProxyInner {}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ProxyKind {
     None,
     System,
     #[serde(with = "http_serde::uri")]
@@ -27,7 +40,9 @@ enum ProxyKind {
 
 impl Proxy {
     pub fn none() -> Self {
-        todo!()
+        Proxy {
+            inner: None,
+        }
     }
 
     pub fn system() -> Result<Self> {
@@ -35,6 +50,10 @@ impl Proxy {
     }
 
     pub fn custom(uri: Uri) -> Self {
+        todo!()
+    }
+
+    pub fn kind(&self) -> ProxyKind {
         todo!()
     }
 

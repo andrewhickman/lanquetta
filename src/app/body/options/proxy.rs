@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use druid::{
     lens::Field,
-    widget::{Flex, ViewSwitcher, Checkbox},
+    widget::{Checkbox, Flex, ViewSwitcher},
     ArcStr, Data, Env, Insets, Lens, Widget, WidgetExt,
 };
 use http::Uri;
@@ -11,8 +11,9 @@ use once_cell::sync::Lazy;
 use crate::{
     error::fmt_err,
     lens::{self, Project},
-    proxy::Proxy,
-    widget::{error_label, input, readonly_input, FormField, ValidationFn, ValidationState}, theme,
+    proxy::{Proxy, ProxyKind},
+    theme,
+    widget::{error_label, input, readonly_input, FormField, ValidationFn, ValidationState},
 };
 
 #[derive(Clone, Debug, Data, Lens)]
@@ -25,8 +26,13 @@ pub struct State {
 
 #[derive(Clone, Debug, Data)]
 enum ProxyInput {
-    System(Result<Proxy, ArcStr>),
-    Custom(ProxyValidationState),
+    System {
+        proxy: Result<Proxy, ArcStr>,
+        display: Arc<String>,
+    },
+    Custom {
+        uri: ProxyValidationState,
+    },
 }
 
 type ProxyValidationState = ValidationState<String, Proxy, ArcStr>;
@@ -49,62 +55,83 @@ pub fn build() -> impl Widget<State> {
 
     let error = error_label(Insets::ZERO)
         .expand_width()
-        .lens(lens::Project::new(|data: &State| {
-            data.input.display_error()
-        }));
+        .lens(lens::Project::new(|data: &State| data.display_error()));
 
     Flex::column()
-        .with_child(theme::check_box_scope(Checkbox::new("Use system proxy")).lens(State::system_toggle_lens()))
+        .with_child(
+            theme::check_box_scope(Checkbox::new("Use system proxy"))
+                .lens(State::system_toggle_lens()),
+        )
         .with_spacer(theme::BODY_SPACER)
         .with_child(textbox)
         .with_child(error)
 }
 
 impl State {
-    pub fn new(options: Proxy, uri: Option<Uri>) -> State {
-        todo!()
+    pub fn new(proxy: Proxy, target: Option<Uri>) -> State {
+        let input = match proxy.kind() {
+            ProxyKind::None => ProxyInput::Custom {
+                uri: ValidationState::new(String::default(), VALIDATE_PROXY.clone()),
+            },
+            ProxyKind::System => ProxyInput::System {
+                display: system_display_uri(Ok(&proxy), target.as_ref()),
+                proxy: Ok(proxy),
+            },
+            ProxyKind::Custom(uri) => ProxyInput::Custom {
+                uri: ValidationState::new(uri.to_string(), VALIDATE_PROXY.clone()),
+            },
+        };
+
+        State { input, target }
     }
 
     pub fn get(&self) -> Proxy {
         match &self.input {
-            ProxyInput::System(system) => system.clone().unwrap_or_else(|_| Proxy::none()),
-            ProxyInput::Custom(custom) => {
-                custom.result().cloned().unwrap_or_else(|_| Proxy::none())
-            }
+            ProxyInput::System { proxy, .. } => proxy.clone().unwrap_or_else(|_| Proxy::none()),
+            ProxyInput::Custom { uri } => uri.result().cloned().unwrap_or_else(|_| Proxy::none()),
+        }
+    }
+
+    pub fn set_target(&mut self, uri: Option<Uri>) {
+        self.target = uri;
+        if let ProxyInput::System { proxy, display } = &mut self.input {
+            *display = system_display_uri(proxy.as_ref(), self.target.as_ref());
         }
     }
 
     fn is_system(&self) -> bool {
         match &self.input {
-            ProxyInput::System(_) => true,
-            ProxyInput::Custom(_) => false,
+            ProxyInput::System { .. } => true,
+            ProxyInput::Custom { .. } => false,
         }
     }
 
-    fn system_display_url(&self) -> String {
-        let uri = match (&self.target, &self.input) {
-            (Some(uri), ProxyInput::System(Ok(system))) => system.get_proxy(uri),
-            (None, ProxyInput::System(Ok(system))) => system.get_default(),
-            _ => return String::default(),
-        };
+    fn system_display_url(&self) -> Arc<String> {
+        match &self.input {
+            ProxyInput::System { display, .. } => display.clone(),
+            ProxyInput::Custom { .. } => panic!("unexpected variant"),
+        }
+    }
 
-        if let Some(uri) = uri {
-            uri.to_string()
-        } else {
-            String::default()
+    fn display_error(&self) -> Option<ArcStr> {
+        match &self.input {
+            ProxyInput::System { proxy, .. } => proxy.as_ref().err().cloned(),
+            ProxyInput::Custom { uri } => uri.display_error(),
         }
     }
 
     fn toggle_system(&mut self) {
         match &mut self.input {
-            ProxyInput::System(system) => {
-                self.input = ProxyInput::Custom(ProxyValidationState::new(
-                    self.system_display_url(),
-                    VALIDATE_PROXY.clone(),
-                ));
+            ProxyInput::System { display, .. } => {
+                self.input = ProxyInput::Custom {
+                    uri: ProxyValidationState::new((**display).clone(), VALIDATE_PROXY.clone()),
+                };
             }
-            ProxyInput::Custom(_) => {
-                self.input = ProxyInput::System(Proxy::system().map_err(|err| fmt_err(&err)));
+            ProxyInput::Custom { .. } => {
+                let proxy = Proxy::system().map_err(|err| fmt_err(&err));
+                let display = system_display_uri(proxy.as_ref(), self.target.as_ref());
+
+                self.input = ProxyInput::System { proxy, display };
             }
         }
     }
@@ -134,35 +161,38 @@ impl State {
     fn custom_lens() -> impl Lens<State, ProxyValidationState> {
         Field::new(
             |data: &State| match &data.input {
-                ProxyInput::Custom(custom) => custom,
+                ProxyInput::Custom { uri } => uri,
                 _ => panic!("unexpected variant"),
             },
             |data: &mut State| match &mut data.input {
-                ProxyInput::Custom(custom) => custom,
+                ProxyInput::Custom { uri } => uri,
                 _ => panic!("unexpected variant"),
             },
         )
     }
 }
 
-impl ProxyInput {
-    fn display_error(&self) -> Option<ArcStr> {
-        match self {
-            ProxyInput::System(result) => result.as_ref().err().cloned(),
-            ProxyInput::Custom(result) => result.error(),
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            input: ProxyInput::Custom {
+                uri: ValidationState::new(String::default(), VALIDATE_PROXY.clone()),
+            },
+            target: None,
         }
     }
 }
 
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            input: ProxyInput::Custom(ValidationState::new(
-                String::default(),
-                VALIDATE_PROXY.clone(),
-            )),
-            target: None,
-        }
+fn system_display_uri(proxy: Result<&Proxy, &ArcStr>, target: Option<&Uri>) -> Arc<String> {
+    let uri = match (proxy, target) {
+        (Ok(proxy), Some(target)) => proxy.get_proxy(target),
+        (Ok(proxy), None) => proxy.get_default(),
+        _ => return Arc::default(),
+    };
+
+    match uri {
+        Some(uri) => Arc::new(uri.to_string()),
+        None => Arc::default(),
     }
 }
 

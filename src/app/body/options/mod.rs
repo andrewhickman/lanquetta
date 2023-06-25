@@ -134,11 +134,8 @@ impl OptionsTabState {
         }
     }
 
-    pub fn set_service_options(&mut self, options: ServiceOptions) {
-        if let Some(default_address) = options.default_address {
-            self.default_address.set_uri(&default_address);
-        }
-        self.verify_certs = options.verify_certs;
+    pub fn set_service_options(&mut self, options: &ServiceOptions) {
+        self.proxy.set_target(options.default_address.clone());
     }
 
     pub fn can_connect(&self) -> bool {

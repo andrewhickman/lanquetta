@@ -297,7 +297,7 @@ impl State {
             }
             TabState::Options(tab) => {
                 if tab.service() == service {
-                    tab.set_service_options(options.clone());
+                    tab.set_service_options(options);
                 }
             }
             TabState::Compile(_) => (),

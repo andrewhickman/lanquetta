@@ -87,10 +87,6 @@ impl AddressState {
         self.uri.result().ok()
     }
 
-    pub fn set_uri(&mut self, uri: &Uri) {
-        self.uri.with_text_mut(|t| *t = uri.to_string())
-    }
-
     pub fn request_state(&self) -> &RequestState {
         &self.request_state
     }
