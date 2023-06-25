@@ -1,7 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use anyhow::{Context, Result};
-use dirs_next::config_dir;
+use dirs::config_dir;
 use druid::{
     widget::{prelude::*, Controller},
     Data, Point, Size, TimerToken, Widget, WindowDesc, WindowHandle,

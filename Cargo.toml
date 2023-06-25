@@ -40,7 +40,7 @@ anyhow = "1.0.71"
 base64 = "0.21.2"
 crossbeam-queue = "0.3.8"
 dashmap = "5.4.0"
-dirs-next = "2.0.0"
+dirs = "5.0.1"
 druid = { version = "0.8.3", default-features = false, features = [
     "im",
     "svg",
