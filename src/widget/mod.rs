@@ -30,8 +30,12 @@ pub fn input<T>(placeholder: impl Into<String>) -> impl Widget<T>
 where
     T: Data + TextStorage + EditableText,
 {
+    let mut text_box = TextBox::new();
+    text_box.text_mut().borrow_mut().send_notification_on_return = true;
+    text_box.text_mut().borrow_mut().send_notification_on_cancel = true;
+
     theme::text_box_scope(
-        TextBox::new()
+       text_box
             .with_placeholder(placeholder.into())
             .expand_width(),
     )
@@ -48,8 +52,14 @@ pub fn code_area<T>(editable: bool) -> impl Widget<T>
 where
     T: Data + TextStorage + EditableText,
 {
+    let mut text_box = TextBox::multiline();
+    if editable {
+        text_box.text_mut().borrow_mut().send_notification_on_return = false;
+        text_box.text_mut().borrow_mut().send_notification_on_cancel = true;
+    }
+
     theme::text_box_scope(
-        TextBox::multiline()
+        text_box
             .with_font(theme::EDITOR_FONT)
             .with_editable(editable)
             .expand_width(),

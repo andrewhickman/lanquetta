@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use druid::{
     widget::{prelude::*, Controller},
-    LifeCycle, Point, Selector, WidgetExt, WidgetPod,
+    LifeCycle, Point, Selector, WidgetExt, WidgetPod, text::TextComponent,
 };
 use druid::{Data, Env, Widget};
 
@@ -275,6 +275,21 @@ impl<T, W> Controller<T, W> for FinishEditController
 where
     W: Widget<T>,
 {
+    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        if let Event::Notification(note) = event {
+            if note.is(TextComponent::RETURN) {
+                ctx.submit_command(FINISH_EDIT.to(self.field_id));
+                ctx.set_handled();
+            } else if note.is(TextComponent::CANCEL) {
+                ctx.submit_command(FINISH_EDIT.to(self.field_id));
+                ctx.resign_focus();
+                ctx.set_handled();
+            }
+        }
+
+        child.event(ctx, event, data, env)
+    }
+
     fn lifecycle(
         &mut self,
         child: &mut W,
