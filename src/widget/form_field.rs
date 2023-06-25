@@ -2,8 +2,9 @@ use std::fmt;
 use std::sync::Arc;
 
 use druid::{
+    text::TextComponent,
     widget::{prelude::*, Controller},
-    LifeCycle, Point, Selector, WidgetExt, WidgetPod, text::TextComponent,
+    LifeCycle, Point, Selector, WidgetExt, WidgetPod,
 };
 use druid::{Data, Env, Widget};
 
@@ -26,7 +27,6 @@ pub struct ValidationState<T, O, E> {
     validate: ValidationFn<T, O, E>,
     result: Result<O, E>,
     pristine: bool,
-    editing: bool,
 }
 
 pub struct FinishEditController {
@@ -82,10 +82,7 @@ where
         env: &Env,
     ) {
         if let Event::Command(command) = event {
-            if command.is(START_EDIT) {
-                data.editing = true;
-            } else if data.editing && command.is(FINISH_EDIT) {
-                data.editing = false;
+            if command.is(FINISH_EDIT) {
                 data.set_dirty();
             }
         }
@@ -168,7 +165,6 @@ impl<T, O, E> ValidationState<T, O, E> {
             result,
             validate,
             pristine: true,
-            editing: false,
         }
     }
 
@@ -179,7 +175,6 @@ impl<T, O, E> ValidationState<T, O, E> {
             result,
             validate,
             pristine: false,
-            editing: false,
         }
     }
 
@@ -246,7 +241,6 @@ where
         self.raw.same(&other.raw)
             && self.validate.same(&other.validate)
             && self.pristine.same(&other.pristine)
-            && self.editing.same(&other.editing)
     }
 }
 
@@ -260,7 +254,6 @@ where
             .field("raw", &self.raw)
             .field("result", &self.result)
             .field("pristine", &self.pristine)
-            .field("editing", &self.editing)
             .finish()
     }
 }

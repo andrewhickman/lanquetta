@@ -34,11 +34,7 @@ where
     text_box.text_mut().borrow_mut().send_notification_on_return = true;
     text_box.text_mut().borrow_mut().send_notification_on_cancel = true;
 
-    theme::text_box_scope(
-       text_box
-            .with_placeholder(placeholder.into())
-            .expand_width(),
-    )
+    theme::text_box_scope(text_box.with_placeholder(placeholder.into()).expand_width())
 }
 
 pub fn readonly_input<T>() -> impl Widget<T>
