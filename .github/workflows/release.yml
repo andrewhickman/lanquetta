@@ -35,12 +35,14 @@ jobs:
         run: cargo build --release
 
       - run: |
-          chmod +x target/release/lanquetta
-          tar czf lanquetta-${{ matrix.target }}.tar.gz target/release/lanquetta
+          chmod +x lanquetta
+          tar czf lanquetta-${{ matrix.target }}.tar.gz lanquetta
+        working-directory: target/release
         if: matrix.target == 'x86_64-unknown-linux-gnu'
 
       - run: |
-          7z a lanquetta-${{ matrix.target }}.zip target/release/lanquetta.exe
+          7z a lanquetta-${{ matrix.target }}.zip lanquetta.exe
+        working-directory: target/release
         if: matrix.target == 'x86_64-pc-windows-msvc'
 
       - name: Upload binary
@@ -48,7 +50,7 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         with:
           name: lanquetta-${{ matrix.target }}
-          path: lanquetta-${{ matrix.target }}.tar.gz
+          path: target/release/lanquetta-${{ matrix.target }}.tar.gz
           retention-days: 3
 
       - name: Upload binary
@@ -56,7 +58,7 @@ jobs:
         if: matrix.target == 'x86_64-pc-windows-msvc'
         with:
           name: lanquetta-${{ matrix.target }}
-          path: lanquetta-${{ matrix.target }}.zip
+          path: target/release/lanquetta-${{ matrix.target }}.zip
           retention-days: 3
 
   release:
