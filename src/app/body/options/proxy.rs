@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use druid::{
     lens::Field,
-    widget::{Checkbox, Flex, ViewSwitcher},
+    widget::{Checkbox, CrossAxisAlignment, Flex, Label, ViewSwitcher},
     ArcStr, Data, Env, Insets, Lens, Widget, WidgetExt,
 };
 use http::Uri;
@@ -12,13 +12,19 @@ use crate::{
     error::fmt_err,
     lens::{self, Project},
     proxy::{Proxy, ProxyKind},
-    theme,
-    widget::{error_label, input, readonly_input, FormField, ValidationFn, ValidationState},
+    theme::{self, font::HEADER_TWO},
+    widget::{
+        error_label, expander, input, readonly_input, ExpanderData, FormField, Icon, ValidationFn,
+        ValidationState,
+    },
 };
 
 #[derive(Clone, Debug, Data, Lens)]
 pub struct State {
     input: ProxyInput,
+    expanded: bool,
+    verify_certs: bool,
+    auth: String,
     #[data(ignore)]
     #[lens(ignore)]
     target: Option<Uri>,
@@ -42,8 +48,14 @@ pub fn build() -> impl Widget<State> {
         |state: &State, _: &Env| state.is_system(),
         |&is_system: &bool, _: &State, _: &Env| {
             if is_system {
-                readonly_input()
-                    .lens(Project::new(|state: &State| state.system_display_url()))
+                Flex::row()
+                    .with_flex_child(
+                        readonly_input()
+                            .lens(Project::new(|state: &State| state.system_display_url())),
+                        1.0,
+                    )
+                    .with_spacer(theme::BODY_SPACER)
+                    .with_child(Icon::refresh().button(|_, data: &mut State, _| data.refresh()))
                     .boxed()
             } else {
                 FormField::text_box(input("http://localhost:80"))
@@ -57,18 +69,39 @@ pub fn build() -> impl Widget<State> {
         .expand_width()
         .lens(lens::Project::new(|data: &State| data.display_error()));
 
-    Flex::column()
-        .with_child(
-            theme::check_box_scope(Checkbox::new("Use system proxy"))
-                .lens(State::system_toggle_lens()),
-        )
-        .with_spacer(theme::BODY_SPACER)
-        .with_child(textbox)
-        .with_child(error)
+    expander::new(
+        Label::new("Proxy settings").with_font(HEADER_TWO),
+        Flex::column()
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(
+                theme::check_box_scope(Checkbox::new("Use system proxy"))
+                    .lens(State::system_toggle_lens()),
+            )
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(textbox)
+            .with_child(error)
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(
+                theme::check_box_scope(Checkbox::new("Enable certificate verification for proxy"))
+                    .lens(State::verify_certs),
+            )
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(
+                Label::new("Proxy authorization")
+                    .with_font(theme::font::HEADER_TWO)
+                    .align_left(),
+            )
+            .with_spacer(theme::BODY_SPACER)
+            .with_child(input("Basic YWxhZGRpbjpvcGVuc2VzYW1l").lens(State::auth))
+            .cross_axis_alignment(CrossAxisAlignment::Start),
+    )
 }
 
 impl State {
     pub fn new(proxy: Proxy, target: Option<Uri>) -> State {
+        let verify_certs = proxy.verify_certs();
+        let auth = proxy.auth();
+
         let input = match proxy.kind() {
             ProxyKind::None => ProxyInput::Custom {
                 uri: ValidationState::new(String::default(), VALIDATE_PROXY.clone()),
@@ -82,7 +115,13 @@ impl State {
             },
         };
 
-        State { input, target }
+        State {
+            input,
+            target,
+            verify_certs,
+            expanded: false,
+            auth,
+        }
     }
 
     pub fn get(&self) -> Proxy {
@@ -93,9 +132,21 @@ impl State {
     }
 
     pub fn set_target(&mut self, uri: Option<Uri>) {
-        self.target = uri;
-        if let ProxyInput::System { proxy, display } = &mut self.input {
-            *display = system_display_uri(proxy.as_ref(), self.target.as_ref());
+        if self.target != uri {
+            self.target = uri;
+            if let ProxyInput::System { proxy, display } = &mut self.input {
+                *display = system_display_uri(proxy.as_ref(), self.target.as_ref());
+            }
+        }
+    }
+
+    fn refresh(&mut self) {
+        match &mut self.input {
+            ProxyInput::System { proxy, display } => {
+                *proxy = Proxy::system().map_err(|err| fmt_err(&err));
+                *display = system_display_uri(proxy.as_ref(), self.target.as_ref());
+            }
+            ProxyInput::Custom { .. } => (),
         }
     }
 
@@ -179,7 +230,20 @@ impl Default for State {
                 uri: ValidationState::new(String::default(), VALIDATE_PROXY.clone()),
             },
             target: None,
+            expanded: false,
+            verify_certs: true,
+            auth: String::default(),
         }
+    }
+}
+
+impl ExpanderData for State {
+    fn expanded(&self, _: &Env) -> bool {
+        self.expanded
+    }
+
+    fn toggle_expanded(&mut self, _: &Env) {
+        self.expanded = !self.expanded
     }
 }
 

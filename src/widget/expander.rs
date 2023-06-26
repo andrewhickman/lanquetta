@@ -10,9 +10,11 @@ use crate::{
 };
 
 pub trait ExpanderData: Data {
-    fn buttons(&self) -> Vec<(Icon, Box<dyn FnMut(&mut EventCtx, &mut Self, &Env)>)>;
     fn expanded(&self, env: &Env) -> bool;
     fn toggle_expanded(&mut self, env: &Env);
+    fn buttons(&self) -> Vec<(Icon, Box<dyn FnMut(&mut EventCtx, &mut Self, &Env)>)> {
+        vec![]
+    }
 }
 
 struct Expander<T> {

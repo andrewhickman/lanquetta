@@ -61,7 +61,6 @@ pub fn build_body() -> impl Widget<OptionsTabState> {
             .with_child(Label::new("Authorization hook").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
             .with_child(auth::build().lens(OptionsTabState::auth))
-            .with_child(Label::new("Proxy").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
             .with_child(proxy::build().lens(OptionsTabState::proxy))
             .cross_axis_alignment(CrossAxisAlignment::Start)

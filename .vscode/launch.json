@@ -6,20 +6,18 @@
     "configurations": [
         {
             "name": "(Windows) Launch",
-            "type": "cppvsdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "target/debug/lanquetta.exe",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false
+            "env": {}
         },
         {
             "name": "(Windows) Attach",
-            "type": "cppvsdbg",
+            "type": "lldb",
             "request": "attach",
-            "processId": "${command:pickProcess}",
+            "pid": "${command:pickProcess}",
         }
     ]
 }

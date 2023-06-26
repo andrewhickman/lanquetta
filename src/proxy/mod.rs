@@ -40,29 +40,35 @@ pub enum ProxyKind {
 
 impl Proxy {
     pub fn none() -> Self {
-        Proxy {
-            inner: None,
-        }
+        Proxy { inner: None }
     }
 
     pub fn system() -> Result<Self> {
-        todo!()
+        Ok(Proxy { inner: None })
     }
 
-    pub fn custom(uri: Uri) -> Self {
-        todo!()
+    pub fn custom(_: Uri) -> Self {
+        Proxy { inner: None }
     }
 
     pub fn kind(&self) -> ProxyKind {
-        todo!()
+        ProxyKind::None
     }
 
-    pub fn get_proxy(&self, target: &Uri) -> Option<Uri> {
-        todo!()
+    pub fn get_proxy(&self, _: &Uri) -> Option<Uri> {
+        None
     }
 
     pub fn get_default(&self) -> Option<Uri> {
-        todo!()
+        None
+    }
+
+    pub fn verify_certs(&self) -> bool {
+        false
+    }
+
+    pub fn auth(&self) -> String {
+        String::default()
     }
 }
 
@@ -81,6 +87,6 @@ impl From<ProxyKind> for Proxy {
 
 impl From<Proxy> for ProxyKind {
     fn from(proxy: Proxy) -> Self {
-        todo!()
+        proxy.kind()
     }
 }
