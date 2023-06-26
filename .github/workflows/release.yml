@@ -1,7 +1,7 @@
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   build:
@@ -11,10 +11,8 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary: lanquetta
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary: lanquetta.exe
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install packages
@@ -33,19 +31,33 @@ jobs:
         with:
           submodules: true
 
-      - run: cargo fetch
-
       - name: Release build
         run: cargo build --release
 
-      - run: chmod +x target/release/${{ matrix.binary }}
+      - run: |
+          chmod +x target/release/lanquetta
+          tar czf lanquetta-${{ matrix.target }}.tar.gz target/release/lanquetta
         if: matrix.target == 'x86_64-unknown-linux-gnu'
+
+      - run: |
+          7z a lanquetta-${{ matrix.target }}.zip target/release/lanquetta.exe
+        if: matrix.target == 'x86_64-pc-windows-msvc'
 
       - name: Upload binary
         uses: actions/upload-artifact@v3
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         with:
-          name: lanqetta-${{ matrix.target }}
-          path: target/release/${{ matrix.binary }}
+          name: lanquetta-${{ matrix.target }}
+          path: lanquetta-${{ matrix.target }}.tar.gz
+          retention-days: 3
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        with:
+          name: lanquetta-${{ matrix.target }}
+          path: lanquetta-${{ matrix.target }}.zip
+          retention-days: 3
 
   release:
     name: Release
@@ -53,8 +65,16 @@ jobs:
     needs: build
     permissions: write-all
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download Linux binary
+        uses: actions/download-artifact@v3
+        with:
+          name: lanquetta-x86_64-unknown-linux-gnu
 
-      - run: gh release create --repo ${{ github.repository }} ${{ github.ref_name }} --title ${{ github.ref_name }} --generate-notes ./lanqetta-x86_64-pc-windows-msvc/lanquetta.exe ./lanqetta-x86_64-unknown-linux-gnu/lanquetta
+      - name: Download Windows binary
+        uses: actions/download-artifact@v3
+        with:
+          name: lanquetta-x86_64-pc-windows-msvc
+
+      - run: gh release create --repo ${{ github.repository }} ${{ github.ref_name }} --title ${{ github.ref_name }} --generate-notes lanquetta-x86_64-unknown-linux-gnu.tar.gz lanquetta-x86_64-pc-windows-msvc.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
