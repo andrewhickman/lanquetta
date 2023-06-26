@@ -51,7 +51,7 @@ druid = { version = "0.8.3", default-features = false, features = [
 fs-err = "2.9.0"
 futures = "0.3.28"
 http = "0.2.9"
-hyper = "0.14.26"
+hyper = "0.14.27"
 hyper-rustls = { version = "0.24.0", features = ["http2"] }
 iter-set = "2.0.2"
 im = { version = "15.1.0", features = ["serde"] }
