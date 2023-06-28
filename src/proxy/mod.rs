@@ -44,11 +44,11 @@ impl Proxy {
     }
 
     pub fn system() -> Result<Self> {
-        Ok(Proxy { inner: None })
+        todo!()
     }
 
     pub fn custom(_: Uri) -> Self {
-        Proxy { inner: None }
+        todo!()
     }
 
     pub fn kind(&self) -> ProxyKind {
