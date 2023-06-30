@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-type AddressValidationState = ValidationState<String, Uri, ArcStr>;
+type AddressValidationState = ValidationState<String, Uri>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct AddressState {
@@ -177,7 +177,7 @@ where
     }
 }
 
-static VALIDATE_URI: Lazy<ValidationFn<String, Uri, ArcStr>> = Lazy::new(|| Arc::new(validate_uri));
+static VALIDATE_URI: Lazy<ValidationFn<String, Uri>> = Lazy::new(|| Arc::new(validate_uri));
 
 #[allow(clippy::ptr_arg)]
 fn validate_uri(s: &String) -> Result<Uri, ArcStr> {

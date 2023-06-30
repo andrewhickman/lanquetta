@@ -3,7 +3,7 @@ use std::sync::Arc;
 use druid::{
     piet::TextStorage,
     widget::{prelude::*, Controller, CrossAxisAlignment, Flex},
-    ArcStr, Data, Insets, Lens, Point, Widget, WidgetExt as _, WidgetPod,
+    Data, Insets, Lens, Point, Widget, WidgetExt as _, WidgetPod,
 };
 use prost_reflect::{DynamicMessage, MessageDescriptor, ReflectMessage};
 use tonic::metadata::MetadataMap;
@@ -17,7 +17,7 @@ use crate::{
     widget::{code_area, error_label, FormField, ValidationState, FINISH_EDIT},
 };
 
-type RequestValidationState = ValidationState<JsonText, grpc::Request, ArcStr>;
+type RequestValidationState = ValidationState<JsonText, grpc::Request>;
 
 #[derive(Debug, Clone, Data, Lens)]
 pub(in crate::app) struct State {

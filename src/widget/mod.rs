@@ -11,8 +11,8 @@ use std::mem;
 
 use druid::{
     text::{EditableText, TextStorage},
-    widget::{Label, LineBreaking, Maybe, Spinner, TextBox, ViewSwitcher},
-    ArcStr, Data, Env, Insets, TextAlignment, Widget, WidgetExt,
+    widget::{Either, Label, LineBreaking, Maybe, Spinner, TextBox, ViewSwitcher},
+    ArcStr, Data, Env, Insets, TextAlignment, UnitPoint, Widget, WidgetExt,
 };
 
 use crate::theme;
@@ -21,7 +21,10 @@ pub use self::{
     editable_list::EditableList,
     empty::{empty, Empty},
     expander::ExpanderData,
-    form_field::{FinishEditController, FormField, ValidationFn, ValidationState, FINISH_EDIT},
+    form_field::{
+        FinishEditController, FormField, ValidationFn, ValidationState, ERROR_MESSAGE, FINISH_EDIT,
+        START_EDIT,
+    },
     icon::Icon,
     tabs::{TabId, TabLabelState, TabsData, TabsDataChange},
 };
@@ -105,10 +108,32 @@ pub fn error_label(insets: impl Into<Insets>) -> impl Widget<Option<ArcStr>> {
             theme::error_label_scope(
                 Label::new(|data: &ArcStr, _: &Env| data.clone())
                     .with_text_alignment(TextAlignment::Start)
-                    .with_line_break_mode(LineBreaking::WordWrap),
+                    .with_line_break_mode(LineBreaking::WordWrap)
+                    .align_vertical(UnitPoint::CENTER),
             )
             .padding(insets)
         },
         empty,
+    )
+}
+
+pub fn env_error_label<T>(insets: impl Into<Insets>) -> impl Widget<T>
+where
+    T: Data,
+{
+    let insets = insets.into();
+    Either::new(
+        |_: &T, env: &Env| env.try_get(ERROR_MESSAGE).is_ok(),
+        theme::error_label_scope(
+            Label::new(|_: &T, env: &Env| {
+                env.try_get(ERROR_MESSAGE)
+                    .unwrap_or_else(|_| ArcStr::from(""))
+            })
+            .with_text_alignment(TextAlignment::Start)
+            .with_line_break_mode(LineBreaking::WordWrap)
+            .align_vertical(UnitPoint::LEFT),
+        )
+        .padding(insets),
+        Empty,
     )
 }

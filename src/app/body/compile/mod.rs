@@ -28,7 +28,7 @@ pub struct CompileOptions {
     includes: Arc<Vec<PathBuf>>,
 }
 
-type PathValidationState = ValidationState<PathEntry, PathBuf, ArcStr>;
+type PathValidationState = ValidationState<PathEntry, PathBuf>;
 
 const ADD_PATH: Selector<Vec<FileInfo>> = Selector::new("app.body.compile.add-path");
 const DELETE_PATH: Selector = Selector::new("app.body.compile.delete-path");
@@ -140,7 +140,7 @@ impl PathEntry {
     }
 }
 
-static VALIDATE_INCLUDE: Lazy<ValidationFn<PathEntry, PathBuf, ArcStr>> =
+static VALIDATE_INCLUDE: Lazy<ValidationFn<PathEntry, PathBuf>> =
     Lazy::new(|| Arc::new(validate_include));
 
 fn validate_include(entry: &PathEntry) -> Result<PathBuf, ArcStr> {

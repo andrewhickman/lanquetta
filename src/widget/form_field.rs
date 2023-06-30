@@ -4,16 +4,18 @@ use std::sync::Arc;
 use druid::{
     text::TextComponent,
     widget::{prelude::*, Controller},
-    LifeCycle, Point, Selector, WidgetExt, WidgetPod,
+    ArcStr, Key, LifeCycle, Point, Selector, WidgetExt, WidgetPod,
 };
 use druid::{Data, Env, Widget};
 
 use crate::theme;
 
-pub const START_EDIT: Selector = Selector::new("app.start-edit");
-pub const FINISH_EDIT: Selector = Selector::new("app.finish-edit");
+pub const START_EDIT: Selector = Selector::new("app.form-field.start-edit");
+pub const FINISH_EDIT: Selector = Selector::new("app.form-field.finish-edit");
+pub const REFRESH: Selector = Selector::new("app.form-field.refresh");
+pub const ERROR_MESSAGE: Key<ArcStr> = Key::new("app.form-field.error-message");
 
-pub type ValidationFn<T, O, E> = Arc<dyn Fn(&T) -> Result<O, E> + Send + Sync>;
+pub type ValidationFn<T, O> = Arc<dyn Fn(&T) -> Result<O, ArcStr> + Send + Sync>;
 
 pub struct FormField<T> {
     child: WidgetPod<T, Box<dyn Widget<T>>>,
@@ -22,10 +24,10 @@ pub struct FormField<T> {
 }
 
 #[derive(Clone)]
-pub struct ValidationState<T, O, E> {
+pub struct ValidationState<T, O> {
     raw: T,
-    validate: ValidationFn<T, O, E>,
-    result: Result<O, E>,
+    validate: ValidationFn<T, O>,
+    result: Result<O, ArcStr>,
     pristine: bool,
 }
 
@@ -55,12 +57,18 @@ impl<T> FormField<T> {
         FormField::new(id, child.controller(FinishEditController::new(id)))
     }
 
-    fn update_env<O, E>(&mut self, data: &ValidationState<T, O, E>, env: &Env) -> bool {
+    fn update_env<O>(&mut self, data: &ValidationState<T, O>, env: &Env) -> bool {
         if data.is_pristine_or_valid() != self.env.is_none() {
-            self.env = if data.is_pristine_or_valid() {
+            self.env = if data.pristine {
                 None
+            } else if let Err(err) = data.result() {
+                Some(
+                    env.clone()
+                        .adding(theme::INVALID, true)
+                        .adding(ERROR_MESSAGE, err.clone()),
+                )
             } else {
-                Some(env.clone().adding(theme::INVALID, true))
+                None
             };
             true
         } else {
@@ -69,21 +77,23 @@ impl<T> FormField<T> {
     }
 }
 
-impl<T, O, E> Widget<ValidationState<T, O, E>> for FormField<T>
+impl<T, O> Widget<ValidationState<T, O>> for FormField<T>
 where
     T: Data,
-    ValidationState<T, O, E>: Clone + 'static,
+    ValidationState<T, O>: Clone + 'static,
 {
     fn event(
         &mut self,
         ctx: &mut EventCtx,
         event: &Event,
-        data: &mut ValidationState<T, O, E>,
+        data: &mut ValidationState<T, O>,
         env: &Env,
     ) {
         if let Event::Command(command) = event {
             if command.is(FINISH_EDIT) {
                 data.set_dirty();
+            } else if command.is(REFRESH) {
+                data.refresh();
             }
         }
 
@@ -97,7 +107,7 @@ where
         &mut self,
         ctx: &mut LifeCycleCtx,
         event: &LifeCycle,
-        data: &ValidationState<T, O, E>,
+        data: &ValidationState<T, O>,
         env: &Env,
     ) {
         if let LifeCycle::WidgetAdded = event {
@@ -112,8 +122,8 @@ where
     fn update(
         &mut self,
         ctx: &mut UpdateCtx,
-        _: &ValidationState<T, O, E>,
-        data: &ValidationState<T, O, E>,
+        _: &ValidationState<T, O>,
+        data: &ValidationState<T, O>,
         env: &Env,
     ) {
         if ctx.env_changed() {
@@ -136,7 +146,7 @@ where
         &mut self,
         ctx: &mut LayoutCtx,
         bc: &BoxConstraints,
-        data: &ValidationState<T, O, E>,
+        data: &ValidationState<T, O>,
         env: &Env,
     ) -> druid::Size {
         bc.debug_check("FormField");
@@ -147,7 +157,7 @@ where
         size
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &ValidationState<T, O, E>, env: &Env) {
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &ValidationState<T, O>, env: &Env) {
         self.child
             .paint(ctx, &data.raw, self.env.as_ref().unwrap_or(env))
     }
@@ -157,8 +167,8 @@ where
     }
 }
 
-impl<T, O, E> ValidationState<T, O, E> {
-    pub fn new(raw: T, validate: ValidationFn<T, O, E>) -> Self {
+impl<T, O> ValidationState<T, O> {
+    pub fn new(raw: T, validate: ValidationFn<T, O>) -> Self {
         let result = validate(&raw);
         ValidationState {
             raw,
@@ -168,7 +178,7 @@ impl<T, O, E> ValidationState<T, O, E> {
         }
     }
 
-    pub fn dirty(raw: T, validate: ValidationFn<T, O, E>) -> Self {
+    pub fn dirty(raw: T, validate: ValidationFn<T, O>) -> Self {
         let result = validate(&raw);
         ValidationState {
             raw,
@@ -178,7 +188,7 @@ impl<T, O, E> ValidationState<T, O, E> {
         }
     }
 
-    pub fn result(&self) -> Result<&O, &E> {
+    pub fn result(&self) -> Result<&O, &ArcStr> {
         self.result.as_ref()
     }
 
@@ -187,7 +197,7 @@ impl<T, O, E> ValidationState<T, O, E> {
     }
 }
 
-impl<T, O, E> ValidationState<T, O, E> {
+impl<T, O> ValidationState<T, O> {
     pub fn is_valid(&self) -> bool {
         self.result.is_ok()
     }
@@ -199,17 +209,12 @@ impl<T, O, E> ValidationState<T, O, E> {
     pub fn set_dirty(&mut self) {
         self.pristine = false;
     }
-}
 
-impl<T, O, E> ValidationState<T, O, E>
-where
-    E: Clone,
-{
-    pub fn error(&self) -> Option<E> {
+    pub fn error(&self) -> Option<ArcStr> {
         self.result().err().cloned()
     }
 
-    pub fn display_error(&self) -> Option<E> {
+    pub fn display_error(&self) -> Option<ArcStr> {
         if self.pristine {
             None
         } else {
@@ -218,7 +223,7 @@ where
     }
 }
 
-impl<T, O, E> ValidationState<T, O, E>
+impl<T, O> ValidationState<T, O>
 where
     T: Data,
 {
@@ -226,13 +231,17 @@ where
         let old = self.raw.clone();
         let value = f(&mut self.raw);
         if !self.raw.same(&old) {
-            self.result = (self.validate)(&self.raw);
+            self.refresh();
         }
         value
     }
+
+    pub fn refresh(&mut self) {
+        self.result = (self.validate)(&self.raw);
+    }
 }
 
-impl<T, O, E> Data for ValidationState<T, O, E>
+impl<T, O> Data for ValidationState<T, O>
 where
     T: Data,
     Self: Clone + 'static,
@@ -244,10 +253,10 @@ where
     }
 }
 
-impl<T, O, E> fmt::Debug for ValidationState<T, O, E>
+impl<T, O> fmt::Debug for ValidationState<T, O>
 where
     T: fmt::Debug,
-    Result<O, E>: fmt::Debug,
+    O: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ValidationState")

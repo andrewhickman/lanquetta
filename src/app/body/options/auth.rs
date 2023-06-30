@@ -40,7 +40,7 @@ struct AuthOptionsController {
     updates: UpdateQueue<AuthOptionsController, State>,
 }
 
-type CommandValidationState = ValidationState<String, Option<Arc<AuthorizationHook>>, ArcStr>;
+type CommandValidationState = ValidationState<String, Option<Arc<AuthorizationHook>>>;
 
 pub fn build() -> impl Widget<State> {
     let id = WidgetId::next();
@@ -194,7 +194,7 @@ where
     }
 }
 
-static VALIDATE_COMMAND: Lazy<ValidationFn<String, Option<Arc<AuthorizationHook>>, ArcStr>> =
+static VALIDATE_COMMAND: Lazy<ValidationFn<String, Option<Arc<AuthorizationHook>>>> =
     Lazy::new(|| Arc::new(validate_hook));
 
 fn validate_hook(s: &String) -> Result<Option<Arc<AuthorizationHook>>, ArcStr> {

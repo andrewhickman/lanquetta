@@ -6,7 +6,7 @@ use base64::{
 };
 use druid::{
     widget::{prelude::*, CrossAxisAlignment, Flex, List},
-    ArcStr, Lens, Point, UnitPoint, WidgetExt, WidgetPod,
+    ArcStr, Insets, Lens, Point, WidgetExt, WidgetPod,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -14,17 +14,14 @@ use tonic::metadata::{
     AsciiMetadataKey, AsciiMetadataValue, BinaryMetadataKey, BinaryMetadataValue, MetadataMap,
 };
 
-use crate::{
-    lens,
-    widget::{
-        error_label, input, readonly_input, EditableList, FinishEditController, FormField,
-        ValidationFn, ValidationState,
-    },
+use crate::widget::{
+    env_error_label, input, readonly_input, EditableList, FinishEditController, FormField,
+    ValidationFn, ValidationState, ERROR_MESSAGE,
 };
 
 pub type State = Arc<Vec<Entry>>;
 
-type EntryValidationState = ValidationState<EditableEntry, ParsedEntry, ArcStr>;
+type EntryValidationState = ValidationState<EditableEntry, ParsedEntry>;
 
 #[derive(Debug, Default, Clone, Data, Lens)]
 pub struct EditableState {
@@ -37,7 +34,7 @@ pub struct Entry {
     value: Arc<String>,
 }
 
-#[derive(Debug, Default, Clone, Data, Lens)]
+#[derive(Debug, Default, Clone, Data)]
 pub struct EditableEntry {
     key: Arc<String>,
     value: Arc<String>,
@@ -86,40 +83,33 @@ fn build_row() -> impl Widget<Entry> {
 
 fn build_editable_row() -> impl Widget<EntryValidationState> {
     let form_id = WidgetId::next();
-    let form_field = FormField::new(
+    FormField::new(
         form_id,
-        Flex::row()
-            .cross_axis_alignment(CrossAxisAlignment::Fill)
-            .with_flex_child(
+        EditableRowLayout {
+            key: WidgetPod::new(
                 input("key")
                     .controller(FinishEditController::new(form_id))
-                    .lens(EditableEntry::key),
-                0.33,
-            )
-            .with_spacer(GRID_NARROW_SPACER)
-            .with_flex_child(
+                    .boxed(),
+            ),
+            value: WidgetPod::new(
                 input("value")
                     .controller(FinishEditController::new(form_id))
-                    .lens(EditableEntry::value),
-                0.67,
+                    .boxed(),
             ),
-    );
-
-    let error = error_label((GRID_NARROW_SPACER, 0.0, 0.0, 0.0))
-        .align_vertical(UnitPoint::CENTER)
-        .lens(lens::Project::new(|data: &EntryValidationState| {
-            data.display_error()
-        }));
-
-    Flex::row()
-        .cross_axis_alignment(CrossAxisAlignment::Fill)
-        .with_flex_child(form_field, 1.0)
-        .with_child(error)
+            error: WidgetPod::new(env_error_label(Insets::ZERO).boxed()),
+        },
+    )
 }
 
 struct EditableLayout {
     metadata: WidgetPod<EditableState, Box<dyn Widget<EditableState>>>,
     add_button: WidgetPod<EditableState, Box<dyn Widget<EditableState>>>,
+}
+
+struct EditableRowLayout {
+    key: WidgetPod<Arc<String>, Box<dyn Widget<Arc<String>>>>,
+    value: WidgetPod<Arc<String>, Box<dyn Widget<Arc<String>>>>,
+    error: WidgetPod<(), Box<dyn Widget<()>>>,
 }
 
 pub fn state_from_tonic(metadata: MetadataMap) -> State {
@@ -258,13 +248,95 @@ impl Widget<EditableState> for EditableLayout {
     }
 }
 
+impl Widget<EditableEntry> for EditableRowLayout {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut EditableEntry, env: &Env) {
+        self.key.event(ctx, event, &mut data.key, env);
+        self.value.event(ctx, event, &mut data.value, env);
+        if event.should_propagate_to_hidden() || env.try_get(ERROR_MESSAGE).is_ok() {
+            self.error.event(ctx, event, &mut (), env);
+        }
+    }
+
+    fn lifecycle(
+        &mut self,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &EditableEntry,
+        env: &Env,
+    ) {
+        self.key.lifecycle(ctx, event, &data.key, env);
+        self.value.lifecycle(ctx, event, &data.value, env);
+        if event.should_propagate_to_hidden() || env.try_get(ERROR_MESSAGE).is_ok() {
+            self.error.lifecycle(ctx, event, &(), env);
+        }
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, _: &EditableEntry, data: &EditableEntry, env: &Env) {
+        self.key.update(ctx, &data.key, env);
+        self.value.update(ctx, &data.value, env);
+        if ctx.env_key_changed(&ERROR_MESSAGE) {
+            self.error.update(ctx, &(), env);
+        }
+    }
+
+    fn layout(
+        &mut self,
+        ctx: &mut LayoutCtx,
+        bc: &BoxConstraints,
+        data: &EditableEntry,
+        env: &Env,
+    ) -> Size {
+        let key_width = ((bc.max().width - GRID_NARROW_SPACER * 2.0).max(0.0) / 3.0).floor();
+
+        let key_bc = BoxConstraints::new(
+            Size::new(key_width, bc.min().height),
+            Size::new(key_width, bc.max().height),
+        );
+        let key_size = self.key.layout(ctx, &key_bc, &data.key, env);
+        self.key.set_origin(ctx, Point::ZERO);
+
+        let remaining_width = bc.max().width - GRID_NARROW_SPACER - key_size.width;
+
+        let value_bc = if env.try_get(ERROR_MESSAGE).is_ok() {
+            let error_bc = BoxConstraints::new(
+                Size::new(100.0, key_size.height),
+                Size::new(remaining_width - GRID_NARROW_SPACER, key_size.height),
+            );
+            let error_size = self.error.layout(ctx, &error_bc, &(), env);
+            self.error
+                .set_origin(ctx, Point::new(bc.max().width - error_size.width, 0.0));
+
+            BoxConstraints::tight(Size::new(
+                remaining_width - GRID_NARROW_SPACER - error_size.width,
+                key_size.height,
+            ))
+        } else {
+            BoxConstraints::tight(Size::new(remaining_width, key_size.height))
+        };
+
+        self.value.layout(ctx, &value_bc, &data.value, env);
+        self.value
+            .set_origin(ctx, Point::new(key_size.width + GRID_NARROW_SPACER, 0.0));
+
+        Size::new(bc.max().width, key_size.height)
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &EditableEntry, env: &Env) {
+        self.key.paint(ctx, &data.key, env);
+        self.value.paint(ctx, &data.value, env);
+        if env.try_get(ERROR_MESSAGE).is_ok() {
+            self.error.paint(ctx, &(), env);
+        }
+    }
+}
+
 impl Data for ParsedEntry {
     fn same(&self, other: &Self) -> bool {
         self == other
     }
 }
 
-static VALIDATE_ENTRY: Lazy<ValidationFn<EditableEntry, ParsedEntry, ArcStr>> =
+static VALIDATE_ENTRY: Lazy<ValidationFn<EditableEntry, ParsedEntry>> =
     Lazy::new(|| Arc::new(validate_entry));
 
 fn validate_entry(raw: &EditableEntry) -> Result<ParsedEntry, ArcStr> {
