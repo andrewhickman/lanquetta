@@ -487,7 +487,7 @@ dependencies = [
 [[package]]
 name = "druid"
 version = "0.8.3"
-source = "git+https://github.com/andrewhickman/druid?branch=master#18bcd140b832e1711d48a05193f708f164fb0af7"
+source = "git+https://github.com/andrewhickman/druid?branch=master#44e35f65b5dfdb9d83384665bb1d88ba63670d0a"
 dependencies = [
  "console_error_panic_hook",
  "druid-derive",
@@ -512,7 +512,7 @@ dependencies = [
 [[package]]
 name = "druid-derive"
 version = "0.5.1"
-source = "git+https://github.com/andrewhickman/druid?branch=master#18bcd140b832e1711d48a05193f708f164fb0af7"
+source = "git+https://github.com/andrewhickman/druid?branch=master#44e35f65b5dfdb9d83384665bb1d88ba63670d0a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -522,7 +522,7 @@ dependencies = [
 [[package]]
 name = "druid-shell"
 version = "0.8.3"
-source = "git+https://github.com/andrewhickman/druid?branch=master#18bcd140b832e1711d48a05193f708f164fb0af7"
+source = "git+https://github.com/andrewhickman/druid?branch=master#44e35f65b5dfdb9d83384665bb1d88ba63670d0a"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",

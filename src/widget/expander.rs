@@ -15,7 +15,7 @@ pub trait ExpanderData: Data {
     fn toggle_expanded(&mut self, env: &Env);
 }
 
-struct ExpanderHeader<T> {
+struct Expander<T> {
     expanded: WidgetPod<T, Box<dyn Widget<T>>>,
     label: WidgetPod<T, Box<dyn Widget<T>>>,
     buttons: Vec<WidgetPod<T, Box<dyn Widget<T>>>>,
@@ -25,7 +25,7 @@ pub fn new<T>(label: impl Widget<T> + 'static, child: impl Widget<T> + 'static) 
 where
     T: ExpanderData,
 {
-    let header = ExpanderHeader::new(label.boxed());
+    let header = Expander::new(label.boxed());
 
     let child = Either::new(ExpanderData::expanded, child, Empty);
 
@@ -35,12 +35,12 @@ where
         .with_child(child)
 }
 
-impl<T> ExpanderHeader<T>
+impl<T> Expander<T>
 where
     T: ExpanderData,
 {
     fn new(label: Box<dyn Widget<T>>) -> Self {
-        ExpanderHeader {
+        Expander {
             expanded: WidgetPod::new(
                 Either::new(
                     ExpanderData::expanded,
@@ -55,7 +55,7 @@ where
     }
 }
 
-impl<T> Widget<T> for ExpanderHeader<T>
+impl<T> Widget<T> for Expander<T>
 where
     T: ExpanderData,
 {
