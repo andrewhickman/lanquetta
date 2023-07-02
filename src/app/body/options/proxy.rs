@@ -1,19 +1,17 @@
 use std::sync::Arc;
 
 use druid::{
-    widget::{Checkbox, CrossAxisAlignment, Flex, Label, ViewSwitcher},
-    ArcStr, Data, Env, EventCtx, Insets, Lens, Widget, WidgetExt, WidgetId,
+    widget::{prelude::*, Checkbox, Controller, CrossAxisAlignment, Flex, Label, ViewSwitcher},
+    ArcStr, Data, EventCtx, Insets, Lens, WidgetExt, WidgetId,
 };
 use http::Uri;
 use once_cell::sync::Lazy;
 
 use crate::{
-    error::fmt_err,
-    lens,
-    proxy::{Proxy, ProxyKind},
+    proxy::Proxy,
     theme::{self, font::HEADER_TWO},
     widget::{
-        error_label, expander, input, readonly_input, ExpanderData, FinishEditController,
+        env_error_label, expander, input, readonly_input, ExpanderData, FinishEditController,
         FormField, Icon, ValidationFn, ValidationState, REFRESH,
     },
 };
@@ -27,7 +25,7 @@ pub struct State {
     target: Option<Uri>,
 }
 
-#[derive(Clone, Debug, Data, Lens)]
+#[derive(Default, Clone, Debug, Data, Lens)]
 struct ProxyInput {
     uri: String,
     verify_certs: bool,
@@ -35,13 +33,15 @@ struct ProxyInput {
     auth: String,
 }
 
-type ProxyValidationState = ValidationState<ProxyInput, Proxy, ArcStr>;
+type ProxyValidationState = ValidationState<ProxyInput, Proxy>;
+
+struct ProxyController;
 
 pub fn build() -> impl Widget<State> {
     let form_field = WidgetId::next();
 
     let textbox = ViewSwitcher::new(
-        |state: &ProxyInput, _: &Env| state.system,
+        |data: &ProxyInput, _: &Env| data.system,
         move |&system: &bool, _: &ProxyInput, _: &Env| {
             if system {
                 Flex::row()
@@ -61,12 +61,6 @@ pub fn build() -> impl Widget<State> {
         },
     );
 
-    let error = error_label(Insets::ZERO)
-        .expand_width()
-        .lens(lens::Project::new(|data: &ProxyValidationState| {
-            data.display_error()
-        }));
-
     expander::new(
         Label::new("Proxy settings").with_font(HEADER_TWO),
         FormField::new(
@@ -79,7 +73,7 @@ pub fn build() -> impl Widget<State> {
                 )
                 .with_spacer(theme::BODY_SPACER)
                 .with_child(textbox)
-                // .with_child(error)
+                .with_child(env_error_label(Insets::ZERO))
                 .with_spacer(theme::BODY_SPACER)
                 .with_child(
                     theme::check_box_scope(Checkbox::new(
@@ -111,21 +105,33 @@ impl State {
     }
 
     pub fn get(&self) -> Proxy {
-        self.input.result().unwrap_or_else(|| Proxy::none())
+        self.input
+            .result()
+            .cloned()
+            .unwrap_or_else(|_| Proxy::none())
     }
 
     pub fn set_target(&mut self, uri: Option<Uri>) {
-        todo!()
+        self.target = uri;
+
+        if self.input.text().system {
+            let display = self.system_display_uri();
+            self.input.with_text_mut(|i| {
+                i.uri = display;
+            })
+        }
     }
 
-    fn refresh(&mut self) {
-        match &mut self.input {
-            ProxyInput::System { proxy, display } => {
-                *proxy = Proxy::system().map_err(|err| fmt_err(&err));
-                *display = system_display_uri(proxy.as_ref(), self.target.as_ref());
-            }
-            ProxyInput::Custom { .. } => (),
-        }
+    fn update_system_display_uri(&mut self) {
+        debug_assert!(self.input.text().system);
+        let display = self.system_display_uri();
+        self.input.with_text_mut(|i| {
+            i.uri = display;
+        })
+    }
+
+    fn system_display_uri(&self) -> String {
+        todo!()
     }
 }
 
@@ -133,8 +139,8 @@ impl Default for State {
     fn default() -> Self {
         Self {
             input: ValidationState::new(ProxyInput::default(), VALIDATE_PROXY.clone()),
-            target: None,
             expanded: false,
+            target: None,
         }
     }
 }
@@ -146,6 +152,28 @@ impl ExpanderData for State {
 
     fn toggle_expanded(&mut self, _: &Env) {
         self.expanded = !self.expanded
+    }
+}
+
+impl<W> Controller<State, W> for ProxyController
+where
+    W: Widget<State>,
+{
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut State,
+        env: &Env,
+    ) {
+        let proxy = data.input.result().ok().cloned();
+
+        child.event(ctx, event, data, env);
+
+        if data.input.text().system && !data.input.result().ok().cloned().same(&proxy) {
+            data.update_system_display_uri();
+        }
     }
 }
 
@@ -162,7 +190,7 @@ fn system_display_uri(proxy: Result<&Proxy, &ArcStr>, target: Option<&Uri>) -> A
     }
 }
 
-static VALIDATE_PROXY: Lazy<ValidationFn<ProxyInput, Proxy, ArcStr>> =
+static VALIDATE_PROXY: Lazy<ValidationFn<ProxyInput, Proxy>> =
     Lazy::new(|| Arc::new(validate_proxy));
 
 fn validate_proxy(s: &ProxyInput) -> Result<Proxy, ArcStr> {

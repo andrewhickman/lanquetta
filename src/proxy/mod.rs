@@ -28,14 +28,18 @@ pub struct Proxy {
 }
 
 #[derive(Debug)]
-struct ProxyInner {}
+struct ProxyInner {
+    kind: ProxyKind,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind")]
 pub enum ProxyKind {
     None,
-    System,
-    #[serde(with = "http_serde::uri")]
-    Custom(Uri),
+    Custom {
+        #[serde(with = "http_serde::uri")]
+        uri: Uri,
+    },
 }
 
 impl Proxy {
@@ -76,11 +80,7 @@ impl From<ProxyKind> for Proxy {
     fn from(kind: ProxyKind) -> Self {
         match kind {
             ProxyKind::None => Proxy::none(),
-            ProxyKind::System => Proxy::system().unwrap_or_else(|err| {
-                tracing::error!("failed to load system proxy: {:?}", err);
-                Proxy::none()
-            }),
-            ProxyKind::Custom(uri) => Proxy::custom(uri),
+            ProxyKind::Custom { uri } => Proxy::custom(uri),
         }
     }
 }

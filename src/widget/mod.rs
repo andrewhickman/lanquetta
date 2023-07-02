@@ -23,7 +23,7 @@ pub use self::{
     expander::ExpanderData,
     form_field::{
         FinishEditController, FormField, ValidationFn, ValidationState, ERROR_MESSAGE, FINISH_EDIT,
-        START_EDIT,
+        REFRESH, START_EDIT,
     },
     icon::Icon,
     tabs::{TabId, TabLabelState, TabsData, TabsDataChange},
