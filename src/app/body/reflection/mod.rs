@@ -50,6 +50,8 @@ pub fn build_body() -> impl Widget<ReflectionTabState> {
             .with_spacer(theme::BODY_SPACER)
             .with_child(Label::new("Metadata").with_font(theme::font::HEADER_TWO))
             .with_spacer(theme::BODY_SPACER)
+            .with_child(proxy::build().lens(ReflectionTabState::proxy))
+            .with_spacer(theme::BODY_SPACER)
             .with_child(metadata::build_editable().lens(ReflectionTabState::metadata))
             .with_child(
                 Maybe::new(move || build_service_list(id), empty)
@@ -110,7 +112,7 @@ impl ReflectionTabState {
             verify_certs: options.verify_certs,
             metadata: metadata::EditableState::new(options.default_metadata),
             services: None,
-            proxy: proxy::State::new(options.proxy, options.default_address),
+            proxy: proxy::State::new(options.proxy),
         }
     }
 

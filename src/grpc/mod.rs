@@ -14,6 +14,8 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{client::Grpc, metadata::MetadataMap, transport::Channel, Extensions, Status};
 
+use crate::proxy::Proxy;
+
 pub type ConnectResult = Result<Client>;
 
 pub enum ResponseResult {
@@ -54,8 +56,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new(uri: &Uri, verify_certs: bool) -> ConnectResult {
-        let channel = channel::get(uri, verify_certs).await?;
+    pub async fn new(uri: &Uri, verify_certs: bool, proxy: Proxy) -> ConnectResult {
+        let channel = channel::get(uri, verify_certs, proxy).await?;
         Ok(Client {
             grpc: Grpc::new(channel),
         })

@@ -109,7 +109,7 @@ pub fn error_label(insets: impl Into<Insets>) -> impl Widget<Option<ArcStr>> {
                 Label::new(|data: &ArcStr, _: &Env| data.clone())
                     .with_text_alignment(TextAlignment::Start)
                     .with_line_break_mode(LineBreaking::WordWrap)
-                    .align_vertical(UnitPoint::CENTER),
+                    .align_vertical(UnitPoint::LEFT),
             )
             .padding(insets)
         },

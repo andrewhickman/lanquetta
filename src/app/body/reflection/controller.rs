@@ -25,6 +25,7 @@ use crate::{
     },
     error::fmt_grpc_err,
     grpc,
+    proxy::Proxy,
     widget::update_queue::{self, UpdateQueue},
 };
 
@@ -100,12 +101,14 @@ impl ReflectionController {
             tracing::warn!("list-services called with invalid uri");
             return;
         };
-        let verify_certs = data.verify_certs;
         let metadata = data.metadata.metadata();
 
         let writer = self.updates.writer(ctx);
+        let options = data.service_options();
         tokio::spawn(async move {
-            let result = ReflectionSession::connect(address, verify_certs, metadata).await;
+            let result =
+                ReflectionSession::connect(address, options.verify_certs, options.proxy, metadata)
+                    .await;
             writer.write(|controller, _, data| match result {
                 Ok(session) => {
                     data.address.set_request_state(RequestState::Connected);
@@ -150,8 +153,13 @@ impl ReflectionController {
 }
 
 impl ReflectionSession {
-    async fn connect(address: Uri, verify_certs: bool, metadata: MetadataMap) -> Result<Self> {
-        let channel = grpc::channel::get(&address, verify_certs).await?;
+    async fn connect(
+        address: Uri,
+        verify_certs: bool,
+        proxy: Proxy,
+        metadata: MetadataMap,
+    ) -> Result<Self> {
+        let channel = grpc::channel::get(&address, verify_certs, proxy).await?;
         let mut client = ServerReflectionClient::new(channel);
 
         let (sender, request_receiver) = mpsc::unbounded_channel::<ServerReflectionRequest>();

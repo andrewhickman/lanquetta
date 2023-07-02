@@ -11,6 +11,8 @@ use rustls::RootCertStore;
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
+use crate::proxy::Proxy;
+
 static CHANNELS: Lazy<DashMap<ChannelKey, Arc<Mutex<ChannelState>>>> = Lazy::new(Default::default);
 
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -25,7 +27,7 @@ enum ChannelState {
     Error,
 }
 
-pub async fn get(uri: &Uri, verify_certs: bool) -> Result<Channel> {
+pub async fn get(uri: &Uri, verify_certs: bool, proxy: Proxy) -> Result<Channel> {
     let key = ChannelKey {
         uri: uri.clone(),
         verify_certs,
@@ -33,7 +35,11 @@ pub async fn get(uri: &Uri, verify_certs: bool) -> Result<Channel> {
     let state = match CHANNELS.entry(key) {
         Entry::Occupied(entry) => entry.get().clone(),
         Entry::Vacant(entry) => {
-            let state = Arc::new(Mutex::new(ChannelState::new(uri.clone(), verify_certs)));
+            let state = Arc::new(Mutex::new(ChannelState::new(
+                uri.clone(),
+                verify_certs,
+                proxy.clone(),
+            )));
             entry.insert(Arc::clone(&state));
             state
         }
@@ -55,19 +61,19 @@ pub async fn get(uri: &Uri, verify_certs: bool) -> Result<Channel> {
             }
             ChannelState::Ready(channel) => return Ok(channel.clone()),
             ChannelState::Error => {
-                *lock = ChannelState::new(uri.clone(), verify_certs);
+                *lock = ChannelState::new(uri.clone(), verify_certs, proxy.clone());
             }
         }
     }
 }
 
 impl ChannelState {
-    fn new(uri: Uri, verify_certs: bool) -> Self {
-        ChannelState::Pending(Box::pin(connect(uri, verify_certs)))
+    fn new(uri: Uri, verify_certs: bool, proxy: Proxy) -> Self {
+        ChannelState::Pending(Box::pin(connect(uri, verify_certs, proxy)))
     }
 }
 
-async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel> {
+async fn connect(uri: Uri, verify_certs: bool, proxy: Proxy) -> Result<Channel> {
     let is_https = uri.scheme() == Some(&Scheme::HTTPS);
     let builder = Channel::builder(uri);
 
@@ -77,22 +83,9 @@ async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel> {
         http.set_nodelay(true);
 
         let rustls_config = if verify_certs {
-            static ROOT_STORE: OnceCell<RootCertStore> = OnceCell::new();
-
-            let root_store = ROOT_STORE
-                .get_or_try_init::<_, Error>(|| {
-                    let mut roots = RootCertStore::empty();
-                    for cert in rustls_native_certs::load_native_certs()? {
-                        roots.add(&rustls::Certificate(cert.0))?;
-                    }
-                    Ok(roots)
-                })
-                .context("failed to load trusted root certificate store")?
-                .clone();
-
             rustls::ClientConfig::builder()
                 .with_safe_defaults()
-                .with_root_certificates(root_store)
+                .with_root_certificates(native_root_cert_store()?)
                 .with_no_client_auth()
         } else {
             rustls::ClientConfig::builder()
@@ -111,6 +104,21 @@ async fn connect(uri: Uri, verify_certs: bool) -> Result<Channel> {
     } else {
         Ok(builder.connect().await?)
     }
+}
+
+fn native_root_cert_store() -> Result<RootCertStore> {
+    static ROOT_STORE: OnceCell<RootCertStore> = OnceCell::new();
+
+    Ok(ROOT_STORE
+        .get_or_try_init::<_, Error>(|| {
+            let mut roots = RootCertStore::empty();
+            for cert in rustls_native_certs::load_native_certs()? {
+                roots.add(&rustls::Certificate(cert.0))?;
+            }
+            Ok(roots)
+        })
+        .context("failed to load trusted root certificate store")?
+        .clone())
 }
 
 struct DangerousCertificateVerifier;

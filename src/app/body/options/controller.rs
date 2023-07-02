@@ -103,9 +103,9 @@ impl OptionsTabController {
         };
 
         let update_writer = self.updates.writer(ctx);
-        let verify_certs = data.service_options().verify_certs;
+        let options = data.service_options();
         tokio::spawn(async move {
-            let result = grpc::Client::new(&uri, verify_certs).await;
+            let result = grpc::Client::new(&uri, options.verify_certs, options.proxy).await;
             update_writer.write(|controller, _, data| controller.finish_connect(data, result));
         });
 

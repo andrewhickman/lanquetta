@@ -60,7 +60,7 @@ impl Default for ServiceOptions {
             verify_certs: true,
             default_metadata: metadata::State::default(),
             auth_hook: None,
-            proxy: Proxy::none(),
+            proxy: Proxy::None,
         }
     }
 }

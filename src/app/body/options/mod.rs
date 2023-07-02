@@ -111,7 +111,7 @@ impl OptionsTabState {
             verify_certs: options.verify_certs,
             default_metadata: metadata::EditableState::new(options.default_metadata),
             auth: auth::State::new(&options.auth_hook),
-            proxy: proxy::State::new(options.proxy, options.default_address),
+            proxy: proxy::State::new(options.proxy),
         }
     }
 
@@ -131,10 +131,6 @@ impl OptionsTabState {
             auth_hook: self.auth.hook(),
             proxy: self.proxy.get(),
         }
-    }
-
-    pub fn set_service_options(&mut self, options: &ServiceOptions) {
-        self.proxy.set_target(options.default_address.clone());
     }
 
     pub fn can_connect(&self) -> bool {
