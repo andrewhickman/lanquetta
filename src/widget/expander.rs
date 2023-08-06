@@ -102,7 +102,7 @@ where
                     .map(|(icon, on_close)| {
                         WidgetPod::new(
                             icon.background(Painter::new(paint_button_background))
-                                .lens::<T, _>(lens::Unit::default())
+                                .lens::<T, _>(lens::Unit)
                                 .controller(CloseButtonController { on_close })
                                 .boxed(),
                         )
