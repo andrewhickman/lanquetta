@@ -67,7 +67,7 @@ serde = { version = "1.0.164", features = ["derive", "rc"] }
 serde_json = "1.0.96"
 serde-transcode = "1.1.1"
 tokio-stream = "0.1.14"
-tokio = { version = "1.28.2", features = ["rt-multi-thread", "sync", "fs", "process"] }
+tokio = { version = "1.31.0", features = ["rt-multi-thread", "sync", "fs", "process"] }
 tonic = { version = "0.9.2", default-features = false, features = [
     "transport"
 ] }
